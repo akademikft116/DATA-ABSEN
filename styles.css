@@ -298,6 +298,11 @@ body {
     color: var(--white);
 }
 
+.btn-secondary:hover {
+    background: #7f8c8d;
+    transform: translateY(-2px);
+}
+
 .btn-outline {
     background: transparent;
     border: 2px solid var(--border);
@@ -317,6 +322,16 @@ body {
 .btn-export {
     background: var(--success);
     color: var(--white);
+}
+
+.btn-export:hover {
+    background: #219a52;
+    transform: translateY(-2px);
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
 }
 
 /* Forms */
@@ -351,8 +366,14 @@ body {
 
 .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
+}
+
+.form-text {
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin-top: 0.25rem;
 }
 
 /* Attendance Form */
@@ -370,6 +391,7 @@ body {
 /* Tables */
 .table-responsive {
     overflow-x: auto;
+    margin: 1rem 0;
 }
 
 .data-table {
@@ -389,10 +411,81 @@ body {
     background: var(--light);
     font-weight: 600;
     color: var(--dark);
+    position: sticky;
+    top: 0;
 }
 
 .data-table tr:hover {
     background: #f8f9fa;
+}
+
+.data-table tr.total-row {
+    background-color: #e8f4fc;
+    font-weight: bold;
+}
+
+.data-table tr.summary-row {
+    background-color: #f0f8ff;
+}
+
+/* Overtime Table Styles */
+.overtime-table tbody tr.employee-header {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+.overtime-table tbody tr.employee-total {
+    background-color: #e8f4fc;
+    font-weight: bold;
+}
+
+.overtime-table tbody tr.payment-row {
+    background-color: #f0f8ff;
+}
+
+/* Overtime Summary */
+.overtime-summary {
+    margin-top: 2rem;
+}
+
+.summary-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--success);
+}
+
+.summary-card h4 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--primary);
+}
+
+.summary-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--light);
+    border-radius: 8px;
+}
+
+.summary-item span {
+    color: var(--dark);
+}
+
+.summary-item strong {
+    color: var(--success);
+    font-size: 1.1rem;
 }
 
 /* Tabs */
@@ -557,6 +650,8 @@ body {
     align-items: center;
     gap: 0.75rem;
     animation: toastSlideIn 0.3s ease-out;
+    min-width: 300px;
+    max-width: 400px;
 }
 
 @keyframes toastSlideIn {
@@ -592,6 +687,81 @@ body {
     color: var(--danger);
 }
 
+.toast.warning .toast-icon {
+    color: var(--warning);
+}
+
+.toast.info .toast-icon {
+    color: var(--info);
+}
+
+.toast-message {
+    flex: 1;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.status-present {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-late {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-absent {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-overtime {
+    background: #cce7ff;
+    color: #004085;
+}
+
+/* Table Controls */
+.table-controls {
+    margin-bottom: 1rem;
+}
+
+.filters {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filters .form-control {
+    min-width: 150px;
+}
+
+/* Report Filters */
+.report-filters {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.date-range {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.date-range span {
+    color: var(--gray);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .nav-container {
@@ -601,10 +771,13 @@ body {
 
     .nav-menu {
         gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
     }
 
     .nav-item {
         padding: 0.5rem 1rem;
+        font-size: 0.9rem;
     }
 
     .main-content {
@@ -636,6 +809,25 @@ body {
     .btn-lg {
         width: 100%;
     }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .summary-content {
+        grid-template-columns: 1fr;
+    }
+
+    .filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filters .form-control {
+        min-width: 100%;
+    }
 }
 
 /* Loading States */
@@ -644,30 +836,38 @@ body {
     pointer-events: none;
 }
 
-/* Status Badges */
-.status-badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
+/* Text Center */
+.text-center {
+    text-align: center;
 }
 
-.status-present {
-    background: #d4edda;
-    color: #155724;
+/* Overtime Section Specific Styles */
+.overtime-section .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
 }
 
-.status-late {
-    background: #fff3cd;
-    color: #856404;
+.overtime-section .form-group {
+    margin-bottom: 1.5rem;
 }
 
-.status-absent {
-    background: #f8d7da;
-    color: #721c24;
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
-.status-overtime {
-    background: #cce7ff;
-    color: #004085;
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--secondary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #2980b9;
 }
