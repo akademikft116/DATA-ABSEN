@@ -1,325 +1,416 @@
-// Fungsi untuk mengubah format waktu
-function formatTime(timeStr) {
-    if (!timeStr) return "-";
-    
-    // Jika waktu sudah dalam format HH:MM
-    if (timeStr.includes(":")) {
-        return timeStr;
+const API_BASE_URL = 'http://localhost:3000/api';
+
+class AttendanceSystem {
+    constructor() {
+        this.initializeApp();
     }
-    
-    // Jika waktu dalam format desimal (misal 7.15)
-    if (timeStr.includes(".")) {
-        const parts = timeStr.split(".");
-        const hours = parts[0].padStart(2, '0');
-        const minutes = Math.round(parseFloat("0." + parts[1]) * 60).toString().padStart(2, '0');
-        return `${hours}:${minutes}`;
+
+    async initializeApp() {
+        this.initializeTabs();
+        await this.loadEmployees();
+        this.initializeEventListeners();
+        await this.loadAttendanceData();
+        this.setCurrentDateTime();
     }
-    
-    return timeStr;
-}
 
-// Fungsi untuk menghitung durasi kerja
-function calculateDuration(timeIn, timeOut) {
-    if (!timeIn || !timeOut || timeIn === "-" || timeOut === "-") return "-";
-    
-    try {
-        // Konversi waktu ke menit
-        const [inHours, inMinutes] = timeIn.split(":").map(Number);
-        const [outHours, outMinutes] = timeOut.split(":").map(Number);
+    initializeTabs() {
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
         
-        const totalInMinutes = inHours * 60 + inMinutes;
-        const totalOutMinutes = outHours * 60 + outMinutes;
-        
-        // Jika waktu keluar lebih kecil dari waktu masuk, tambah 24 jam
-        const durationMinutes = totalOutMinutes >= totalInMinutes 
-            ? totalOutMinutes - totalInMinutes 
-            : (totalOutMinutes + 24*60) - totalInMinutes;
-        
-        const hours = Math.floor(durationMinutes / 60);
-        const minutes = durationMinutes % 60;
-        
-        return `${hours} jam ${minutes} menit`;
-    } catch (e) {
-        return "-";
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.getAttribute('data-tab');
+                
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
     }
-}
 
-// Fungsi untuk menampilkan data absensi
-function displayAttendanceData(filteredData = attendanceData) {
-    const tbody = document.getElementById('attendanceData');
-    
-    if (filteredData.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="empty-state">
-                    <div>📊</div>
-                    <p>Tidak ada data absensi yang sesuai dengan filter</p>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    tbody.innerHTML = '';
-    
-    filteredData.forEach(record => {
-        const row = document.createElement('tr');
-        const formattedTimeIn = formatTime(record.timeIn);
-        const formattedTimeOut = formatTime(record.timeOut);
-        const duration = calculateDuration(formattedTimeIn, formattedTimeOut);
-        
-        row.innerHTML = `
-            <td><strong>${record.name}</strong></td>
-            <td class="date-cell">${formatDate(record.date)}</td>
-            <td class="time-cell">${formattedTimeIn}</td>
-            <td class="time-cell">${formattedTimeOut}</td>
-            <td class="time-cell">${duration}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// Fungsi untuk menampilkan data lembur
-function displayOvertimeData(filteredData = overtimeData) {
-    const tbody = document.getElementById('overtimeData');
-    
-    if (filteredData.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="empty-state">
-                    <div>⏰</div>
-                    <p>Tidak ada data lembur yang sesuai dengan filter</p>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    tbody.innerHTML = '';
-    
-    filteredData.forEach(record => {
-        const row = document.createElement('tr');
-        const formattedTimeIn = formatTime(record.timeIn);
-        const formattedTimeOut = formatTime(record.timeOut);
-        const overtimePay = record.hours * 10000;
-        
-        row.innerHTML = `
-            <td><strong>${record.name}</strong></td>
-            <td class="date-cell">${formatDate(record.date)}</td>
-            <td class="time-cell">${formattedTimeIn}</td>
-            <td class="time-cell">${formattedTimeOut}</td>
-            <td class="time-cell overtime-hours">${record.hours} jam</td>
-            <td class="time-cell overtime-hours">Rp ${overtimePay.toLocaleString('id-ID')}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// Fungsi untuk menampilkan data lembur K3
-function displayK3OvertimeData() {
-    const tbody = document.getElementById('k3OvertimeData');
-    tbody.innerHTML = '';
-    
-    k3OvertimeData.forEach(record => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><strong>${record.name}</strong></td>
-            <td class="time-cell">${record.totalHours} jam</td>
-            <td class="time-cell">${record.roundedHours} jam</td>
-            <td class="time-cell overtime-hours">Rp ${record.totalPayment.toLocaleString('id-ID')}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// Fungsi untuk memformat tanggal
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-}
-
-// Fungsi untuk mengisi dropdown filter karyawan
-function populateEmployeeFilters() {
-    const employeeFilter = document.getElementById('employeeFilter');
-    const overtimeEmployeeFilter = document.getElementById('overtimeEmployeeFilter');
-    
-    // Dapatkan daftar karyawan unik dari data absensi
-    const employees = [...new Set(attendanceData.map(record => record.name))].sort();
-    
-    // Kosongkan dropdown terlebih dahulu
-    employeeFilter.innerHTML = '<option value="all">Semua Karyawan</option>';
-    overtimeEmployeeFilter.innerHTML = '<option value="all">Semua Karyawan</option>';
-    
-    // Tambahkan setiap karyawan ke dropdown
-    employees.forEach(employee => {
-        const option1 = document.createElement('option');
-        option1.value = employee;
-        option1.textContent = employee;
-        employeeFilter.appendChild(option1);
-        
-        const option2 = document.createElement('option');
-        option2.value = employee;
-        option2.textContent = employee;
-        overtimeEmployeeFilter.appendChild(option2);
-    });
-}
-
-// Fungsi untuk menghitung ringkasan
-function calculateSummary() {
-    // Hitung total karyawan
-    const employees = [...new Set(attendanceData.map(record => record.name))];
-    document.getElementById('totalEmployees').textContent = employees.length;
-    
-    // Hitung total kehadiran
-    document.getElementById('totalAttendance').textContent = attendanceData.length;
-    
-    // Hitung total jam lembur
-    const totalOvertimeHours = overtimeData.reduce((sum, record) => sum + record.hours, 0);
-    document.getElementById('totalOvertime').textContent = totalOvertimeHours + " jam";
-    
-    // Buat ringkasan per karyawan
-    const summaryTbody = document.getElementById('summaryData');
-    summaryTbody.innerHTML = '';
-    
-    employees.forEach(employee => {
-        const employeeRecords = attendanceData.filter(record => record.name === employee);
-        const workDays = employeeRecords.length;
-        
-        // Hitung rata-rata jam kerja
-        let totalWorkMinutes = 0;
-        let validRecords = 0;
-        
-        employeeRecords.forEach(record => {
-            const timeIn = formatTime(record.timeIn);
-            const timeOut = formatTime(record.timeOut);
+    async loadEmployees() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/employees`);
+            const employees = await response.json();
             
-            if (timeIn !== "-" && timeOut !== "-") {
-                const [inHours, inMinutes] = timeIn.split(":").map(Number);
-                const [outHours, outMinutes] = timeOut.split(":").map(Number);
-                
-                const totalInMinutes = inHours * 60 + inMinutes;
-                const totalOutMinutes = outHours * 60 + outMinutes;
-                const durationMinutes = totalOutMinutes >= totalInMinutes 
-                    ? totalOutMinutes - totalInMinutes 
-                    : (totalOutMinutes + 24*60) - totalInMinutes;
-                
-                totalWorkMinutes += durationMinutes;
-                validRecords++;
+            this.populateEmployeeDropdowns(employees);
+        } catch (error) {
+            this.showNotification('Error loading employees', 'error');
+            console.error('Error loading employees:', error);
+        }
+    }
+
+    populateEmployeeDropdowns(employees) {
+        const dropdowns = [
+            'employeeName',
+            'employeeFilter',
+            'overtimeEmployeeFilter'
+        ];
+
+        dropdowns.forEach(dropdownId => {
+            const dropdown = document.getElementById(dropdownId);
+            dropdown.innerHTML = dropdownId === 'employeeName' 
+                ? '<option value="">Pilih Karyawan</option>'
+                : '<option value="all">Semua Karyawan</option>';
+            
+            employees.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee.name;
+                option.textContent = employee.name;
+                dropdown.appendChild(option);
+            });
+        });
+    }
+
+    initializeEventListeners() {
+        // Attendance form
+        document.getElementById('submitAttendance').addEventListener('click', () => this.submitAttendance());
+        document.getElementById('autoTime').addEventListener('click', () => this.setCurrentDateTime());
+        
+        // Filters
+        document.getElementById('employeeFilter').addEventListener('change', () => this.filterAttendanceData());
+        document.getElementById('dateFilter').addEventListener('change', () => this.filterAttendanceData());
+        document.getElementById('overtimeEmployeeFilter').addEventListener('change', () => this.filterOvertimeData());
+        document.getElementById('resetFilters').addEventListener('click', () => this.resetFilters());
+        document.getElementById('refreshData').addEventListener('click', () => this.loadAttendanceData());
+        document.getElementById('calculateOvertime').addEventListener('click', () => this.calculateOvertime());
+        
+        // Modal
+        document.querySelector('.close').addEventListener('click', () => this.closeModal());
+        document.getElementById('editForm').addEventListener('submit', (e) => this.updateAttendance(e));
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('editModal');
+            if (e.target === modal) {
+                this.closeModal();
             }
         });
-        
-        const avgWorkHours = validRecords > 0 
-            ? `${Math.floor(totalWorkMinutes / validRecords / 60)} jam ${Math.floor((totalWorkMinutes / validRecords) % 60)} menit`
-            : "-";
-        
-        // Hitung total jam lembur
-        const employeeOvertime = overtimeData.filter(record => 
-            record.name.toLowerCase().includes(employee.toLowerCase().split(' ')[1] || employee.toLowerCase())
-        );
-        const totalOvertime = employeeOvertime.reduce((sum, record) => sum + record.hours, 0);
-        
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><strong>${employee}</strong></td>
-            <td class="time-cell">${workDays} hari</td>
-            <td class="time-cell">${avgWorkHours}</td>
-            <td class="time-cell overtime-hours">${totalOvertime} jam</td>
-        `;
-        summaryTbody.appendChild(row);
-    });
-}
-
-// Fungsi untuk memfilter data absensi
-function filterAttendanceData() {
-    const employeeFilter = document.getElementById('employeeFilter').value;
-    const dateFilter = document.getElementById('dateFilter').value;
-    
-    let filteredData = attendanceData;
-    
-    // Filter berdasarkan karyawan
-    if (employeeFilter !== 'all') {
-        filteredData = filteredData.filter(record => record.name === employeeFilter);
     }
-    
-    // Filter berdasarkan tanggal
-    if (dateFilter) {
-        filteredData = filteredData.filter(record => record.date === dateFilter);
+
+    setCurrentDateTime() {
+        const now = new Date();
+        const date = now.toISOString().split('T')[0];
+        const time = now.toTimeString().split(' ')[0].substring(0, 5);
+        
+        document.getElementById('attendanceDate').value = date;
+        document.getElementById('attendanceTime').value = time;
     }
-    
-    displayAttendanceData(filteredData);
-}
 
-// Fungsi untuk memfilter data lembur
-function filterOvertimeData() {
-    const employeeFilter = document.getElementById('overtimeEmployeeFilter').value;
-    
-    let filteredData = overtimeData;
-    
-    // Filter berdasarkan karyawan
-    if (employeeFilter !== 'all') {
-        filteredData = filteredData.filter(record => 
-            record.name.toLowerCase().includes(employeeFilter.toLowerCase().split(' ')[1] || employeeFilter.toLowerCase())
-        );
+    async submitAttendance() {
+        const name = document.getElementById('employeeName').value;
+        const type = document.getElementById('attendanceType').value;
+        const date = document.getElementById('attendanceDate').value;
+        const time = document.getElementById('attendanceTime').value;
+
+        if (!name || !date || !time) {
+            this.showNotification('Harap isi semua field', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/attendance`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    type,
+                    date,
+                    time
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                this.showNotification('Absensi berhasil disimpan', 'success');
+                this.resetAttendanceForm();
+                await this.loadAttendanceData();
+            } else {
+                this.showNotification(result.error || 'Error saving attendance', 'error');
+            }
+        } catch (error) {
+            this.showNotification('Error saving attendance', 'error');
+            console.error('Error:', error);
+        }
     }
-    
-    displayOvertimeData(filteredData);
-}
 
-// Fungsi untuk reset filter
-function resetFilters() {
-    document.getElementById('employeeFilter').value = 'all';
-    document.getElementById('dateFilter').value = '';
-    document.getElementById('overtimeEmployeeFilter').value = 'all';
-    
-    displayAttendanceData();
-    displayOvertimeData();
-}
+    resetAttendanceForm() {
+        document.getElementById('employeeName').value = '';
+        document.getElementById('attendanceType').value = 'in';
+        this.setCurrentDateTime();
+    }
 
-// Fungsi untuk inisialisasi tab
-function initializeTabs() {
-    const tabs = document.querySelectorAll('.tab');
-    const tabContents = document.querySelectorAll('.tab-content');
-    
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabId = tab.getAttribute('data-tab');
+    async loadAttendanceData() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/attendance`);
+            const data = await response.json();
             
-            // Hapus class active dari semua tab dan konten
-            tabs.forEach(t => t.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
+            this.displayAttendanceData(data);
+            this.calculateSummary(data);
+        } catch (error) {
+            this.showNotification('Error loading attendance data', 'error');
+            console.error('Error:', error);
+        }
+    }
+
+    displayAttendanceData(data) {
+        const tbody = document.getElementById('attendanceData');
+        
+        if (data.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state">
+                        <div>📊</div>
+                        <p>Tidak ada data absensi</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        
+        data.forEach((record, index) => {
+            const row = document.createElement('tr');
+            const duration = this.calculateDuration(record.timeIn, record.timeOut);
             
-            // Tambah class active ke tab dan konten yang diklik
-            tab.classList.add('active');
-            document.getElementById(tabId).classList.add('active');
+            row.innerHTML = `
+                <td><strong>${record.name}</strong></td>
+                <td class="date-cell">${this.formatDate(record.date)}</td>
+                <td class="time-cell">${record.timeIn || '-'}</td>
+                <td class="time-cell">${record.timeOut || '-'}</td>
+                <td class="time-cell">${duration}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary btn-sm" onclick="attendanceSystem.editAttendance(${index})">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="attendanceSystem.deleteAttendance('${record.date}', '${record.name}')">Hapus</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
         });
-    });
+    }
+
+    calculateDuration(timeIn, timeOut) {
+        if (!timeIn || !timeOut) return '-';
+        
+        try {
+            const [inHours, inMinutes] = timeIn.split(':').map(Number);
+            const [outHours, outMinutes] = timeOut.split(':').map(Number);
+            
+            const totalInMinutes = inHours * 60 + inMinutes;
+            const totalOutMinutes = outHours * 60 + outMinutes;
+            
+            const durationMinutes = totalOutMinutes >= totalInMinutes 
+                ? totalOutMinutes - totalInMinutes 
+                : (totalOutMinutes + 24*60) - totalInMinutes;
+            
+            const hours = Math.floor(durationMinutes / 60);
+            const minutes = durationMinutes % 60;
+            
+            return `${hours} jam ${minutes} menit`;
+        } catch (e) {
+            return '-';
+        }
+    }
+
+    formatDate(dateStr) {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+
+    filterAttendanceData() {
+        // This would filter the displayed data without reloading from server
+        // For now, we'll reload all data and filter client-side
+        this.loadAttendanceData();
+    }
+
+    filterOvertimeData() {
+        // Similar to filterAttendanceData
+        this.calculateOvertime();
+    }
+
+    resetFilters() {
+        document.getElementById('employeeFilter').value = 'all';
+        document.getElementById('dateFilter').value = '';
+        document.getElementById('overtimeEmployeeFilter').value = 'all';
+        this.loadAttendanceData();
+    }
+
+    async calculateOvertime() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/overtime`);
+            const overtimeData = await response.json();
+            this.displayOvertimeData(overtimeData);
+        } catch (error) {
+            this.showNotification('Error calculating overtime', 'error');
+            console.error('Error:', error);
+        }
+    }
+
+    displayOvertimeData(data) {
+        const tbody = document.getElementById('overtimeData');
+        
+        if (data.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state">
+                        <div>⏰</div>
+                        <p>Tidak ada data lembur</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        
+        data.forEach(record => {
+            const row = document.createElement('tr');
+            const overtimePay = record.overtimeHours * 10000;
+            
+            row.innerHTML = `
+                <td><strong>${record.name}</strong></td>
+                <td class="date-cell">${this.formatDate(record.date)}</td>
+                <td class="time-cell">${record.timeIn}</td>
+                <td class="time-cell">${record.timeOut}</td>
+                <td class="time-cell overtime-hours">${record.overtimeHours} jam</td>
+                <td class="time-cell overtime-hours">Rp ${overtimePay.toLocaleString('id-ID')}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    calculateSummary(data) {
+        const employees = [...new Set(data.map(record => record.name))];
+        document.getElementById('totalEmployees').textContent = employees.length;
+        document.getElementById('totalAttendance').textContent = data.length;
+        
+        // Calculate total overtime hours
+        const totalOvertime = data.reduce((sum, record) => {
+            if (record.timeIn && record.timeOut) {
+                const [inHours] = record.timeIn.split(':').map(Number);
+                const [outHours] = record.timeOut.split(':').map(Number);
+                const hoursWorked = outHours - inHours;
+                return sum + Math.max(0, hoursWorked - 8);
+            }
+            return sum;
+        }, 0);
+        
+        document.getElementById('totalOvertime').textContent = totalOvertime.toFixed(1) + " jam";
+        
+        this.displaySummaryTable(data, employees);
+    }
+
+    displaySummaryTable(data, employees) {
+        const tbody = document.getElementById('summaryData');
+        tbody.innerHTML = '';
+        
+        employees.forEach(employee => {
+            const employeeRecords = data.filter(record => record.name === employee);
+            const workDays = employeeRecords.length;
+            
+            let totalWorkMinutes = 0;
+            let validRecords = 0;
+            let totalOvertime = 0;
+            
+            employeeRecords.forEach(record => {
+                if (record.timeIn && record.timeOut) {
+                    const [inHours, inMinutes] = record.timeIn.split(':').map(Number);
+                    const [outHours, outMinutes] = record.timeOut.split(':').map(Number);
+                    
+                    const totalInMinutes = inHours * 60 + inMinutes;
+                    const totalOutMinutes = outHours * 60 + outMinutes;
+                    const durationMinutes = totalOutMinutes >= totalInMinutes 
+                        ? totalOutMinutes - totalInMinutes 
+                        : (totalOutMinutes + 24*60) - totalInMinutes;
+                    
+                    totalWorkMinutes += durationMinutes;
+                    validRecords++;
+                    
+                    // Calculate overtime (more than 8 hours)
+                    const hoursWorked = durationMinutes / 60;
+                    totalOvertime += Math.max(0, hoursWorked - 8);
+                }
+            });
+            
+            const avgWorkHours = validRecords > 0 
+                ? `${Math.floor(totalWorkMinutes / validRecords / 60)} jam ${Math.floor((totalWorkMinutes / validRecords) % 60)} menit`
+                : "-";
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${employee}</strong></td>
+                <td class="time-cell">${workDays} hari</td>
+                <td class="time-cell">${avgWorkHours}</td>
+                <td class="time-cell overtime-hours">${totalOvertime.toFixed(1)} jam</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    editAttendance(index) {
+        // For now, we'll just show a simple edit modal
+        // In a real implementation, you'd load the actual record data
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    closeModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    async updateAttendance(e) {
+        e.preventDefault();
+        // Implementation for updating attendance
+        this.showNotification('Fitur edit sedang dalam pengembangan', 'success');
+        this.closeModal();
+    }
+
+    async deleteAttendance(date, name) {
+        if (confirm(`Hapus absensi ${name} pada ${this.formatDate(date)}?`)) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/attendance`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ date, name })
+                });
+
+                if (response.ok) {
+                    this.showNotification('Absensi berhasil dihapus', 'success');
+                    await this.loadAttendanceData();
+                } else {
+                    this.showNotification('Error deleting attendance', 'error');
+                }
+            } catch (error) {
+                this.showNotification('Error deleting attendance', 'error');
+                console.error('Error:', error);
+            }
+        }
+    }
+
+    showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
 }
 
-// Fungsi untuk inisialisasi event listeners
-function initializeEventListeners() {
-    // Filter event listeners
-    document.getElementById('employeeFilter').addEventListener('change', filterAttendanceData);
-    document.getElementById('dateFilter').addEventListener('change', filterAttendanceData);
-    document.getElementById('overtimeEmployeeFilter').addEventListener('change', filterOvertimeData);
-    document.getElementById('resetFilters').addEventListener('click', resetFilters);
-}
-
-// Fungsi inisialisasi aplikasi
-function initializeApp() {
-    initializeTabs();
-    populateEmployeeFilters();
-    initializeEventListeners();
-    
-    // Tampilkan data awal
-    displayAttendanceData();
-    displayOvertimeData();
-    displayK3OvertimeData();
-    calculateSummary();
-}
-
-// Jalankan aplikasi ketika DOM siap
-document.addEventListener('DOMContentLoaded', initializeApp);
+// Initialize the application
+const attendanceSystem = new AttendanceSystem();
