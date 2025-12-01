@@ -57,6 +57,11 @@
                     <i class="fas fa-file-excel"></i>
                     Export Excel
                 </button>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
+                <button class="btn btn-primary" id="importExcel">
+                    <i class="fas fa-file-import"></i>
+                    Import Excel
+                </button>
             </div>
         </div>
 
@@ -340,7 +345,7 @@
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <script src="xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
