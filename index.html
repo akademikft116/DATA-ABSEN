@@ -21,9 +21,13 @@
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard</span>
                 </div>
-                <div class="nav-item active" data-tab="attendance">
+                <div class="nav-item" data-tab="attendance">
                     <i class="fas fa-fingerprint"></i>
                     <span>Absensi</span>
+                </div>
+                <div class="nav-item active" data-tab="overtime">
+                    <i class="fas fa-clock"></i>
+                    <span>Lembur</span>
                 </div>
                 <div class="nav-item" data-tab="reports">
                     <i class="fas fa-chart-bar"></i>
@@ -47,7 +51,7 @@
     <main class="main-content">
         <!-- Header -->
         <div class="content-header">
-            <h1 id="pageTitle">Sistem Absensi Digital</h1>
+            <h1 id="pageTitle">Perhitungan Lembur</h1>
             <div class="header-actions">
                 <div class="datetime-widget">
                     <i class="fas fa-clock"></i>
@@ -58,10 +62,6 @@
                     Export Excel
                 </button>
                 <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
-                <button class="btn btn-primary" id="importExcel">
-                    <i class="fas fa-file-import"></i>
-                    Import Excel
-                </button>
             </div>
         </div>
 
@@ -132,7 +132,7 @@
         </div>
 
         <!-- Attendance Tab -->
-        <div id="attendance" class="tab-content active">
+        <div id="attendance" class="tab-content">
             <div class="attendance-section">
                 <div class="card quick-attendance">
                     <div class="card-header">
@@ -214,6 +214,130 @@
                                     <!-- Data will be populated by JavaScript -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overtime Tab -->
+        <div id="overtime" class="tab-content active">
+            <div class="overtime-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-clock"></i> Perhitungan Lembur</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="overtimeForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="overtimeEmployee"><i class="fas fa-user"></i> Nama Karyawan</label>
+                                    <select id="overtimeEmployee" class="form-control" required>
+                                        <option value="">-- Pilih Karyawan --</option>
+                                        <option value="ATI">ATI</option>
+                                        <option value="IRVAN">IRVAN</option>
+                                        <option value="WINDI">WINDI</option>
+                                        <option value="ARDHI">ARDHI</option>
+                                        <option value="SAJI">SAJI</option>
+                                        <option value="WAHYU">WAHYU</option>
+                                        <option value="ELZI">ELZI</option>
+                                        <option value="NANANG">NANANG</option>
+                                        <option value="DEVI">DEVI</option>
+                                        <option value="INTAN">INTAN</option>
+                                        <option value="ALIFAH">ALIFAH</option>
+                                        <option value="PEBI">PEBI</option>
+                                        <option value="DIAN">DIAN</option>
+                                        <option value="RAFLY">RAFLY</option>
+                                        <option value="ERNI">ERNI</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="overtimeDate"><i class="fas fa-calendar"></i> Tanggal</label>
+                                    <input type="date" id="overtimeDate" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="overtimeIn"><i class="fas fa-sign-in-alt"></i> Jam Masuk</label>
+                                    <input type="text" id="overtimeIn" class="form-control" placeholder="7.15" required>
+                                    <small class="form-text text-muted">Format: jam.menit (contoh: 7.15 untuk jam 7:15)</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="overtimeOut"><i class="fas fa-sign-out-alt"></i> Jam Pulang</label>
+                                    <input type="text" id="overtimeOut" class="form-control" placeholder="16.02" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="normalHours"><i class="fas fa-business-time"></i> Jam Kerja Normal</label>
+                                    <select id="normalHours" class="form-control" required>
+                                        <option value="8">8 Jam</option>
+                                        <option value="7">7 Jam</option>
+                                        <option value="6">6 Jam</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="attendance-actions">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-calculator"></i>
+                                    HITUNG LEMBUR
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="btnResetOvertime">
+                                    <i class="fas fa-redo"></i>
+                                    Reset Form
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list-alt"></i> Data Lembur</h3>
+                        <div class="header-actions">
+                            <div class="datetime-widget">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <span>Rate Lembur: Rp 12,500/jam</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="data-table overtime-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nama</th>
+                                        <th>Hari</th>
+                                        <th>Tanggal</th>
+                                        <th>IN</th>
+                                        <th>OUT</th>
+                                        <th>Jam Kerja</th>
+                                        <th>Total Lembur</th>
+                                        <th>Tanda Tangan</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="overtimeTable">
+                                    <!-- Data lembur akan diisi oleh JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="overtime-summary">
+                            <div class="summary-card">
+                                <h4><i class="fas fa-calculator"></i> Ringkasan Lembur</h4>
+                                <div class="summary-content">
+                                    <div class="summary-item">
+                                        <span>Total Jam Lembur:</span>
+                                        <strong id="totalOvertimeHours">0 jam</strong>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span>Total Dibulatkan:</span>
+                                        <strong id="totalRoundedHours">0 jam</strong>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span>Total Gaji Lembur:</span>
+                                        <strong id="totalOvertimePay">Rp 0</strong>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
