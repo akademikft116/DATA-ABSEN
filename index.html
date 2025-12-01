@@ -3,177 +3,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Absensi Otomatis</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Digital Attendance System - Universitas Langlangbuana</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <div class="header-content">
-            <h1>Sistem Absensi Otomatis</h1>
-            <p>Fakultas Teknik Universitas Langlangbuana</p>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>UNIVERSITAS LANGLANGBUANA</span>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item" data-tab="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item active" data-tab="attendance">
+                    <i class="fas fa-fingerprint"></i>
+                    <span>Absensi</span>
+                </div>
+                <div class="nav-item" data-tab="reports">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Laporan</span>
+                </div>
+                <div class="nav-item" data-tab="employees">
+                    <i class="fas fa-users"></i>
+                    <span>Karyawan</span>
+                </div>
+            </div>
+            <div class="nav-user">
+                <div class="user-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <span>Administrator</span>
+            </div>
         </div>
-    </header>
-    
-    <div class="container">
-        <!-- Form Absensi Real-time -->
-        <div class="card">
-            <h2>Absensi Masuk/Keluar</h2>
-            <div class="attendance-form">
-                <div class="form-group">
-                    <label for="employeeName">Nama Karyawan:</label>
-                    <select id="employeeName" required>
-                        <option value="">Pilih Karyawan</option>
-                    </select>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <div class="content-header">
+            <h1 id="pageTitle">Sistem Absensi Digital</h1>
+            <div class="header-actions">
+                <div class="datetime-widget">
+                    <i class="fas fa-clock"></i>
+                    <span id="currentDateTime"></span>
                 </div>
-                <div class="form-group">
-                    <label for="attendanceType">Jenis Absensi:</label>
-                    <select id="attendanceType" required>
-                        <option value="in">Masuk</option>
-                        <option value="out">Keluar</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="attendanceDate">Tanggal:</label>
-                    <input type="date" id="attendanceDate" required>
-                </div>
-                <div class="form-group">
-                    <label for="attendanceTime">Waktu:</label>
-                    <input type="time" id="attendanceTime" required>
-                </div>
-                <button class="btn btn-primary" id="submitAttendance">Simpan Absensi</button>
-                <button class="btn btn-secondary" id="autoTime">Waktu Sekarang</button>
+                <button class="btn btn-export" id="exportExcel">
+                    <i class="fas fa-file-excel"></i>
+                    Export Excel
+                </button>
             </div>
         </div>
 
-        <div class="tabs">
-            <button class="tab active" data-tab="attendance">Data Absensi</button>
-            <button class="tab" data-tab="overtime">Data Lembur</button>
-            <button class="tab" data-tab="summary">Ringkasan</button>
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card primary">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalEmployees">0</h3>
+                        <p>Total Karyawan</p>
+                    </div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="presentToday">0</h3>
+                        <p>Hadir Hari Ini</p>
+                    </div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="overtimeHours">0</h3>
+                        <p>Jam Lembur</p>
+                    </div>
+                </div>
+                <div class="stat-card info">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="attendanceRate">0%</h3>
+                        <p>Rate Kehadiran</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-content">
+                <div class="card recent-activity">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> Aktivitas Terkini</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="recentActivity" class="activity-list">
+                            <!-- Activity items will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card attendance-chart">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-line"></i> Statistik Kehadiran</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="attendanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        
+
+        <!-- Attendance Tab -->
         <div id="attendance" class="tab-content active">
-            <div class="card">
-                <h2>Data Absensi Bulan November 2025</h2>
-                <div class="filters">
-                    <div class="filter-group">
-                        <label for="employeeFilter">Filter Karyawan:</label>
-                        <select id="employeeFilter">
-                            <option value="all">Semua Karyawan</option>
-                        </select>
+            <div class="attendance-section">
+                <div class="card quick-attendance">
+                    <div class="card-header">
+                        <h3><i class="fas fa-plus-circle"></i> Absensi Cepat</h3>
                     </div>
-                    <div class="filter-group">
-                        <label for="dateFilter">Filter Tanggal:</label>
-                        <input type="date" id="dateFilter">
+                    <div class="card-body">
+                        <div class="attendance-form">
+                            <div class="form-group">
+                                <label for="employeeSelect"><i class="fas fa-user"></i> Pilih Karyawan</label>
+                                <select id="employeeSelect" class="form-control">
+                                    <option value="">-- Pilih Karyawan --</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="attendanceDate"><i class="fas fa-calendar"></i> Tanggal</label>
+                                    <input type="date" id="attendanceDate" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label for="attendanceTime"><i class="fas fa-clock"></i> Waktu</label>
+                                    <input type="time" id="attendanceTime" class="form-control">
+                                </div>
+                            </div>
+                            <div class="attendance-actions">
+                                <button class="btn btn-success btn-lg" id="btnCheckIn">
+                                    <i class="fas fa-sign-in-alt"></i>
+                                    CHECK IN
+                                </button>
+                                <button class="btn btn-danger btn-lg" id="btnCheckOut">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    CHECK OUT
+                                </button>
+                                <button class="btn btn-secondary" id="btnNow">
+                                    <i class="fas fa-sync"></i>
+                                    Waktu Sekarang
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <button class="btn" id="resetFilters">Reset Filter</button>
-                    <button class="btn btn-secondary" id="refreshData">Refresh Data</button>
                 </div>
-                <div class="table-container">
-                    <table id="attendanceTable">
-                        <thead>
-                            <tr>
-                                <th>Nama</th>
-                                <th>Tanggal</th>
-                                <th>Waktu Masuk</th>
-                                <th>Waktu Keluar</th>
-                                <th>Durasi Kerja</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="attendanceData">
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        
-        <div id="overtime" class="tab-content">
-            <div class="card">
-                <h2>Data Lembur</h2>
-                <div class="filters">
-                    <div class="filter-group">
-                        <label for="overtimeEmployeeFilter">Filter Karyawan:</label>
-                        <select id="overtimeEmployeeFilter">
-                            <option value="all">Semua Karyawan</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-secondary" id="calculateOvertime">Hitung Lembur</button>
-                </div>
-                <div class="table-container">
-                    <table id="overtimeTable">
-                        <thead>
-                            <tr>
-                                <th>Nama</th>
-                                <th>Tanggal</th>
-                                <th>Jam Masuk</th>
-                                <th>Jam Keluar</th>
-                                <th>Jam Lembur</th>
-                                <th>Total Lembur</th>
-                            </tr>
-                        </thead>
-                        <tbody id="overtimeData">
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        
-        <div id="summary" class="tab-content">
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="stat-value" id="totalEmployees">0</div>
-                    <div class="stat-label">Total Karyawan</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="totalAttendance">0</div>
-                    <div class="stat-label">Total Kehadiran</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="totalOvertime">0</div>
-                    <div class="stat-label">Total Jam Lembur</div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2>Ringkasan Kehadiran per Karyawan</h2>
-                <div class="table-container">
-                    <table id="summaryTable">
-                        <thead>
-                            <tr>
-                                <th>Nama</th>
-                                <th>Jumlah Hari Kerja</th>
-                                <th>Rata-rata Jam Kerja</th>
-                                <th>Total Jam Lembur</th>
-                            </tr>
-                        </thead>
-                        <tbody id="summaryData">
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Modal Edit -->
-    <div id="editModal" class="modal">
+                <div class="card attendance-history">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list-alt"></i> Riwayat Absensi</h3>
+                        <div class="header-actions">
+                            <button class="btn btn-outline" id="refreshData">
+                                <i class="fas fa-redo"></i>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-controls">
+                            <div class="filters">
+                                <select id="filterEmployee" class="form-control">
+                                    <option value="">Semua Karyawan</option>
+                                </select>
+                                <input type="date" id="filterDate" class="form-control">
+                                <button class="btn btn-outline" id="clearFilters">
+                                    <i class="fas fa-times"></i>
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nama</th>
+                                        <th>Tanggal</th>
+                                        <th>Check In</th>
+                                        <th>Check Out</th>
+                                        <th>Durasi</th>
+                                        <th>Status</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTable">
+                                    <!-- Data will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Tab -->
+        <div id="reports" class="tab-content">
+            <div class="reports-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-pie"></i> Laporan Kehadiran</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="report-filters">
+                            <div class="form-group">
+                                <label>Periode</label>
+                                <select id="reportPeriod" class="form-control">
+                                    <option value="today">Hari Ini</option>
+                                    <option value="week">Minggu Ini</option>
+                                    <option value="month">Bulan Ini</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="customDateRange" style="display: none;">
+                                <label>Tanggal Custom</label>
+                                <div class="date-range">
+                                    <input type="date" id="startDate" class="form-control">
+                                    <span>s/d</span>
+                                    <input type="date" id="endDate" class="form-control">
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="generateReport">
+                                <i class="fas fa-chart-bar"></i>
+                                Generate Report
+                            </button>
+                        </div>
+                        <div class="report-content">
+                            <div id="reportResults">
+                                <!-- Report results will be shown here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employees Tab -->
+        <div id="employees" class="tab-content">
+            <div class="employees-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-users-cog"></i> Manajemen Karyawan</h3>
+                        <button class="btn btn-primary" id="addEmployeeBtn">
+                            <i class="fas fa-plus"></i>
+                            Tambah Karyawan
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nama</th>
+                                        <th>Jabatan</th>
+                                        <th>Departemen</th>
+                                        <th>Status</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employeesTable">
+                                    <!-- Employees data will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <div id="employeeModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Edit Data Absensi</h3>
-            <form id="editForm">
-                <input type="hidden" id="editId">
-                <div class="form-group">
-                    <label for="editTimeIn">Waktu Masuk:</label>
-                    <input type="time" id="editTimeIn" required>
-                </div>
-                <div class="form-group">
-                    <label for="editTimeOut">Waktu Keluar:</label>
-                    <input type="time" id="editTimeOut">
-                </div>
-                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-            </form>
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> Tambah Karyawan</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="employeeForm">
+                    <div class="form-group">
+                        <label for="empName">Nama Lengkap</label>
+                        <input type="text" id="empName" class="form-control" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="empPosition">Jabatan</label>
+                            <select id="empPosition" class="form-control" required>
+                                <option value="">Pilih Jabatan</option>
+                                <option value="Dosen">Dosen</option>
+                                <option value="Staff">Staff</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Kepala Bagian">Kepala Bagian</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="empDepartment">Departemen</label>
+                            <select id="empDepartment" class="form-control" required>
+                                <option value="">Pilih Departemen</option>
+                                <option value="Teknik Informatika">Teknik Informatika</option>
+                                <option value="Teknik Elektro">Teknik Elektro</option>
+                                <option value="Teknik Mesin">Teknik Mesin</option>
+                                <option value="Administrasi">Administrasi</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelEmployee">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="xlsx.full.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
