@@ -1,31 +1,23 @@
-// script.js - VERSI DIPERBAIKI
+// Data Storage dengan Excel Integration
 class AttendanceSystem {
     constructor() {
         this.employees = this.getDefaultEmployees();
         this.attendance = [];
+        this.overtimeData = []; // Data lembur
         this.excelData = null;
-        this.currentFileName = 'DATA_ABSEN.xlsx';
+        this.currentFileName = 'LEMBUR_OKTOBER_2025.xlsx';
         this.currentChart = null;
+        this.overtimeRate = 12500; // Rate lembur per jam
+        this.mealAllowance = 20000; // Uang makan
+        this.transportAllowance = 15000; // Transport
         this.init();
     }
 
     getDefaultEmployees() {
+        // Data dari Excel yang diberikan
         return [
-            { id: 1, name: "Windy", position: "Staff", department: "Administrasi", status: "active" },
-            { id: 2, name: "Bu Ati", position: "Kepala Bagian", department: "Administrasi", status: "active" },
-            { id: 3, name: "Pa Ardhi", position: "Dosen", department: "Teknik Informatika", status: "active" },
-            { id: 4, name: "Pa Saji", position: "Staff", department: "Teknik Elektro", status: "active" },
-            { id: 5, name: "Pa Irvan", position: "Dosen", department: "Teknik Mesin", status: "active" },
-            { id: 6, name: "Bu Wahyu", position: "Admin", department: "Administrasi", status: "active" },
-            { id: 7, name: "Bu Elzi", position: "Staff", department: "Administrasi", status: "active" },
-            { id: 8, name: "Pa Nanang", position: "Staff", department: "Teknik Elektro", status: "active" },
-            { id: 9, name: "Devi", position: "Admin", department: "Administrasi", status: "active" },
-            { id: 10, name: "Intan", position: "Staff", department: "Teknik Informatika", status: "active" },
-            { id: 11, name: "Alifah", position: "Staff", department: "Administrasi", status: "active" },
-            { id: 12, name: "Pebi", position: "Staff", department: "Administrasi", status: "active" },
-            { id: 13, name: "Dian", position: "Staff", department: "Administrasi", status: "active" },
-            { id: 14, name: "Rafly", position: "Staff", department: "Teknik Informatika", status: "active" },
-            { id: 15, name: "Erni", position: "Staff", department: "Administrasi", status: "active" }
+            { id: 1, name: "ATI", position: "Staff", department: "Administrasi", status: "active" },
+            { id: 2, name: "IRVAN", position: "Dosen", department: "Teknik Mesin", status: "active" }
         ];
     }
 
@@ -39,6 +31,44 @@ class AttendanceSystem {
         
         // Coba load data dari localStorage sebagai backup
         this.loadFromLocalStorage();
+        
+        // Load data lembur contoh dari gambar
+        this.loadSampleOvertimeData();
+    }
+
+    loadSampleOvertimeData() {
+        // Data contoh dari gambar Excel
+        this.overtimeData = [
+            {
+                employeeName: "ATI",
+                records: [
+                    { hari: "Senin", tanggal: "02-10-2025", in: "7.15", out: "16.02", jamKerja: 8, total: 0.87 },
+                    { hari: "Senin", tanggal: "06-10-2025", in: "7.22", out: "16.07", jamKerja: 8, total: 0.85 },
+                    { hari: "Kamis", tanggal: "09-10-2025", in: "7.15", out: "16.13", jamKerja: 8, total: 0.98 },
+                    { hari: "Senin", tanggal: "13-10-2025", in: "7.21", out: "16.11", jamKerja: 8, total: 0.79 },
+                    { hari: "Senin", tanggal: "20-10-2025", in: "7.25", out: "16.11", jamKerja: 8, total: 0.86 },
+                    { hari: "Kamis", tanggal: "23-10-2025", in: "7.19", out: "16.03", jamKerja: 8, total: 0.84 },
+                    { hari: "Kamis", tanggal: "30-10-2025", in: "7.32", out: "16.17", jamKerja: 8, total: 0.85 }
+                ],
+                totalJam: 6.04,
+                totalDibulatkan: 6,
+                gajiLembur: 75000,
+                totalGaji: 75000
+            },
+            {
+                employeeName: "IRVAN",
+                records: [
+                    { hari: "Rabu", tanggal: "08-10-2025", in: "7.04", out: "16.12", jamKerja: 8, total: 0.72 },
+                    { hari: "Rabu", tanggal: "15-10-2025", in: "7.17", out: "16.07", jamKerja: 8, total: 0.9 },
+                    { hari: "Rabu", tanggal: "29-10-2025", in: "7.38", out: "16.05", jamKerja: 8, total: 0.7 },
+                    { hari: "Jumat", tanggal: "31-10-2025", in: "7.52", out: "15.00", jamKerja: 7, total: 0.68 }
+                ],
+                totalJam: 3,
+                totalDibulatkan: 3,
+                gajiLembur: 37500,
+                totalGaji: 37500
+            }
+        ];
     }
 
     setupEventListeners() {
@@ -53,9 +83,12 @@ class AttendanceSystem {
         document.getElementById('btnNow').addEventListener('click', () => this.setCurrentTime());
         document.getElementById('refreshData').addEventListener('click', () => this.loadAttendanceData());
 
+        // Overtime Calculation
+        document.getElementById('calculateOvertime')?.addEventListener('click', () => this.calculateOvertime());
+        
         // Export & Import
         document.getElementById('exportExcel').addEventListener('click', () => this.exportToExcel());
-        document.getElementById('importExcel').addEventListener('click', () => this.triggerFileImport());
+        document.getElementById('importExcel').addEventListener('click', () => this.importExcel());
         document.getElementById('excelFileInput').addEventListener('change', (e) => this.handleFileImport(e));
 
         // Employee management
@@ -69,801 +102,381 @@ class AttendanceSystem {
 
         // Modal close
         document.querySelector('.close').addEventListener('click', () => this.hideEmployeeModal());
-        
+        window.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('employeeModal')) {
+                this.hideEmployeeModal();
+            }
+        });
+
         // Filters
         document.getElementById('filterEmployee').addEventListener('change', () => this.filterAttendance());
         document.getElementById('filterDate').addEventListener('change', () => this.filterAttendance());
         document.getElementById('clearFilters').addEventListener('click', () => this.clearFilters());
-    }
 
-    switchTab(tabName) {
-        console.log('Switching to tab:', tabName);
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.remove('active');
-        });
-        
-        const tabElement = document.getElementById(tabName);
-        if (tabElement) {
-            tabElement.classList.add('active');
-            
-            const titles = {
-                'dashboard': 'Dashboard Overview',
-                'attendance': 'Sistem Absensi Digital',
-                'reports': 'Laporan & Analytics',
-                'employees': 'Manajemen Karyawan'
-            };
-            
-            const pageTitle = document.getElementById('pageTitle');
-            if (pageTitle) {
-                pageTitle.textContent = titles[tabName] || 'Sistem Absensi Digital';
-            }
-
-            if (tabName === 'dashboard') {
-                this.updateDashboard();
-            } else if (tabName === 'employees') {
-                this.loadEmployeesTable();
-            } else if (tabName === 'attendance') {
-                this.loadAttendanceData();
-            }
+        // Overtime form
+        const overtimeForm = document.getElementById('overtimeForm');
+        if (overtimeForm) {
+            overtimeForm.addEventListener('submit', (e) => this.addOvertimeRecord(e));
         }
     }
 
-    updateDateTime() {
-        const now = new Date();
-        const options = { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        };
-        
-        const dateTimeElement = document.getElementById('currentDateTime');
-        if (dateTimeElement) {
-            dateTimeElement.textContent = now.toLocaleDateString('id-ID', options);
-        }
-    }
+    calculateOvertime() {
+        const employeeName = document.getElementById('overtimeEmployee').value;
+        const tanggal = document.getElementById('overtimeDate').value;
+        const jamMasuk = document.getElementById('overtimeIn').value;
+        const jamPulang = document.getElementById('overtimeOut').value;
+        const jamKerjaNormal = parseFloat(document.getElementById('normalHours').value) || 8;
 
-    setCurrentTime() {
-        const now = new Date();
-        const dateInput = document.getElementById('attendanceDate');
-        const timeInput = document.getElementById('attendanceTime');
-        
-        if (dateInput) {
-            dateInput.value = now.toISOString().split('T')[0];
-        }
-        
-        if (timeInput) {
-            const hours = now.getHours().toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            timeInput.value = `${hours}:${minutes}`;
-        }
-    }
-
-    loadEmployees() {
-        const select = document.getElementById('employeeSelect');
-        const filterSelect = document.getElementById('filterEmployee');
-        
-        if (!select || !filterSelect) return;
-
-        // Clear existing options except first one
-        while (select.options.length > 1) select.remove(1);
-        while (filterSelect.options.length > 1) filterSelect.remove(1);
-
-        this.employees.forEach(emp => {
-            if (emp.status === 'active') {
-                const option = new Option(emp.name, emp.id);
-                const filterOption = new Option(emp.name, emp.id);
-                select.add(option);
-                filterSelect.add(filterOption);
-            }
-        });
-    }
-
-    recordAttendance(type) {
-        const employeeId = document.getElementById('employeeSelect')?.value;
-        const date = document.getElementById('attendanceDate')?.value;
-        const time = document.getElementById('attendanceTime')?.value;
-
-        if (!employeeId || !date || !time) {
+        if (!employeeName || !tanggal || !jamMasuk || !jamPulang) {
             this.showToast('Harap lengkapi semua field!', 'error');
             return;
         }
 
-        const employee = this.employees.find(emp => emp.id == employeeId);
-        if (!employee) {
-            this.showToast('Karyawan tidak ditemukan!', 'error');
-            return;
-        }
+        // Konversi waktu ke format desimal
+        const waktuMasuk = this.timeToDecimal(jamMasuk);
+        const waktuPulang = this.timeToDecimal(jamPulang);
+        
+        // Hitung total jam kerja
+        let totalJam = waktuPulang - waktuMasuk;
+        if (totalJam < 0) totalJam += 24; // Jika melewati tengah malam
+        
+        // Hitung jam lembur
+        const jamLembur = totalJam - jamKerjaNormal;
+        const jamLemburDecimal = jamLembur > 0 ? Math.round(jamLembur * 100) / 100 : 0;
 
+        // Tentukan hari
+        const hari = this.getDayName(tanggal);
+
+        // Simpan data lembur
         const record = {
-            id: Date.now(),
-            employeeId: parseInt(employeeId),
-            employeeName: employee.name,
-            date: date,
-            type: type,
-            time: time,
-            timestamp: new Date().toISOString()
+            employeeName: employeeName,
+            hari: hari,
+            tanggal: this.formatDateExcel(tanggal),
+            in: jamMasuk,
+            out: jamPulang,
+            jamKerja: jamKerjaNormal,
+            total: jamLemburDecimal
         };
 
-        this.attendance.push(record);
-        this.saveToLocalStorage();
-        this.loadAttendanceData();
-        this.updateDashboard();
-
-        const action = type === 'in' ? 'Check In' : 'Check Out';
-        this.showToast(`${action} berhasil dicatat untuk ${employee.name}`, 'success');
-        
-        // Reset form
-        document.getElementById('employeeSelect').value = '';
-        this.setCurrentTime();
-    }
-
-    loadAttendanceData() {
-        const tbody = document.getElementById('attendanceTable');
-        if (!tbody) return;
-
-        tbody.innerHTML = '';
-
-        const filteredData = this.getFilteredAttendance();
-
-        if (filteredData.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center" style="padding: 2rem; color: var(--gray);">
-                        <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
-                        Tidak ada data absensi
-                    </td>
-                </tr>
-            `;
-            return;
+        // Cari atau buat data karyawan
+        let employeeData = this.overtimeData.find(emp => emp.employeeName === employeeName);
+        if (!employeeData) {
+            employeeData = {
+                employeeName: employeeName,
+                records: [],
+                totalJam: 0,
+                totalDibulatkan: 0,
+                gajiLembur: 0,
+                totalGaji: 0
+            };
+            this.overtimeData.push(employeeData);
         }
 
-        // Group by employee and date
-        const grouped = {};
-        filteredData.forEach(record => {
-            const key = `${record.employeeId}-${record.date}`;
-            if (!grouped[key]) {
-                grouped[key] = {
-                    employeeName: record.employeeName,
-                    date: record.date,
-                    checkIn: null,
-                    checkOut: null,
-                    records: []
-                };
-            }
-            grouped[key].records.push(record);
-            
-            if (record.type === 'in') {
-                grouped[key].checkIn = record.time;
-            } else {
-                grouped[key].checkOut = record.time;
-            }
-        });
+        employeeData.records.push(record);
+        this.updateOvertimeSummary();
+        this.loadOvertimeData();
+        this.showToast(`Data lembur ${employeeName} berhasil ditambahkan!`, 'success');
+    }
 
-        // Create table rows
-        Object.values(grouped).forEach(session => {
-            const duration = this.calculateDuration(session.checkIn, session.checkOut);
-            const status = this.getAttendanceStatus(session.checkIn, session.checkOut);
+    timeToDecimal(timeStr) {
+        // Konversi "7.15" menjadi 7.25 (15 menit = 0.25 jam)
+        const parts = timeStr.split('.');
+        const jam = parseInt(parts[0]);
+        const menit = parts[1] ? parseInt(parts[1]) : 0;
+        return jam + (menit / 60);
+    }
+
+    decimalToTime(decimal) {
+        // Konversi 7.25 menjadi "7.15"
+        const jam = Math.floor(decimal);
+        const menit = Math.round((decimal - jam) * 60);
+        return `${jam}.${menit.toString().padStart(2, '0')}`;
+    }
+
+    getDayName(dateString) {
+        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const date = new Date(dateString);
+        return days[date.getDay()];
+    }
+
+    formatDateExcel(dateString) {
+        // Format: DD-MM-YYYY
+        const date = new Date(dateString);
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+    }
+
+    updateOvertimeSummary() {
+        this.overtimeData.forEach(employee => {
+            const totalJam = employee.records.reduce((sum, record) => sum + record.total, 0);
+            employee.totalJam = Math.round(totalJam * 100) / 100;
+            employee.totalDibulatkan = Math.floor(totalJam); // Pembulatan ke bawah
             
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${session.employeeName}</td>
-                <td>${this.formatDate(session.date)}</td>
-                <td>${session.checkIn || '-'}</td>
-                <td>${session.checkOut || '-'}</td>
-                <td>${duration}</td>
-                <td><span class="status-badge status-${status}">${this.getStatusText(status)}</span></td>
+            // Hitung gaji lembur
+            employee.gajiLembur = employee.totalDibulatkan * this.overtimeRate;
+            employee.totalGaji = employee.gajiLembur;
+        });
+    }
+
+    loadOvertimeData() {
+        const container = document.getElementById('overtimeTable');
+        if (!container) return;
+
+        container.innerHTML = '';
+        
+        this.overtimeData.forEach(employee => {
+            // Tambahkan header untuk setiap karyawan
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = `
+                <td colspan="9" style="background-color: #f0f0f0; font-weight: bold; padding: 10px;">
+                    ${employee.employeeName}
+                </td>
+            `;
+            container.appendChild(headerRow);
+
+            // Tambahkan data lembur
+            employee.records.forEach((record, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.hari}</td>
+                    <td>${record.tanggal}</td>
+                    <td>${record.in}</td>
+                    <td>${record.out}</td>
+                    <td>${record.jamKerja}</td>
+                    <td>${record.total}</td>
+                    <td>${this.mealAllowance.toLocaleString('id-ID')}</td>
+                    <td>${this.transportAllowance.toLocaleString('id-ID')}</td>
+                    <td>
+                        <button class="btn btn-outline btn-sm" onclick="attendanceSystem.editOvertimeRecord('${employee.employeeName}', ${index})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="attendanceSystem.deleteOvertimeRecord('${employee.employeeName}', ${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+
+            // Tambahkan total untuk karyawan
+            const totalRow = document.createElement('tr');
+            totalRow.innerHTML = `
+                <td colspan="5" style="text-align: right; font-weight: bold;">Total:</td>
+                <td>${employee.totalJam}</td>
+                <td colspan="2"></td>
                 <td>
-                    <button class="btn btn-outline btn-sm" onclick="attendanceSystem.editAttendance('${session.date}', '${session.employeeName}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-outline btn-sm" onclick="attendanceSystem.deleteAttendance('${session.date}', '${session.employeeName}')">
-                        <i class="fas fa-trash"></i>
+                    <button class="btn btn-outline btn-sm" onclick="attendanceSystem.calculateEmployeeOvertime('${employee.employeeName}')">
+                        <i class="fas fa-calculator"></i>
                     </button>
                 </td>
             `;
-            tbody.appendChild(row);
+            container.appendChild(totalRow);
+
+            // Tambahkan ringkasan pembayaran
+            const paymentRow = document.createElement('tr');
+            paymentRow.innerHTML = `
+                <td colspan="5" style="text-align: right; font-weight: bold;">Total Dibulatkan:</td>
+                <td>${employee.totalDibulatkan}</td>
+                <td colspan="2"></td>
+                <td></td>
+            `;
+            container.appendChild(paymentRow);
+
+            const gajiRow = document.createElement('tr');
+            gajiRow.innerHTML = `
+                <td colspan="5" style="text-align: right; font-weight: bold;">Gaji Lembur (${this.overtimeRate.toLocaleString('id-ID')}/jam):</td>
+                <td>Rp ${employee.gajiLembur.toLocaleString('id-ID')}</td>
+                <td colspan="3"></td>
+            `;
+            container.appendChild(gajiRow);
+
+            // Baris kosong untuk pemisah
+            const separator = document.createElement('tr');
+            separator.innerHTML = '<td colspan="9" style="height: 20px;"></td>';
+            container.appendChild(separator);
         });
     }
 
-    getFilteredAttendance() {
-        const employeeFilter = document.getElementById('filterEmployee')?.value || '';
-        const dateFilter = document.getElementById('filterDate')?.value || '';
-
-        let filtered = this.attendance;
-
-        if (employeeFilter) {
-            filtered = filtered.filter(record => record.employeeId == employeeFilter);
-        }
-
-        if (dateFilter) {
-            filtered = filtered.filter(record => record.date === dateFilter);
-        }
-
-        return filtered;
-    }
-
-    filterAttendance() {
-        this.loadAttendanceData();
-    }
-
-    clearFilters() {
-        const filterEmployee = document.getElementById('filterEmployee');
-        const filterDate = document.getElementById('filterDate');
-        
-        if (filterEmployee) filterEmployee.value = '';
-        if (filterDate) filterDate.value = '';
-        
-        this.loadAttendanceData();
-    }
-
-    calculateDuration(checkIn, checkOut) {
-        if (!checkIn || !checkOut) return '-';
-        
-        try {
-            const [inHours, inMinutes] = checkIn.split(':').map(Number);
-            const [outHours, outMinutes] = checkOut.split(':').map(Number);
-            
-            const totalIn = inHours * 60 + inMinutes;
-            const totalOut = outHours * 60 + outMinutes;
-            
-            let duration = totalOut - totalIn;
-            if (duration < 0) duration += 24 * 60;
-            
-            const hours = Math.floor(duration / 60);
-            const minutes = duration % 60;
-            
-            return `${hours}h ${minutes}m`;
-        } catch (e) {
-            return '-';
-        }
-    }
-
-    getAttendanceStatus(checkIn, checkOut) {
-        if (!checkIn) return 'absent';
-        if (!checkOut) return 'present';
-        
-        try {
-            const [inHours] = checkIn.split(':').map(Number);
-            if (inHours > 9) return 'late';
-            
-            const duration = this.calculateDuration(checkIn, checkOut);
-            const hours = parseInt(duration.split('h')[0]);
-            if (hours > 9) return 'overtime';
-        } catch (e) {
-            return 'present';
-        }
-        
-        return 'present';
-    }
-
-    getStatusText(status) {
-        const statusText = {
-            'present': 'Hadir',
-            'late': 'Terlambat',
-            'absent': 'Tidak Hadir',
-            'overtime': 'Lembur'
-        };
-        return statusText[status] || status;
-    }
-
-    formatDate(dateString) {
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('id-ID', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        } catch (e) {
-            return dateString;
-        }
-    }
-
-    showToast(message, type = 'info') {
-        const toastContainer = document.getElementById('toastContainer');
-        if (!toastContainer) return;
-
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.innerHTML = `
-            <div class="toast-icon">
-                <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info'}"></i>
-            </div>
-            <div class="toast-message">${message}</div>
-        `;
-        
-        toastContainer.appendChild(toast);
-        
-        setTimeout(() => {
-            if (toast.parentNode === toastContainer) {
-                toast.remove();
-            }
-        }, 3000);
-    }
-
-    // SIMPLIFIED Excel Export Function
+    // Excel Export Function dengan format seperti gambar
     exportToExcel() {
         try {
             // Create workbook
             const wb = XLSX.utils.book_new();
             
-            // Sheet 1: Data Absensi (SIMPLIFIED VERSION)
-            const attendanceData = this.prepareSimpleAttendanceData();
-            const ws1 = XLSX.utils.aoa_to_sheet(attendanceData);
-            XLSX.utils.book_append_sheet(wb, ws1, "DATA ABSENSI");
+            // Sheet 1: Data Lembur (Format seperti gambar)
+            const overtimeData = this.prepareOvertimeDataForExcel();
+            const ws1 = XLSX.utils.aoa_to_sheet(overtimeData);
             
-            // Sheet 2: Data Karyawan
-            const employeeData = this.prepareEmployeeData();
-            const ws2 = XLSX.utils.aoa_to_sheet(employeeData);
-            XLSX.utils.book_append_sheet(wb, ws2, "DATA KARYAWAN");
+            // Set column widths
+            const wscols = [
+                {wch: 10}, // Name
+                {wch: 10}, // Hari
+                {wch: 12}, // Tanggal
+                {wch: 8},  // IN
+                {wch: 8},  // OUT
+                {wch: 10}, // JAM KENA
+                {wch: 10}, // TOTAL
+                {wch: 15}  // TANDA TANGAN
+            ];
+            ws1['!cols'] = wscols;
+            
+            XLSX.utils.book_append_sheet(wb, ws1, "LEMBUR OKTOBER 2025");
+            
+            // Sheet 2: Ringkasan Pembayaran
+            const summaryData = this.prepareSummaryDataForExcel();
+            const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(wb, ws2, "RINGKASAN");
             
             // Export file
-            XLSX.writeFile(wb, 'Data_Absensi_' + new Date().toISOString().slice(0,10) + '.xlsx');
-            this.showToast('Data berhasil diexport ke Excel!', 'success');
+            XLSX.writeFile(wb, this.currentFileName);
+            this.showToast('Data lembur berhasil diexport ke Excel!', 'success');
         } catch (error) {
             console.error('Export error:', error);
             this.showToast('Error saat export Excel: ' + error.message, 'error');
         }
     }
 
-    prepareSimpleAttendanceData() {
-        const data = [
-            ['LAPORAN ABSENSI - UNIVERSITAS LANGLANGBUANA'],
-            ['Tanggal Export: ' + new Date().toLocaleDateString('id-ID')],
-            [''],
-            ['Nama Karyawan', 'Tanggal', 'Check In', 'Check Out', 'Durasi', 'Status']
-        ];
+    prepareOvertimeDataForExcel() {
+        const data = [];
         
-        // Group attendance by employee and date
-        const grouped = {};
-        this.attendance.forEach(record => {
-            const key = `${record.employeeName}-${record.date}`;
-            if (!grouped[key]) {
-                grouped[key] = {
-                    employeeName: record.employeeName,
-                    date: record.date,
-                    checkIn: null,
-                    checkOut: null
-                };
-            }
+        // Header utama sesuai gambar
+        data.push(['LEMBUR SEMESTER GANJIL TAHUN AKADEMIK 2025/2026', '', '', '', '', '', '', '']);
+        data.push(['BULAN OKTOBER 2025', '', '', '', '', '', '', '']);
+        data.push(['', '', '', '', '', '', '', '']);
+        
+        // Header tabel
+        data.push(['Name', 'Hari', 'Tanggal', 'IN', 'OUT', 'JAM KENA', 'TOTAL', 'TANDA TANGAN']);
+        
+        // Data untuk setiap karyawan
+        this.overtimeData.forEach(employee => {
+            employee.records.forEach(record => {
+                data.push([
+                    employee.employeeName,
+                    record.hari,
+                    record.tanggal,
+                    record.in,
+                    record.out,
+                    record.jamKerja,
+                    record.total,
+                    '' // Kolom tanda tangan kosong
+                ]);
+            });
             
-            if (record.type === 'in') {
-                grouped[key].checkIn = record.time;
-            } else {
-                grouped[key].checkOut = record.time;
-            }
-        });
-        
-        // Add data rows
-        Object.values(grouped).forEach(session => {
-            const duration = this.calculateDuration(session.checkIn, session.checkOut);
-            const status = this.getAttendanceStatus(session.checkIn, session.checkOut);
+            // Total untuk karyawan
+            data.push([
+                '', '', '', '', '', '',
+                employee.totalJam,
+                ''
+            ]);
+            
+            // Baris kosong
+            data.push(['', '', '', '', '', '', '', '']);
+            
+            // Pembulatan dan pembayaran
+            data.push([
+                '', '', '', '', '', 'Dibulatkan:',
+                employee.totalDibulatkan,
+                ''
+            ]);
             
             data.push([
-                session.employeeName,
-                session.date,
-                session.checkIn || '-',
-                session.checkOut || '-',
-                duration,
-                this.getStatusText(status)
+                '', '', '', '', '', 'Rp',
+                employee.gajiLembur,
+                ''
             ]);
+            
+            // Baris pemisah
+            data.push(['', '', '', '', '', '', '', '']);
         });
         
         return data;
     }
 
-    prepareEmployeeData() {
+    prepareSummaryDataForExcel() {
         const data = [
-            ['DATA KARYAWAN - UNIVERSITAS LANGLANGBUANA'],
+            ['RINGKASAN PEMBAYARAN LEMBUR - OKTOBER 2025'],
             [''],
-            ['ID', 'Nama', 'Jabatan', 'Departemen', 'Status']
+            ['Nama', 'Total Jam', 'Dibulatkan', 'Rate/Jam', 'Total Gaji']
         ];
         
-        this.employees.forEach(emp => {
+        this.overtimeData.forEach(employee => {
             data.push([
-                emp.id,
-                emp.name,
-                emp.position,
-                emp.department,
-                emp.status === 'active' ? 'Aktif' : 'Non-Aktif'
+                employee.employeeName,
+                employee.totalJam,
+                employee.totalDibulatkan,
+                this.overtimeRate.toLocaleString('id-ID'),
+                employee.totalGaji.toLocaleString('id-ID')
             ]);
         });
+        
+        // Total keseluruhan
+        const totalGaji = this.overtimeData.reduce((sum, emp) => sum + emp.totalGaji, 0);
+        data.push(['']);
+        data.push(['TOTAL KESELURUHAN', '', '', '', totalGaji.toLocaleString('id-ID')]);
         
         return data;
     }
 
-    triggerFileImport() {
-        const fileInput = document.getElementById('excelFileInput');
-        if (fileInput) {
-            fileInput.click();
-        }
-    }
+    // Tambahkan fungsi untuk tab Lembur
+    switchTab(tabName) {
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
 
-    handleFileImport(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                
-                // Reset file input
-                event.target.value = '';
-                
-                this.showToast('File Excel berhasil dibaca!', 'success');
-            } catch (error) {
-                console.error('Import error:', error);
-                this.showToast('Error membaca file Excel', 'error');
-            }
+        const titles = {
+            'dashboard': 'Dashboard Overview',
+            'attendance': 'Sistem Absensi Digital',
+            'reports': 'Laporan & Analytics',
+            'employees': 'Manajemen Karyawan',
+            'overtime': 'Perhitungan Lembur'
         };
-        reader.readAsArrayBuffer(file);
-    }
+        document.getElementById('pageTitle').textContent = titles[tabName] || 'Sistem Absensi Digital';
 
-    saveToLocalStorage() {
-        try {
-            const data = {
-                employees: this.employees,
-                attendance: this.attendance,
-                lastUpdate: new Date().toISOString()
-            };
-            localStorage.setItem('attendanceSystemData', JSON.stringify(data));
-        } catch (error) {
-            console.error('Error saving to localStorage:', error);
-        }
-    }
-
-    loadFromLocalStorage() {
-        try {
-            const saved = localStorage.getItem('attendanceSystemData');
-            if (saved) {
-                const data = JSON.parse(saved);
-                this.employees = data.employees || this.employees;
-                this.attendance = data.attendance || this.attendance;
-                console.log('Data loaded from localStorage');
-            }
-        } catch (error) {
-            console.error('Error loading from localStorage:', error);
-        }
-    }
-
-    showEmployeeModal() {
-        const modal = document.getElementById('employeeModal');
-        if (modal) {
-            modal.style.display = 'block';
-        }
-    }
-
-    hideEmployeeModal() {
-        const modal = document.getElementById('employeeModal');
-        if (modal) {
-            modal.style.display = 'none';
-            document.getElementById('employeeForm').reset();
-        }
-    }
-
-    saveEmployee(e) {
-        e.preventDefault();
-        
-        const name = document.getElementById('empName')?.value;
-        const position = document.getElementById('empPosition')?.value;
-        const department = document.getElementById('empDepartment')?.value;
-        
-        if (!name || !position || !department) {
-            this.showToast('Harap lengkapi semua data karyawan!', 'error');
-            return;
-        }
-        
-        const newEmployee = {
-            id: this.employees.length > 0 ? Math.max(...this.employees.map(e => e.id)) + 1 : 1,
-            name: name,
-            position: position,
-            department: department,
-            status: 'active'
-        };
-        
-        this.employees.push(newEmployee);
-        this.saveToLocalStorage();
-        this.loadEmployees();
-        this.loadEmployeesTable();
-        this.hideEmployeeModal();
-        this.showToast('Karyawan berhasil ditambahkan!', 'success');
-    }
-
-    loadEmployeesTable() {
-        const tbody = document.getElementById('employeesTable');
-        if (!tbody) return;
-        
-        tbody.innerHTML = '';
-        
-        this.employees.forEach(emp => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${emp.id}</td>
-                <td>${emp.name}</td>
-                <td>${emp.position}</td>
-                <td>${emp.department}</td>
-                <td><span class="status-badge status-${emp.status}">${emp.status === 'active' ? 'Aktif' : 'Non-Aktif'}</span></td>
-                <td>
-                    <button class="btn btn-outline btn-sm" onclick="attendanceSystem.editEmployee(${emp.id})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-outline btn-sm" onclick="attendanceSystem.deleteEmployee(${emp.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-    }
-
-    updateDashboard() {
-        // Update employee count
-        const totalEmployees = document.getElementById('totalEmployees');
-        if (totalEmployees) {
-            totalEmployees.textContent = this.employees.filter(emp => emp.status === 'active').length;
-        }
-        
-        // Update present today
-        const today = new Date().toISOString().split('T')[0];
-        const presentTodayElement = document.getElementById('presentToday');
-        if (presentTodayElement) {
-            const presentToday = this.attendance.filter(record => 
-                record.date === today && record.type === 'in'
-            ).length;
-            presentTodayElement.textContent = presentToday;
-        }
-        
-        // Update overtime hours
-        const overtimeHoursElement = document.getElementById('overtimeHours');
-        if (overtimeHoursElement) {
-            // Count records with overtime status
-            let overtimeCount = 0;
-            const grouped = {};
-            this.attendance.forEach(record => {
-                const key = `${record.employeeId}-${record.date}`;
-                if (!grouped[key]) {
-                    grouped[key] = { checkIn: null, checkOut: null };
-                }
-                if (record.type === 'in') grouped[key].checkIn = record.time;
-                else grouped[key].checkOut = record.time;
-            });
-            
-            Object.values(grouped).forEach(session => {
-                if (this.getAttendanceStatus(session.checkIn, session.checkOut) === 'overtime') {
-                    overtimeCount++;
-                }
-            });
-            overtimeHoursElement.textContent = overtimeCount;
-        }
-        
-        // Update attendance rate
-        const attendanceRateElement = document.getElementById('attendanceRate');
-        if (attendanceRateElement) {
-            const totalEmployeesCount = this.employees.filter(emp => emp.status === 'active').length;
-            const presentTodayCount = this.attendance.filter(record => 
-                record.date === today && record.type === 'in'
-            ).length;
-            const attendanceRate = totalEmployeesCount > 0 ? 
-                Math.round((presentTodayCount / totalEmployeesCount) * 100) : 0;
-            attendanceRateElement.textContent = `${attendanceRate}%`;
-        }
-        
-        this.updateRecentActivity();
-        this.updateChart();
-    }
-
-    updateRecentActivity() {
-        const container = document.getElementById('recentActivity');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        const recentRecords = this.attendance
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-            .slice(0, 5);
-        
-        if (recentRecords.length === 0) {
-            container.innerHTML = '<div class="text-center" style="padding: 2rem; color: var(--gray);">Tidak ada aktivitas terbaru</div>';
-            return;
-        }
-        
-        recentRecords.forEach(record => {
-            const activityItem = document.createElement('div');
-            activityItem.className = 'activity-item';
-            activityItem.innerHTML = `
-                <div class="activity-icon ${record.type === 'in' ? 'checkin' : 'checkout'}">
-                    <i class="fas fa-${record.type === 'in' ? 'sign-in-alt' : 'sign-out-alt'}"></i>
-                </div>
-                <div class="activity-info">
-                    <div class="activity-name">${record.employeeName}</div>
-                    <div class="activity-time">${record.type === 'in' ? 'Check In' : 'Check Out'} - ${this.formatDateTime(record.timestamp)}</div>
-                </div>
-            `;
-            container.appendChild(activityItem);
-        });
-    }
-
-    formatDateTime(timestamp) {
-        try {
-            const date = new Date(timestamp);
-            return date.toLocaleString('id-ID', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (e) {
-            return timestamp;
-        }
-    }
-
-    updateChart() {
-        const ctx = document.getElementById('attendanceChart');
-        if (!ctx) return;
-        
-        if (this.currentChart) {
-            this.currentChart.destroy();
-        }
-        
-        const last7Days = this.getLast7Days();
-        const chartData = last7Days.map(day => {
-            return this.attendance.filter(record => 
-                record.date === day && record.type === 'in'
-            ).length;
-        });
-        
-        this.currentChart = new Chart(ctx.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: last7Days.map(day => this.formatChartDate(day)),
-                datasets: [{
-                    label: 'Jumlah Hadir',
-                    data: chartData,
-                    backgroundColor: 'rgba(52, 152, 219, 0.8)',
-                    borderColor: 'rgba(52, 152, 219, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    getLast7Days() {
-        const days = [];
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            days.push(date.toISOString().split('T')[0]);
-        }
-        return days;
-    }
-
-    formatChartDate(dateString) {
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('id-ID', {
-                day: '2-digit',
-                month: '2-digit'
-            });
-        } catch (e) {
-            return dateString;
-        }
-    }
-
-    // Placeholder functions
-    editAttendance(date, employeeName) {
-        this.showToast(`Edit absensi ${employeeName} pada ${date}`, 'info');
-    }
-
-    deleteAttendance(date, employeeName) {
-        if (confirm(`Hapus absensi ${employeeName} pada ${date}?`)) {
-            // Find and remove all records for this employee on this date
-            this.attendance = this.attendance.filter(record => 
-                !(record.date === date && record.employeeName === employeeName)
-            );
-            this.saveToLocalStorage();
-            this.loadAttendanceData();
+        if (tabName === 'dashboard') {
             this.updateDashboard();
-            this.showToast('Absensi berhasil dihapus!', 'success');
-        }
-    }
-
-    editEmployee(id) {
-        const employee = this.employees.find(emp => emp.id === id);
-        if (employee) {
-            document.getElementById('empName').value = employee.name;
-            document.getElementById('empPosition').value = employee.position;
-            document.getElementById('empDepartment').value = employee.department;
-            this.showEmployeeModal();
-            this.showToast(`Edit data ${employee.name}`, 'info');
-        }
-    }
-
-    deleteEmployee(id) {
-        if (confirm('Hapus karyawan ini?')) {
-            this.employees = this.employees.filter(emp => emp.id !== id);
-            this.saveToLocalStorage();
-            this.loadEmployees();
+        } else if (tabName === 'employees') {
             this.loadEmployeesTable();
-            this.updateDashboard();
-            this.showToast('Karyawan berhasil dihapus!', 'success');
+        } else if (tabName === 'overtime') {
+            this.loadOvertimeData();
         }
     }
 
-    generateReport() {
-        this.showToast('Laporan sedang diproses...', 'info');
-        // Simple report generation
-        setTimeout(() => {
-            const today = new Date().toISOString().split('T')[0];
-            const presentCount = this.attendance.filter(record => 
-                record.date === today && record.type === 'in'
-            ).length;
-            
-            const reportResults = document.getElementById('reportResults');
-            if (reportResults) {
-                reportResults.innerHTML = `
-                    <div class="card">
-                        <div class="card-body">
-                            <h4>Laporan Harian - ${this.formatDate(today)}</h4>
-                            <p>Jumlah karyawan hadir: ${presentCount}</p>
-                            <p>Total karyawan: ${this.employees.filter(e => e.status === 'active').length}</p>
-                            <p>Persentase kehadiran: ${Math.round((presentCount / this.employees.filter(e => e.status === 'active').length) * 100)}%</p>
-                        </div>
-                    </div>
-                `;
-            }
-        }, 1000);
+    // Fungsi bantuan untuk Overtime
+    editOvertimeRecord(employeeName, index) {
+        const employee = this.overtimeData.find(emp => emp.employeeName === employeeName);
+        if (employee && employee.records[index]) {
+            const record = employee.records[index];
+            // Tampilkan modal edit
+            this.showToast(`Edit data lembur ${employeeName} tanggal ${record.tanggal}`, 'info');
+        }
     }
 
-    toggleCustomDateRange(value) {
-        const customRange = document.getElementById('customDateRange');
-        if (customRange) {
-            customRange.style.display = value === 'custom' ? 'block' : 'none';
+    deleteOvertimeRecord(employeeName, index) {
+        if (confirm('Hapus data lembur ini?')) {
+            const employee = this.overtimeData.find(emp => emp.employeeName === employeeName);
+            if (employee) {
+                employee.records.splice(index, 1);
+                if (employee.records.length === 0) {
+                    this.overtimeData = this.overtimeData.filter(emp => emp.employeeName !== employeeName);
+                }
+                this.updateOvertimeSummary();
+                this.loadOvertimeData();
+                this.showToast('Data lembur berhasil dihapus!', 'success');
+            }
+        }
+    }
+
+    calculateEmployeeOvertime(employeeName) {
+        const employee = this.overtimeData.find(emp => emp.employeeName === employeeName);
+        if (employee) {
+            this.showToast(`Menghitung ulang lembur untuk ${employeeName}: ${employee.totalJam} jam`, 'info');
         }
     }
 }
 
 // Initialize the system
-let attendanceSystem;
-
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM fully loaded, initializing system...');
-    attendanceSystem = new AttendanceSystem();
-    
-    // Setup modal click outside to close
-    const modal = document.getElementById('employeeModal');
-    if (modal) {
-        window.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                attendanceSystem.hideEmployeeModal();
-            }
-        });
-    }
-    
-    console.log('System initialized successfully');
-});
+const attendanceSystem = new AttendanceSystem();
