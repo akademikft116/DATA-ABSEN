@@ -5,11 +5,9 @@ class AttendanceSystem {
         this.attendance = [];
         this.overtimeData = []; // Data lembur
         this.excelData = null;
-        this.currentFileName = 'LEMBUR_OKTOBER_2025.xlsx';
+        this.currentFileName = 'LEMBUR_SEMESTER_GANJIL_OKTOBER_2025.xlsx';
         this.currentChart = null;
         this.overtimeRate = 12500; // Rate lembur per jam
-        this.mealAllowance = 20000; // Uang makan
-        this.transportAllowance = 15000; // Transport
         this.init();
     }
 
@@ -17,7 +15,20 @@ class AttendanceSystem {
         // Data dari Excel yang diberikan
         return [
             { id: 1, name: "ATI", position: "Staff", department: "Administrasi", status: "active" },
-            { id: 2, name: "IRVAN", position: "Dosen", department: "Teknik Mesin", status: "active" }
+            { id: 2, name: "IRVAN", position: "Dosen", department: "Teknik Mesin", status: "active" },
+            { id: 3, name: "WINDI", position: "Staff", department: "Administrasi", status: "active" },
+            { id: 4, name: "ARDHI", position: "Dosen", department: "Teknik Informatika", status: "active" },
+            { id: 5, name: "SAJI", position: "Staff", department: "Teknik Elektro", status: "active" },
+            { id: 6, name: "WAHYU", position: "Admin", department: "Administrasi", status: "active" },
+            { id: 7, name: "ELZI", position: "Staff", department: "Administrasi", status: "active" },
+            { id: 8, name: "NANANG", position: "Staff", department: "Teknik Elektro", status: "active" },
+            { id: 9, name: "DEVI", position: "Admin", department: "Administrasi", status: "active" },
+            { id: 10, name: "INTAN", position: "Staff", department: "Teknik Informatika", status: "active" },
+            { id: 11, name: "ALIFAH", position: "Staff", department: "Administrasi", status: "active" },
+            { id: 12, name: "PEBI", position: "Staff", department: "Administrasi", status: "active" },
+            { id: 13, name: "DIAN", position: "Staff", department: "Administrasi", status: "active" },
+            { id: 14, name: "RAFLY", position: "Staff", department: "Administrasi", status: "active" },
+            { id: 15, name: "ERNI", position: "Staff", department: "Administrasi", status: "active" }
         ];
     }
 
@@ -27,48 +38,14 @@ class AttendanceSystem {
         this.loadEmployees();
         this.loadAttendanceData();
         this.updateDashboard();
+        this.loadOvertimeData();
         setInterval(() => this.updateDateTime(), 1000);
         
         // Coba load data dari localStorage sebagai backup
         this.loadFromLocalStorage();
         
-        // Load data lembur contoh dari gambar
-        this.loadSampleOvertimeData();
-    }
-
-    loadSampleOvertimeData() {
-        // Data contoh dari gambar Excel
-        this.overtimeData = [
-            {
-                employeeName: "ATI",
-                records: [
-                    { hari: "Senin", tanggal: "02-10-2025", in: "7.15", out: "16.02", jamKerja: 8, total: 0.87 },
-                    { hari: "Senin", tanggal: "06-10-2025", in: "7.22", out: "16.07", jamKerja: 8, total: 0.85 },
-                    { hari: "Kamis", tanggal: "09-10-2025", in: "7.15", out: "16.13", jamKerja: 8, total: 0.98 },
-                    { hari: "Senin", tanggal: "13-10-2025", in: "7.21", out: "16.11", jamKerja: 8, total: 0.79 },
-                    { hari: "Senin", tanggal: "20-10-2025", in: "7.25", out: "16.11", jamKerja: 8, total: 0.86 },
-                    { hari: "Kamis", tanggal: "23-10-2025", in: "7.19", out: "16.03", jamKerja: 8, total: 0.84 },
-                    { hari: "Kamis", tanggal: "30-10-2025", in: "7.32", out: "16.17", jamKerja: 8, total: 0.85 }
-                ],
-                totalJam: 6.04,
-                totalDibulatkan: 6,
-                gajiLembur: 75000,
-                totalGaji: 75000
-            },
-            {
-                employeeName: "IRVAN",
-                records: [
-                    { hari: "Rabu", tanggal: "08-10-2025", in: "7.04", out: "16.12", jamKerja: 8, total: 0.72 },
-                    { hari: "Rabu", tanggal: "15-10-2025", in: "7.17", out: "16.07", jamKerja: 8, total: 0.9 },
-                    { hari: "Rabu", tanggal: "29-10-2025", in: "7.38", out: "16.05", jamKerja: 8, total: 0.7 },
-                    { hari: "Jumat", tanggal: "31-10-2025", in: "7.52", out: "15.00", jamKerja: 7, total: 0.68 }
-                ],
-                totalJam: 3,
-                totalDibulatkan: 3,
-                gajiLembur: 37500,
-                totalGaji: 37500
-            }
-        ];
+        // Set default date to today
+        this.setCurrentTime();
     }
 
     setupEventListeners() {
@@ -78,30 +55,36 @@ class AttendanceSystem {
         });
 
         // Attendance buttons
-        document.getElementById('btnCheckIn').addEventListener('click', () => this.recordAttendance('in'));
-        document.getElementById('btnCheckOut').addEventListener('click', () => this.recordAttendance('out'));
-        document.getElementById('btnNow').addEventListener('click', () => this.setCurrentTime());
-        document.getElementById('refreshData').addEventListener('click', () => this.loadAttendanceData());
+        document.getElementById('btnCheckIn')?.addEventListener('click', () => this.recordAttendance('in'));
+        document.getElementById('btnCheckOut')?.addEventListener('click', () => this.recordAttendance('out'));
+        document.getElementById('btnNow')?.addEventListener('click', () => this.setCurrentTime());
+        document.getElementById('refreshData')?.addEventListener('click', () => this.loadAttendanceData());
 
         // Overtime Calculation
-        document.getElementById('calculateOvertime')?.addEventListener('click', () => this.calculateOvertime());
+        const overtimeForm = document.getElementById('overtimeForm');
+        if (overtimeForm) {
+            overtimeForm.addEventListener('submit', (e) => this.addOvertimeRecord(e));
+        }
+        
+        // Reset overtime form
+        document.getElementById('btnResetOvertime')?.addEventListener('click', () => this.resetOvertimeForm());
         
         // Export & Import
         document.getElementById('exportExcel').addEventListener('click', () => this.exportToExcel());
-        document.getElementById('importExcel').addEventListener('click', () => this.importExcel());
+        document.getElementById('importExcel')?.addEventListener('click', () => this.importExcel());
         document.getElementById('excelFileInput').addEventListener('change', (e) => this.handleFileImport(e));
 
         // Employee management
-        document.getElementById('addEmployeeBtn').addEventListener('click', () => this.showEmployeeModal());
-        document.getElementById('employeeForm').addEventListener('submit', (e) => this.saveEmployee(e));
-        document.getElementById('cancelEmployee').addEventListener('click', () => this.hideEmployeeModal());
+        document.getElementById('addEmployeeBtn')?.addEventListener('click', () => this.showEmployeeModal());
+        document.getElementById('employeeForm')?.addEventListener('submit', (e) => this.saveEmployee(e));
+        document.getElementById('cancelEmployee')?.addEventListener('click', () => this.hideEmployeeModal());
 
         // Reports
-        document.getElementById('generateReport').addEventListener('click', () => this.generateReport());
-        document.getElementById('reportPeriod').addEventListener('change', (e) => this.toggleCustomDateRange(e.target.value));
+        document.getElementById('generateReport')?.addEventListener('click', () => this.generateReport());
+        document.getElementById('reportPeriod')?.addEventListener('change', (e) => this.toggleCustomDateRange(e.target.value));
 
         // Modal close
-        document.querySelector('.close').addEventListener('click', () => this.hideEmployeeModal());
+        document.querySelector('.close')?.addEventListener('click', () => this.hideEmployeeModal());
         window.addEventListener('click', (e) => {
             if (e.target === document.getElementById('employeeModal')) {
                 this.hideEmployeeModal();
@@ -109,26 +92,127 @@ class AttendanceSystem {
         });
 
         // Filters
-        document.getElementById('filterEmployee').addEventListener('change', () => this.filterAttendance());
-        document.getElementById('filterDate').addEventListener('change', () => this.filterAttendance());
-        document.getElementById('clearFilters').addEventListener('click', () => this.clearFilters());
+        document.getElementById('filterEmployee')?.addEventListener('change', () => this.filterAttendance());
+        document.getElementById('filterDate')?.addEventListener('change', () => this.filterAttendance());
+        document.getElementById('clearFilters')?.addEventListener('click', () => this.clearFilters());
+    }
 
-        // Overtime form
-        const overtimeForm = document.getElementById('overtimeForm');
-        if (overtimeForm) {
-            overtimeForm.addEventListener('submit', (e) => this.addOvertimeRecord(e));
+    switchTab(tabName) {
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        const targetTab = document.querySelector(`[data-tab="${tabName}"]`);
+        if (targetTab) {
+            targetTab.classList.add('active');
+        }
+
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        const targetContent = document.getElementById(tabName);
+        if (targetContent) {
+            targetContent.classList.add('active');
+        }
+
+        const titles = {
+            'dashboard': 'Dashboard Overview',
+            'attendance': 'Sistem Absensi Digital',
+            'overtime': 'Perhitungan Lembur',
+            'reports': 'Laporan & Analytics',
+            'employees': 'Manajemen Karyawan'
+        };
+        
+        const pageTitle = document.getElementById('pageTitle');
+        if (pageTitle) {
+            pageTitle.textContent = titles[tabName] || 'Sistem Absensi Digital';
+        }
+
+        if (tabName === 'dashboard') {
+            this.updateDashboard();
+        } else if (tabName === 'employees') {
+            this.loadEmployeesTable();
+        } else if (tabName === 'overtime') {
+            this.loadOvertimeData();
         }
     }
 
-    calculateOvertime() {
+    updateDateTime() {
+        const now = new Date();
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        };
+        
+        const dateTimeElement = document.getElementById('currentDateTime');
+        if (dateTimeElement) {
+            dateTimeElement.textContent = now.toLocaleDateString('id-ID', options);
+        }
+    }
+
+    setCurrentTime() {
+        const now = new Date();
+        
+        const attendanceDate = document.getElementById('attendanceDate');
+        const attendanceTime = document.getElementById('attendanceTime');
+        const overtimeDate = document.getElementById('overtimeDate');
+        
+        if (attendanceDate) attendanceDate.value = now.toISOString().split('T')[0];
+        if (attendanceTime) attendanceTime.value = now.toTimeString().slice(0, 5);
+        if (overtimeDate) overtimeDate.value = now.toISOString().split('T')[0];
+    }
+
+    loadEmployees() {
+        const select = document.getElementById('employeeSelect');
+        const filterSelect = document.getElementById('filterEmployee');
+        
+        if (select) {
+            while (select.options.length > 1) select.remove(1);
+        }
+        
+        if (filterSelect) {
+            while (filterSelect.options.length > 1) filterSelect.remove(1);
+        }
+
+        this.employees.forEach(emp => {
+            if (emp.status === 'active') {
+                if (select) {
+                    const option = new Option(emp.name, emp.id);
+                    select.add(option);
+                }
+                
+                if (filterSelect) {
+                    const filterOption = new Option(emp.name, emp.id);
+                    filterSelect.add(filterOption);
+                }
+            }
+        });
+    }
+
+    addOvertimeRecord(e) {
+        e.preventDefault();
+        
         const employeeName = document.getElementById('overtimeEmployee').value;
         const tanggal = document.getElementById('overtimeDate').value;
         const jamMasuk = document.getElementById('overtimeIn').value;
         const jamPulang = document.getElementById('overtimeOut').value;
         const jamKerjaNormal = parseFloat(document.getElementById('normalHours').value) || 8;
 
+        // Validasi input
         if (!employeeName || !tanggal || !jamMasuk || !jamPulang) {
             this.showToast('Harap lengkapi semua field!', 'error');
+            return;
+        }
+
+        // Validasi format jam masuk
+        if (!this.validateTimeFormat(jamMasuk)) {
+            this.showToast('Format jam masuk tidak valid! Gunakan format seperti 7.15', 'error');
+            return;
+        }
+
+        // Validasi format jam pulang
+        if (!this.validateTimeFormat(jamPulang)) {
+            this.showToast('Format jam pulang tidak valid! Gunakan format seperti 16.02', 'error');
             return;
         }
 
@@ -136,10 +220,22 @@ class AttendanceSystem {
         const waktuMasuk = this.timeToDecimal(jamMasuk);
         const waktuPulang = this.timeToDecimal(jamPulang);
         
+        // Validasi waktu
+        if (waktuMasuk >= 24 || waktuPulang >= 24) {
+            this.showToast('Waktu tidak valid! Jam harus kurang dari 24', 'error');
+            return;
+        }
+
         // Hitung total jam kerja
         let totalJam = waktuPulang - waktuMasuk;
         if (totalJam < 0) totalJam += 24; // Jika melewati tengah malam
         
+        // Validasi total jam
+        if (totalJam > 24) {
+            this.showToast('Total jam kerja tidak boleh lebih dari 24 jam!', 'error');
+            return;
+        }
+
         // Hitung jam lembur
         const jamLembur = totalJam - jamKerjaNormal;
         const jamLemburDecimal = jamLembur > 0 ? Math.round(jamLembur * 100) / 100 : 0;
@@ -149,13 +245,15 @@ class AttendanceSystem {
 
         // Simpan data lembur
         const record = {
+            id: Date.now(),
             employeeName: employeeName,
             hari: hari,
             tanggal: this.formatDateExcel(tanggal),
             in: jamMasuk,
             out: jamPulang,
             jamKerja: jamKerjaNormal,
-            total: jamLemburDecimal
+            total: jamLemburDecimal,
+            timestamp: new Date().toISOString()
         };
 
         // Cari atau buat data karyawan
@@ -166,8 +264,7 @@ class AttendanceSystem {
                 records: [],
                 totalJam: 0,
                 totalDibulatkan: 0,
-                gajiLembur: 0,
-                totalGaji: 0
+                gajiLembur: 0
             };
             this.overtimeData.push(employeeData);
         }
@@ -175,7 +272,27 @@ class AttendanceSystem {
         employeeData.records.push(record);
         this.updateOvertimeSummary();
         this.loadOvertimeData();
-        this.showToast(`Data lembur ${employeeName} berhasil ditambahkan!`, 'success');
+        
+        const message = jamLemburDecimal > 0 
+            ? `Lembur ${employeeName}: ${jamLemburDecimal} jam (${jamMasuk} - ${jamPulang})`
+            : `Tidak ada lembur untuk ${employeeName}`;
+        
+        this.showToast(message, jamLemburDecimal > 0 ? 'success' : 'info');
+        
+        // Reset form
+        this.resetOvertimeForm();
+    }
+
+    validateTimeFormat(timeStr) {
+        // Validasi format: angka.titik.angka (contoh: 7.15, 16.02)
+        const regex = /^\d{1,2}\.\d{2}$/;
+        if (!regex.test(timeStr)) return false;
+        
+        const parts = timeStr.split('.');
+        const jam = parseInt(parts[0]);
+        const menit = parseInt(parts[1]);
+        
+        return jam >= 0 && jam < 24 && menit >= 0 && menit < 60;
     }
 
     timeToDecimal(timeStr) {
@@ -208,16 +325,50 @@ class AttendanceSystem {
         return `${day}-${month}-${year}`;
     }
 
+    resetOvertimeForm() {
+        const form = document.getElementById('overtimeForm');
+        if (form) {
+            form.reset();
+            document.getElementById('normalHours').value = '8';
+            this.setCurrentTime();
+        }
+    }
+
     updateOvertimeSummary() {
+        let totalJamAll = 0;
+        let totalDibulatkanAll = 0;
+        let totalGajiAll = 0;
+
         this.overtimeData.forEach(employee => {
             const totalJam = employee.records.reduce((sum, record) => sum + record.total, 0);
             employee.totalJam = Math.round(totalJam * 100) / 100;
-            employee.totalDibulatkan = Math.floor(totalJam); // Pembulatan ke bawah
+            employee.totalDibulatkan = Math.floor(employee.totalJam); // Pembulatan ke bawah
             
             // Hitung gaji lembur
             employee.gajiLembur = employee.totalDibulatkan * this.overtimeRate;
-            employee.totalGaji = employee.gajiLembur;
+            
+            // Update totals
+            totalJamAll += employee.totalJam;
+            totalDibulatkanAll += employee.totalDibulatkan;
+            totalGajiAll += employee.gajiLembur;
         });
+
+        // Update summary display
+        const totalHoursElement = document.getElementById('totalOvertimeHours');
+        const roundedHoursElement = document.getElementById('totalRoundedHours');
+        const totalPayElement = document.getElementById('totalOvertimePay');
+        
+        if (totalHoursElement) {
+            totalHoursElement.textContent = `${totalJamAll.toFixed(2)} jam`;
+        }
+        
+        if (roundedHoursElement) {
+            roundedHoursElement.textContent = `${totalDibulatkanAll} jam`;
+        }
+        
+        if (totalPayElement) {
+            totalPayElement.textContent = `Rp ${totalGajiAll.toLocaleString('id-ID')}`;
+        }
     }
 
     loadOvertimeData() {
@@ -226,33 +377,50 @@ class AttendanceSystem {
 
         container.innerHTML = '';
         
-        this.overtimeData.forEach(employee => {
-            // Tambahkan header untuk setiap karyawan
-            const headerRow = document.createElement('tr');
-            headerRow.innerHTML = `
-                <td colspan="9" style="background-color: #f0f0f0; font-weight: bold; padding: 10px;">
-                    ${employee.employeeName}
-                </td>
+        if (this.overtimeData.length === 0) {
+            container.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center" style="padding: 3rem; color: var(--gray);">
+                        <i class="fas fa-clock" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                        <h4>Belum ada data lembur</h4>
+                        <p>Silakan tambahkan data lembur menggunakan form di atas</p>
+                    </td>
+                </tr>
             `;
-            container.appendChild(headerRow);
+            this.updateOvertimeSummary();
+            return;
+        }
+
+        // Urutkan data berdasarkan nama karyawan
+        const sortedData = [...this.overtimeData].sort((a, b) => 
+            a.employeeName.localeCompare(b.employeeName)
+        );
+
+        sortedData.forEach(employee => {
+            // Urutkan records berdasarkan tanggal
+            const sortedRecords = [...employee.records].sort((a, b) => {
+                const dateA = new Date(a.tanggal.split('-').reverse().join('-'));
+                const dateB = new Date(b.tanggal.split('-').reverse().join('-'));
+                return dateA - dateB;
+            });
 
             // Tambahkan data lembur
-            employee.records.forEach((record, index) => {
+            sortedRecords.forEach((record, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
+                    <td>${employee.employeeName}</td>
                     <td>${record.hari}</td>
                     <td>${record.tanggal}</td>
                     <td>${record.in}</td>
                     <td>${record.out}</td>
                     <td>${record.jamKerja}</td>
-                    <td>${record.total}</td>
-                    <td>${this.mealAllowance.toLocaleString('id-ID')}</td>
-                    <td>${this.transportAllowance.toLocaleString('id-ID')}</td>
+                    <td>${record.total.toFixed(2)}</td>
+                    <td></td>
                     <td>
-                        <button class="btn btn-outline btn-sm" onclick="attendanceSystem.editOvertimeRecord('${employee.employeeName}', ${index})">
+                        <button class="btn btn-outline btn-sm" onclick="attendanceSystem.editOvertimeRecord('${employee.employeeName}', ${record.id})">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-outline btn-sm" onclick="attendanceSystem.deleteOvertimeRecord('${employee.employeeName}', ${index})">
+                        <button class="btn btn-outline btn-sm" onclick="attendanceSystem.deleteOvertimeRecord('${employee.employeeName}', ${record.id})">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -262,41 +430,31 @@ class AttendanceSystem {
 
             // Tambahkan total untuk karyawan
             const totalRow = document.createElement('tr');
+            totalRow.className = 'employee-total';
             totalRow.innerHTML = `
-                <td colspan="5" style="text-align: right; font-weight: bold;">Total:</td>
-                <td>${employee.totalJam}</td>
+                <td colspan="6" style="text-align: right; font-weight: bold;">Total ${employee.employeeName}:</td>
+                <td>${employee.totalJam.toFixed(2)}</td>
                 <td colspan="2"></td>
-                <td>
-                    <button class="btn btn-outline btn-sm" onclick="attendanceSystem.calculateEmployeeOvertime('${employee.employeeName}')">
-                        <i class="fas fa-calculator"></i>
-                    </button>
-                </td>
             `;
             container.appendChild(totalRow);
 
-            // Tambahkan ringkasan pembayaran
+            // Tambahkan pembayaran
             const paymentRow = document.createElement('tr');
+            paymentRow.className = 'payment-row';
             paymentRow.innerHTML = `
-                <td colspan="5" style="text-align: right; font-weight: bold;">Total Dibulatkan:</td>
-                <td>${employee.totalDibulatkan}</td>
+                <td colspan="6" style="text-align: right; font-weight: bold;">Dibulatkan (${employee.totalDibulatkan} jam × Rp ${this.overtimeRate.toLocaleString('id-ID')}):</td>
+                <td>Rp ${employee.gajiLembur.toLocaleString('id-ID')}</td>
                 <td colspan="2"></td>
-                <td></td>
             `;
             container.appendChild(paymentRow);
 
-            const gajiRow = document.createElement('tr');
-            gajiRow.innerHTML = `
-                <td colspan="5" style="text-align: right; font-weight: bold;">Gaji Lembur (${this.overtimeRate.toLocaleString('id-ID')}/jam):</td>
-                <td>Rp ${employee.gajiLembur.toLocaleString('id-ID')}</td>
-                <td colspan="3"></td>
-            `;
-            container.appendChild(gajiRow);
-
-            // Baris kosong untuk pemisah
+            // Baris pemisah
             const separator = document.createElement('tr');
-            separator.innerHTML = '<td colspan="9" style="height: 20px;"></td>';
+            separator.innerHTML = '<td colspan="9" style="height: 20px; background-color: #f8f9fa;"></td>';
             container.appendChild(separator);
         });
+
+        this.updateOvertimeSummary();
     }
 
     // Excel Export Function dengan format seperti gambar
@@ -311,7 +469,7 @@ class AttendanceSystem {
             
             // Set column widths
             const wscols = [
-                {wch: 10}, // Name
+                {wch: 15}, // Name
                 {wch: 10}, // Hari
                 {wch: 12}, // Tanggal
                 {wch: 8},  // IN
@@ -322,9 +480,15 @@ class AttendanceSystem {
             ];
             ws1['!cols'] = wscols;
             
+            // Merge cells untuk judul
+            ws1['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }, // Judul utama
+                { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } }  // Sub judul
+            ];
+            
             XLSX.utils.book_append_sheet(wb, ws1, "LEMBUR OKTOBER 2025");
             
-            // Sheet 2: Ringkasan Pembayaran
+            // Sheet 2: Ringkasan
             const summaryData = this.prepareSummaryDataForExcel();
             const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
             XLSX.utils.book_append_sheet(wb, ws2, "RINGKASAN");
@@ -342,16 +506,23 @@ class AttendanceSystem {
         const data = [];
         
         // Header utama sesuai gambar
-        data.push(['LEMBUR SEMESTER GANJIL TAHUN AKADEMIK 2025/2026', '', '', '', '', '', '', '']);
-        data.push(['BULAN OKTOBER 2025', '', '', '', '', '', '', '']);
-        data.push(['', '', '', '', '', '', '', '']);
+        data.push(['LEMBUR SEMESTER GANJIL TAHUN AKADEMIK 2025/2026']);
+        data.push(['BULAN OKTOBER 2025']);
+        data.push([]); // Baris kosong
         
         // Header tabel
         data.push(['Name', 'Hari', 'Tanggal', 'IN', 'OUT', 'JAM KENA', 'TOTAL', 'TANDA TANGAN']);
         
         // Data untuk setiap karyawan
         this.overtimeData.forEach(employee => {
-            employee.records.forEach(record => {
+            // Urutkan records berdasarkan tanggal
+            const sortedRecords = [...employee.records].sort((a, b) => {
+                const dateA = new Date(a.tanggal.split('-').reverse().join('-'));
+                const dateB = new Date(b.tanggal.split('-').reverse().join('-'));
+                return dateA - dateB;
+            });
+
+            sortedRecords.forEach(record => {
                 data.push([
                     employee.employeeName,
                     record.hari,
@@ -359,20 +530,20 @@ class AttendanceSystem {
                     record.in,
                     record.out,
                     record.jamKerja,
-                    record.total,
+                    record.total.toFixed(2),
                     '' // Kolom tanda tangan kosong
                 ]);
             });
             
             // Total untuk karyawan
             data.push([
-                '', '', '', '', '', '',
-                employee.totalJam,
+                '', '', '', '', '', 'Total:',
+                employee.totalJam.toFixed(2),
                 ''
             ]);
             
             // Baris kosong
-            data.push(['', '', '', '', '', '', '', '']);
+            data.push([]);
             
             // Pembulatan dan pembayaran
             data.push([
@@ -388,7 +559,8 @@ class AttendanceSystem {
             ]);
             
             // Baris pemisah
-            data.push(['', '', '', '', '', '', '', '']);
+            data.push([]);
+            data.push([]);
         });
         
         return data;
@@ -398,68 +570,80 @@ class AttendanceSystem {
         const data = [
             ['RINGKASAN PEMBAYARAN LEMBUR - OKTOBER 2025'],
             [''],
-            ['Nama', 'Total Jam', 'Dibulatkan', 'Rate/Jam', 'Total Gaji']
+            ['Nama', 'Total Jam', 'Dibulatkan', 'Rate/Jam', 'Total Gaji', 'Tanda Tangan']
         ];
         
+        let totalJamAll = 0;
+        let totalDibulatkanAll = 0;
+        let totalGajiAll = 0;
+
         this.overtimeData.forEach(employee => {
             data.push([
                 employee.employeeName,
-                employee.totalJam,
+                employee.totalJam.toFixed(2),
                 employee.totalDibulatkan,
                 this.overtimeRate.toLocaleString('id-ID'),
-                employee.totalGaji.toLocaleString('id-ID')
+                `Rp ${employee.gajiLembur.toLocaleString('id-ID')}`,
+                ''
             ]);
+            
+            totalJamAll += employee.totalJam;
+            totalDibulatkanAll += employee.totalDibulatkan;
+            totalGajiAll += employee.gajiLembur;
         });
+
+        // Baris kosong
+        data.push(['']);
         
         // Total keseluruhan
-        const totalGaji = this.overtimeData.reduce((sum, emp) => sum + emp.totalGaji, 0);
+        data.push(['TOTAL', 
+            totalJamAll.toFixed(2), 
+            totalDibulatkanAll, 
+            '', 
+            `Rp ${totalGajiAll.toLocaleString('id-ID')}`,
+            ''
+        ]);
+        
         data.push(['']);
-        data.push(['TOTAL KESELURUHAN', '', '', '', totalGaji.toLocaleString('id-ID')]);
+        data.push(['Catatan:']);
+        data.push(['- Rate lembur per jam: Rp 12.500']);
+        data.push(['- Pembulatan ke bawah']);
+        data.push(['- Berlaku untuk periode 1-31 Oktober 2025']);
         
         return data;
     }
 
-    // Tambahkan fungsi untuk tab Lembur
-    switchTab(tabName) {
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        document.getElementById(tabName).classList.add('active');
-
-        const titles = {
-            'dashboard': 'Dashboard Overview',
-            'attendance': 'Sistem Absensi Digital',
-            'reports': 'Laporan & Analytics',
-            'employees': 'Manajemen Karyawan',
-            'overtime': 'Perhitungan Lembur'
-        };
-        document.getElementById('pageTitle').textContent = titles[tabName] || 'Sistem Absensi Digital';
-
-        if (tabName === 'dashboard') {
-            this.updateDashboard();
-        } else if (tabName === 'employees') {
-            this.loadEmployeesTable();
-        } else if (tabName === 'overtime') {
-            this.loadOvertimeData();
-        }
-    }
-
     // Fungsi bantuan untuk Overtime
-    editOvertimeRecord(employeeName, index) {
+    editOvertimeRecord(employeeName, recordId) {
         const employee = this.overtimeData.find(emp => emp.employeeName === employeeName);
-        if (employee && employee.records[index]) {
-            const record = employee.records[index];
-            // Tampilkan modal edit
-            this.showToast(`Edit data lembur ${employeeName} tanggal ${record.tanggal}`, 'info');
+        if (employee) {
+            const record = employee.records.find(r => r.id === recordId);
+            if (record) {
+                // Isi form dengan data yang ada
+                document.getElementById('overtimeEmployee').value = employeeName;
+                document.getElementById('overtimeDate').value = this.convertToDateInput(record.tanggal);
+                document.getElementById('overtimeIn').value = record.in;
+                document.getElementById('overtimeOut').value = record.out;
+                document.getElementById('normalHours').value = record.jamKerja;
+                
+                // Hapus record lama
+                employee.records = employee.records.filter(r => r.id !== recordId);
+                this.showToast(`Edit data lembur ${employeeName} tanggal ${record.tanggal}`, 'info');
+            }
         }
     }
 
-    deleteOvertimeRecord(employeeName, index) {
+    convertToDateInput(dateStr) {
+        // Convert DD-MM-YYYY to YYYY-MM-DD
+        const parts = dateStr.split('-');
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+
+    deleteOvertimeRecord(employeeName, recordId) {
         if (confirm('Hapus data lembur ini?')) {
             const employee = this.overtimeData.find(emp => emp.employeeName === employeeName);
             if (employee) {
-                employee.records.splice(index, 1);
+                employee.records = employee.records.filter(r => r.id !== recordId);
                 if (employee.records.length === 0) {
                     this.overtimeData = this.overtimeData.filter(emp => emp.employeeName !== employeeName);
                 }
@@ -470,13 +654,121 @@ class AttendanceSystem {
         }
     }
 
-    calculateEmployeeOvertime(employeeName) {
-        const employee = this.overtimeData.find(emp => emp.employeeName === employeeName);
-        if (employee) {
-            this.showToast(`Menghitung ulang lembur untuk ${employeeName}: ${employee.totalJam} jam`, 'info');
+    // Toast Notification
+    showToast(message, type = 'info') {
+        const toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+            <div class="toast-icon">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                 type === 'error' ? 'exclamation-triangle' : 
+                                 type === 'warning' ? 'exclamation-circle' : 'info-circle'}"></i>
+            </div>
+            <div class="toast-message">${message}</div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (toast.parentNode === toastContainer) {
+                toast.remove();
+            }
+        }, 5000);
+    }
+
+    // Local Storage
+    saveToLocalStorage() {
+        try {
+            localStorage.setItem('overtimeData', JSON.stringify({
+                overtimeData: this.overtimeData,
+                lastUpdate: new Date().toISOString()
+            }));
+        } catch (error) {
+            console.error('Error saving to localStorage:', error);
         }
+    }
+
+    loadFromLocalStorage() {
+        try {
+            const saved = localStorage.getItem('overtimeData');
+            if (saved) {
+                const data = JSON.parse(saved);
+                this.overtimeData = data.overtimeData || [];
+                this.showToast('Data lembur dimuat dari penyimpanan lokal', 'success');
+            }
+        } catch (error) {
+            console.error('Error loading from localStorage:', error);
+        }
+    }
+
+    // Fungsi lain yang sudah ada (untuk compatibility)
+    recordAttendance(type) {
+        // Implementation for attendance recording
+        this.showToast(`Fitur absensi ${type} (dalam pengembangan)`, 'info');
+    }
+
+    loadAttendanceData() {
+        // Implementation for loading attendance data
+        this.showToast('Memuat data absensi...', 'info');
+    }
+
+    filterAttendance() {
+        // Implementation for filtering attendance
+    }
+
+    clearFilters() {
+        // Implementation for clearing filters
+    }
+
+    updateDashboard() {
+        // Implementation for updating dashboard
+    }
+
+    showEmployeeModal() {
+        const modal = document.getElementById('employeeModal');
+        if (modal) modal.style.display = 'block';
+    }
+
+    hideEmployeeModal() {
+        const modal = document.getElementById('employeeModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    saveEmployee(e) {
+        e.preventDefault();
+        this.showToast('Fitur manajemen karyawan (dalam pengembangan)', 'info');
+        this.hideEmployeeModal();
+    }
+
+    loadEmployeesTable() {
+        // Implementation for loading employees table
+    }
+
+    generateReport() {
+        this.showToast('Fitur laporan (dalam pengembangan)', 'info');
+    }
+
+    toggleCustomDateRange(value) {
+        const customRange = document.getElementById('customDateRange');
+        if (customRange) {
+            customRange.style.display = value === 'custom' ? 'block' : 'none';
+        }
+    }
+
+    importExcel() {
+        document.getElementById('excelFileInput').click();
+    }
+
+    handleFileImport(event) {
+        this.showToast('Fitur import Excel (dalam pengembangan)', 'info');
     }
 }
 
-// Initialize the system
-const attendanceSystem = new AttendanceSystem();
+// Initialize the system when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    window.attendanceSystem = new AttendanceSystem();
+});
