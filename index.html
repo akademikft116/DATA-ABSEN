@@ -1,1 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Absensi Otomatis</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Sistem Absensi Otomatis</h1>
+            <p>Fakultas Teknik Universitas Langlangbuana</p>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" data-tab="attendance">Data Absensi</button>
+            <button class="tab" data-tab="overtime">Data Lembur</button>
+            <button class="tab" data-tab="summary">Ringkasan</button>
+        </div>
+        
+        <div id="attendance" class="tab-content active">
+            <div class="card">
+                <h2>Data Absensi Bulan November 2025</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="employeeFilter">Filter Karyawan:</label>
+                        <select id="employeeFilter">
+                            <option value="all">Semua Karyawan</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="dateFilter">Filter Tanggal:</label>
+                        <input type="date" id="dateFilter">
+                    </div>
+                    <button class="btn" id="resetFilters">Reset Filter</button>
+                </div>
+                <div class="table-container">
+                    <table id="attendanceTable">
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Tanggal</th>
+                                <th>Waktu Masuk</th>
+                                <th>Waktu Keluar</th>
+                                <th>Durasi Kerja</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceData">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div id="overtime" class="tab-content">
+            <div class="card">
+                <h2>Data Lembur Bulan Oktober 2025</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="overtimeEmployeeFilter">Filter Karyawan:</label>
+                        <select id="overtimeEmployeeFilter">
+                            <option value="all">Semua Karyawan</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="overtimeTable">
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Tanggal</th>
+                                <th>Jam Masuk</th>
+                                <th>Jam Keluar</th>
+                                <th>Jam Lembur</th>
+                                <th>Total Lembur</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overtimeData">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Honor Piket Lembur K3</h2>
+                <div class="table-container">
+                    <table id="k3OvertimeTable">
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Total Jam</th>
+                                <th>Jam Bulat</th>
+                                <th>Total Honor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="k3OvertimeData">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div id="summary" class="tab-content">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalEmployees">0</div>
+                    <div class="stat-label">Total Karyawan</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalAttendance">0</div>
+                    <div class="stat-label">Total Kehadiran</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalOvertime">0</div>
+                    <div class="stat-label">Total Jam Lembur</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Ringkasan Kehadiran per Karyawan</h2>
+                <div class="table-container">
+                    <table id="summaryTable">
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Jumlah Hari Kerja</th>
+                                <th>Rata-rata Jam Kerja</th>
+                                <th>Total Jam Lembur</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryData">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
