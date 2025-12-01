@@ -15,6 +15,36 @@
     </header>
     
     <div class="container">
+        <!-- Form Absensi Real-time -->
+        <div class="card">
+            <h2>Absensi Masuk/Keluar</h2>
+            <div class="attendance-form">
+                <div class="form-group">
+                    <label for="employeeName">Nama Karyawan:</label>
+                    <select id="employeeName" required>
+                        <option value="">Pilih Karyawan</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="attendanceType">Jenis Absensi:</label>
+                    <select id="attendanceType" required>
+                        <option value="in">Masuk</option>
+                        <option value="out">Keluar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="attendanceDate">Tanggal:</label>
+                    <input type="date" id="attendanceDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="attendanceTime">Waktu:</label>
+                    <input type="time" id="attendanceTime" required>
+                </div>
+                <button class="btn btn-primary" id="submitAttendance">Simpan Absensi</button>
+                <button class="btn btn-secondary" id="autoTime">Waktu Sekarang</button>
+            </div>
+        </div>
+
         <div class="tabs">
             <button class="tab active" data-tab="attendance">Data Absensi</button>
             <button class="tab" data-tab="overtime">Data Lembur</button>
@@ -36,6 +66,7 @@
                         <input type="date" id="dateFilter">
                     </div>
                     <button class="btn" id="resetFilters">Reset Filter</button>
+                    <button class="btn btn-secondary" id="refreshData">Refresh Data</button>
                 </div>
                 <div class="table-container">
                     <table id="attendanceTable">
@@ -46,10 +77,10 @@
                                 <th>Waktu Masuk</th>
                                 <th>Waktu Keluar</th>
                                 <th>Durasi Kerja</th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="attendanceData">
-                            <!-- Data akan diisi oleh JavaScript -->
                         </tbody>
                     </table>
                 </div>
@@ -58,7 +89,7 @@
         
         <div id="overtime" class="tab-content">
             <div class="card">
-                <h2>Data Lembur Bulan Oktober 2025</h2>
+                <h2>Data Lembur</h2>
                 <div class="filters">
                     <div class="filter-group">
                         <label for="overtimeEmployeeFilter">Filter Karyawan:</label>
@@ -66,6 +97,7 @@
                             <option value="all">Semua Karyawan</option>
                         </select>
                     </div>
+                    <button class="btn btn-secondary" id="calculateOvertime">Hitung Lembur</button>
                 </div>
                 <div class="table-container">
                     <table id="overtimeTable">
@@ -80,26 +112,6 @@
                             </tr>
                         </thead>
                         <tbody id="overtimeData">
-                            <!-- Data akan diisi oleh JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2>Honor Piket Lembur K3</h2>
-                <div class="table-container">
-                    <table id="k3OvertimeTable">
-                        <thead>
-                            <tr>
-                                <th>Nama</th>
-                                <th>Total Jam</th>
-                                <th>Jam Bulat</th>
-                                <th>Total Honor</th>
-                            </tr>
-                        </thead>
-                        <tbody id="k3OvertimeData">
-                            <!-- Data akan diisi oleh JavaScript -->
                         </tbody>
                     </table>
                 </div>
@@ -135,7 +147,6 @@
                             </tr>
                         </thead>
                         <tbody id="summaryData">
-                            <!-- Data akan diisi oleh JavaScript -->
                         </tbody>
                     </table>
                 </div>
@@ -143,7 +154,26 @@
         </div>
     </div>
 
-    <script src="data.js"></script>
+    <!-- Modal Edit -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Edit Data Absensi</h3>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label for="editTimeIn">Waktu Masuk:</label>
+                    <input type="time" id="editTimeIn" required>
+                </div>
+                <div class="form-group">
+                    <label for="editTimeOut">Waktu Keluar:</label>
+                    <input type="time" id="editTimeOut">
+                </div>
+                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+            </form>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
