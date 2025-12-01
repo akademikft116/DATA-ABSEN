@@ -3,473 +3,423 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Attendance System - Universitas Langlangbuana</title>
+    <title>Kalkulator Absensi & Lembur Excel</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-logo">
-                <i class="fas fa-graduation-cap"></i>
-                <span>UNIVERSITAS LANGLANGBUANA</span>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-file-excel"></i>
+                <h1>Kalkulator Absensi & Lembur Excel</h1>
             </div>
-            <div class="nav-menu">
-                <div class="nav-item" data-tab="dashboard">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
-                </div>
-                <div class="nav-item" data-tab="attendance">
-                    <i class="fas fa-fingerprint"></i>
-                    <span>Absensi</span>
-                </div>
-                <div class="nav-item active" data-tab="overtime">
-                    <i class="fas fa-clock"></i>
-                    <span>Lembur</span>
-                </div>
-                <div class="nav-item" data-tab="reports">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Laporan</span>
-                </div>
-                <div class="nav-item" data-tab="employees">
-                    <i class="fas fa-users"></i>
-                    <span>Karyawan</span>
-                </div>
-            </div>
-            <div class="nav-user">
-                <div class="user-avatar">
-                    <i class="fas fa-user-circle"></i>
-                </div>
-                <span>Administrator</span>
-            </div>
-        </div>
-    </nav>
+            <p class="subtitle">Import file Excel absensi, hitung jam lembur, dan export hasil ke Excel</p>
+        </header>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Header -->
-        <div class="content-header">
-            <h1 id="pageTitle">Perhitungan Lembur</h1>
-            <div class="header-actions">
-                <div class="datetime-widget">
-                    <i class="fas fa-clock"></i>
-                    <span id="currentDateTime"></span>
-                </div>
-                <button class="btn btn-export" id="exportExcel">
-                    <i class="fas fa-file-excel"></i>
-                    Export Excel
-                </button>
-                <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
-            </div>
-        </div>
-
-        <!-- Dashboard Tab -->
-        <div id="dashboard" class="tab-content">
-            <div class="stats-grid">
-                <div class="stat-card primary">
-                    <div class="stat-icon">
-                        <i class="fas fa-users"></i>
+        <main>
+            <!-- Step 1: Upload Excel -->
+            <section class="upload-section card">
+                <h2><i class="fas fa-file-upload"></i> 1. Upload File Excel Absensi</h2>
+                
+                <div class="tab-container">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="format1">Format 1: Data Absensi</button>
+                        <button class="tab-btn" data-tab="format2">Format 2: Lembur Excel</button>
+                        <button class="tab-btn" data-tab="format3">Format 3: Data Mentah</button>
                     </div>
-                    <div class="stat-info">
-                        <h3 id="totalEmployees">0</h3>
-                        <p>Total Karyawan</p>
-                    </div>
-                </div>
-                <div class="stat-card success">
-                    <div class="stat-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="presentToday">0</h3>
-                        <p>Hadir Hari Ini</p>
-                    </div>
-                </div>
-                <div class="stat-card warning">
-                    <div class="stat-icon">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="overtimeHours">0</h3>
-                        <p>Jam Lembur</p>
-                    </div>
-                </div>
-                <div class="stat-card info">
-                    <div class="stat-icon">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="attendanceRate">0%</h3>
-                        <p>Rate Kehadiran</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-content">
-                <div class="card recent-activity">
-                    <div class="card-header">
-                        <h3><i class="fas fa-history"></i> Aktivitas Terkini</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="recentActivity" class="activity-list">
-                            <!-- Activity items will be populated by JavaScript -->
+                    
+                    <div class="tab-content active" id="format1">
+                        <div class="upload-area" id="uploadArea">
+                            <i class="fas fa-file-excel"></i>
+                            <p>Klik atau drop file Excel absensi di sini</p>
+                            <p class="file-types">Format: .xlsx, .xls, .csv</p>
+                            <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display: none;">
+                        </div>
+                        
+                        <div class="sample-table">
+                            <h4><i class="fas fa-table"></i> Contoh Format Data Absensi:</h4>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tanggal</th>
+                                        <th>Nama</th>
+                                        <th>Jam Masuk</th>
+                                        <th>Jam Pulang</th>
+                                        <th>Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>02-10-2025</td>
+                                        <td>ATI</td>
+                                        <td>7.15</td>
+                                        <td>16.02</td>
+                                        <td>Kerja</td>
+                                    </tr>
+                                    <tr>
+                                        <td>02-10-2025</td>
+                                        <td>IRVAN</td>
+                                        <td>7.22</td>
+                                        <td>16.07</td>
+                                        <td>Kerja</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </div>
-
-                <div class="card attendance-chart">
-                    <div class="card-header">
-                        <h3><i class="fas fa-chart-line"></i> Statistik Kehadiran</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="attendanceChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Attendance Tab -->
-        <div id="attendance" class="tab-content">
-            <div class="attendance-section">
-                <div class="card quick-attendance">
-                    <div class="card-header">
-                        <h3><i class="fas fa-plus-circle"></i> Absensi Cepat</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="attendance-form">
-                            <div class="form-group">
-                                <label for="employeeSelect"><i class="fas fa-user"></i> Pilih Karyawan</label>
-                                <select id="employeeSelect" class="form-control">
-                                    <option value="">-- Pilih Karyawan --</option>
-                                </select>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="attendanceDate"><i class="fas fa-calendar"></i> Tanggal</label>
-                                    <input type="date" id="attendanceDate" class="form-control">
+                    
+                    <div class="tab-content" id="format2">
+                        <div class="sample-table">
+                            <h4><i class="fas fa-image"></i> Format seperti file Excel Anda:</h4>
+                            <div class="excel-preview">
+                                <div class="excel-header">
+                                    <div class="excel-cell" style="background: #e6f3ff; font-weight: bold;">LEMBUR SEMESTER GANJIL TAHUN AKADEMIK 2025/2026</div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="attendanceTime"><i class="fas fa-clock"></i> Waktu</label>
-                                    <input type="time" id="attendanceTime" class="form-control">
+                                <div class="excel-row">
+                                    <div class="excel-cell" style="background: #e6f3ff; font-weight: bold;">BULAN OKTOBER 2025</div>
+                                </div>
+                                <div class="excel-row">
+                                    <div class="excel-cell header">Name</div>
+                                    <div class="excel-cell header">Hari</div>
+                                    <div class="excel-cell header">Tanggal</div>
+                                    <div class="excel-cell header">IN</div>
+                                    <div class="excel-cell header">OUT</div>
+                                    <div class="excel-cell header">JAM KENA</div>
+                                    <div class="excel-cell header">TOTAL</div>
+                                </div>
+                                <div class="excel-row">
+                                    <div class="excel-cell">ATI</div>
+                                    <div class="excel-cell">Senin</div>
+                                    <div class="excel-cell">02-10-2025</div>
+                                    <div class="excel-cell">7.15</div>
+                                    <div class="excel-cell">16.02</div>
+                                    <div class="excel-cell">8</div>
+                                    <div class="excel-cell">0.87</div>
                                 </div>
                             </div>
-                            <div class="attendance-actions">
-                                <button class="btn btn-success btn-lg" id="btnCheckIn">
-                                    <i class="fas fa-sign-in-alt"></i>
-                                    CHECK IN
-                                </button>
-                                <button class="btn btn-danger btn-lg" id="btnCheckOut">
-                                    <i class="fas fa-sign-out-alt"></i>
-                                    CHECK OUT
-                                </button>
-                                <button class="btn btn-secondary" id="btnNow">
-                                    <i class="fas fa-sync"></i>
-                                    Waktu Sekarang
-                                </button>
-                            </div>
+                            <p class="note">Upload file Excel dengan format seperti di atas</p>
                         </div>
                     </div>
-                </div>
-
-                <div class="card attendance-history">
-                    <div class="card-header">
-                        <h3><i class="fas fa-list-alt"></i> Riwayat Absensi</h3>
-                        <div class="header-actions">
-                            <button class="btn btn-outline" id="refreshData">
-                                <i class="fas fa-redo"></i>
-                                Refresh
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-controls">
-                            <div class="filters">
-                                <select id="filterEmployee" class="form-control">
-                                    <option value="">Semua Karyawan</option>
-                                </select>
-                                <input type="date" id="filterDate" class="form-control">
-                                <button class="btn btn-outline" id="clearFilters">
-                                    <i class="fas fa-times"></i>
-                                    Clear
-                                </button>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="data-table">
+                    
+                    <div class="tab-content" id="format3">
+                        <div class="sample-table">
+                            <h4><i class="fas fa-database"></i> Format Data Mentah (Multiple Columns):</h4>
+                            <table>
                                 <thead>
                                     <tr>
                                         <th>Nama</th>
-                                        <th>Tanggal</th>
-                                        <th>Check In</th>
-                                        <th>Check Out</th>
-                                        <th>Durasi</th>
-                                        <th>Status</th>
-                                        <th>Aksi</th>
+                                        <th>Waktu</th>
+                                        <th>Type</th>
                                     </tr>
                                 </thead>
-                                <tbody id="attendanceTable">
-                                    <!-- Data will be populated by JavaScript -->
+                                <tbody>
+                                    <tr>
+                                        <td>Windy</td>
+                                        <td>01/11/2025 9:43</td>
+                                        <td>Check-in</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Windy</td>
+                                        <td>01/11/2025 15:36</td>
+                                        <td>Check-out</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Bu Ati</td>
+                                        <td>03/11/2025 7:26</td>
+                                        <td>Check-in</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Overtime Tab -->
-        <div id="overtime" class="tab-content active">
-            <div class="overtime-section">
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-clock"></i> Perhitungan Lembur</h3>
-                    </div>
-                    <div class="card-body">
-                        <form id="overtimeForm">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="overtimeEmployee"><i class="fas fa-user"></i> Nama Karyawan</label>
-                                    <select id="overtimeEmployee" class="form-control" required>
-                                        <option value="">-- Pilih Karyawan --</option>
-                                        <option value="ATI">ATI</option>
-                                        <option value="IRVAN">IRVAN</option>
-                                        <option value="WINDI">WINDI</option>
-                                        <option value="ARDHI">ARDHI</option>
-                                        <option value="SAJI">SAJI</option>
-                                        <option value="WAHYU">WAHYU</option>
-                                        <option value="ELZI">ELZI</option>
-                                        <option value="NANANG">NANANG</option>
-                                        <option value="DEVI">DEVI</option>
-                                        <option value="INTAN">INTAN</option>
-                                        <option value="ALIFAH">ALIFAH</option>
-                                        <option value="PEBI">PEBI</option>
-                                        <option value="DIAN">DIAN</option>
-                                        <option value="RAFLY">RAFLY</option>
-                                        <option value="ERNI">ERNI</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="overtimeDate"><i class="fas fa-calendar"></i> Tanggal</label>
-                                    <input type="date" id="overtimeDate" class="form-control" required>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="overtimeIn"><i class="fas fa-sign-in-alt"></i> Jam Masuk</label>
-                                    <input type="text" id="overtimeIn" class="form-control" placeholder="7.15" required>
-                                    <small class="form-text text-muted">Format: jam.menit (contoh: 7.15 untuk jam 7:15)</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="overtimeOut"><i class="fas fa-sign-out-alt"></i> Jam Pulang</label>
-                                    <input type="text" id="overtimeOut" class="form-control" placeholder="16.02" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="normalHours"><i class="fas fa-business-time"></i> Jam Kerja Normal</label>
-                                    <select id="normalHours" class="form-control" required>
-                                        <option value="8">8 Jam</option>
-                                        <option value="7">7 Jam</option>
-                                        <option value="6">6 Jam</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="attendance-actions">
-                                <button type="submit" class="btn btn-success btn-lg">
-                                    <i class="fas fa-calculator"></i>
-                                    HITUNG LEMBUR
-                                </button>
-                                <button type="button" class="btn btn-secondary" id="btnResetOvertime">
-                                    <i class="fas fa-redo"></i>
-                                    Reset Form
-                                </button>
-                            </div>
-                        </form>
+                
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <div class="file-info-content">
+                        <i class="fas fa-check-circle success"></i>
+                        <div>
+                            <p class="file-name" id="fileName"></p>
+                            <p class="file-size" id="fileSize"></p>
+                            <p class="file-stats" id="fileStats"></p>
+                        </div>
+                        <button class="btn btn-small btn-secondary" id="removeFile">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
+            </section>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-list-alt"></i> Data Lembur</h3>
-                        <div class="header-actions">
-                            <div class="datetime-widget">
-                                <i class="fas fa-money-bill-wave"></i>
-                                <span>Rate Lembur: Rp 12,500/jam</span>
+            <!-- Step 2: Pengaturan Perhitungan -->
+            <section class="settings-section card">
+                <h2><i class="fas fa-calculator"></i> 2. Pengaturan Perhitungan</h2>
+                
+                <div class="settings-grid">
+                    <div class="setting-group">
+                        <h3><i class="fas fa-clock"></i> Jam Kerja</h3>
+                        <div class="setting-item">
+                            <label for="startTime">Jam Mulai Kerja</label>
+                            <input type="time" id="startTime" value="08:00">
+                        </div>
+                        <div class="setting-item">
+                            <label for="endTime">Jam Selesai Kerja</label>
+                            <input type="time" id="endTime" value="17:00">
+                        </div>
+                        <div class="setting-item">
+                            <label for="workingHours">Total Jam Kerja Normal</label>
+                            <input type="number" id="workingHours" value="8" min="1" max="12" step="0.5">
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <h3><i class="fas fa-money-bill-wave"></i> Lembur</h3>
+                        <div class="setting-item">
+                            <label for="overtimeRate">Rate Lembur per Jam</label>
+                            <div class="input-with-icon">
+                                <span class="currency">Rp</span>
+                                <input type="number" id="overtimeRate" value="12500" min="0" step="100">
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label for="roundingType">Pembulatan Jam</label>
+                            <select id="roundingType">
+                                <option value="down">Pembulatan ke Bawah (Floor)</option>
+                                <option value="nearest">Pembulatan Terdekat (Round)</option>
+                                <option value="up">Pembulatan ke Atas (Ceil)</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="tolerance">Toleransi Keterlambatan (menit)</label>
+                            <input type="number" id="tolerance" value="15" min="0" max="60">
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <h3><i class="fas fa-calendar-alt"></i> Periode & Lainnya</h3>
+                        <div class="setting-item">
+                            <label for="period">Periode Lembur</label>
+                            <input type="text" id="period" value="OKTOBER 2025" placeholder="Contoh: OKTOBER 2025">
+                        </div>
+                        <div class="setting-item">
+                            <label for="mealAllowance">Uang Makan</label>
+                            <div class="input-with-icon">
+                                <span class="currency">Rp</span>
+                                <input type="number" id="mealAllowance" value="20000" min="0" step="1000">
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label for="transportAllowance">Transport</label>
+                            <div class="input-with-icon">
+                                <span class="currency">Rp</span>
+                                <input type="number" id="transportAllowance" value="15000" min="0" step="1000">
                             </div>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="data-table overtime-table">
+                </div>
+            </section>
+
+            <!-- Step 3: Proses Data -->
+            <section class="process-section card">
+                <h2><i class="fas fa-play-circle"></i> 3. Proses Data</h2>
+                
+                <div class="process-controls">
+                    <button id="analyzeBtn" class="btn btn-primary" disabled>
+                        <i class="fas fa-chart-bar"></i> Analisis Data
+                    </button>
+                    <button id="calculateBtn" class="btn btn-success" disabled>
+                        <i class="fas fa-calculator"></i> Hitung Lembur
+                    </button>
+                    <button id="exportBtn" class="btn btn-export" disabled>
+                        <i class="fas fa-file-export"></i> Export ke Excel
+                    </button>
+                    <button id="resetBtn" class="btn btn-secondary">
+                        <i class="fas fa-redo"></i> Reset
+                    </button>
+                </div>
+                
+                <div class="progress-container" id="progressContainer" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Memproses...</div>
+                </div>
+            </section>
+
+            <!-- Step 4: Hasil & Preview -->
+            <section class="results-section card">
+                <h2><i class="fas fa-chart-line"></i> 4. Hasil Perhitungan</h2>
+                
+                <div class="results-tabs">
+                    <div class="results-tab-header">
+                        <button class="results-tab-btn active" data-tab="summary">Ringkasan</button>
+                        <button class="results-tab-btn" data-tab="overtime">Data Lembur</button>
+                        <button class="results-tab-btn" data-tab="attendance">Data Absensi</button>
+                        <button class="results-tab-btn" data-tab="statistics">Statistik</button>
+                    </div>
+                    
+                    <div class="results-tab-content active" id="summaryTab">
+                        <div class="summary-cards">
+                            <div class="summary-card">
+                                <div class="summary-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="summary-info">
+                                    <h3 id="totalEmployees">0</h3>
+                                    <p>Total Karyawan</p>
+                                </div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="summary-info">
+                                    <h3 id="totalOvertimeHours">0</h3>
+                                    <p>Total Jam Lembur</p>
+                                </div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-icon">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </div>
+                                <div class="summary-info">
+                                    <h3 id="totalOvertimePay">Rp 0</h3>
+                                    <p>Total Gaji Lembur</p>
+                                </div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-icon">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="summary-info">
+                                    <h3 id="attendanceRate">0%</h3>
+                                    <p>Kehadiran</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="summary-table">
+                            <h4><i class="fas fa-list"></i> Ringkasan per Karyawan</h4>
+                            <table id="summaryTable">
+                                <thead>
+                                    <tr>
+                                        <th>Nama</th>
+                                        <th>Hadir</th>
+                                        <th>Terlambat</th>
+                                        <th>Jam Lembur</th>
+                                        <th>Gaji Lembur</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summaryBody">
+                                    <!-- Data akan diisi -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="results-tab-content" id="overtimeTab">
+                        <div class="data-actions">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchOvertime" placeholder="Cari nama atau tanggal...">
+                            </div>
+                            <button class="btn btn-small" id="filterOvertime">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                        </div>
+                        <div class="table-container">
+                            <table id="overtimeTable">
                                 <thead>
                                     <tr>
                                         <th>Nama</th>
                                         <th>Hari</th>
                                         <th>Tanggal</th>
-                                        <th>IN</th>
-                                        <th>OUT</th>
+                                        <th>Masuk</th>
+                                        <th>Pulang</th>
                                         <th>Jam Kerja</th>
-                                        <th>Total Lembur</th>
-                                        <th>Tanda Tangan</th>
-                                        <th>Aksi</th>
+                                        <th>Lembur</th>
+                                        <th>Status</th>
                                     </tr>
                                 </thead>
-                                <tbody id="overtimeTable">
-                                    <!-- Data lembur akan diisi oleh JavaScript -->
+                                <tbody id="overtimeBody">
+                                    <!-- Data akan diisi -->
                                 </tbody>
                             </table>
                         </div>
-                        <div class="overtime-summary">
-                            <div class="summary-card">
-                                <h4><i class="fas fa-calculator"></i> Ringkasan Lembur</h4>
-                                <div class="summary-content">
-                                    <div class="summary-item">
-                                        <span>Total Jam Lembur:</span>
-                                        <strong id="totalOvertimeHours">0 jam</strong>
-                                    </div>
-                                    <div class="summary-item">
-                                        <span>Total Dibulatkan:</span>
-                                        <strong id="totalRoundedHours">0 jam</strong>
-                                    </div>
-                                    <div class="summary-item">
-                                        <span>Total Gaji Lembur:</span>
-                                        <strong id="totalOvertimePay">Rp 0</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Reports Tab -->
-        <div id="reports" class="tab-content">
-            <div class="reports-section">
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-chart-pie"></i> Laporan Kehadiran</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="report-filters">
-                            <div class="form-group">
-                                <label>Periode</label>
-                                <select id="reportPeriod" class="form-control">
-                                    <option value="today">Hari Ini</option>
-                                    <option value="week">Minggu Ini</option>
-                                    <option value="month">Bulan Ini</option>
-                                    <option value="custom">Custom</option>
-                                </select>
-                            </div>
-                            <div class="form-group" id="customDateRange" style="display: none;">
-                                <label>Tanggal Custom</label>
-                                <div class="date-range">
-                                    <input type="date" id="startDate" class="form-control">
-                                    <span>s/d</span>
-                                    <input type="date" id="endDate" class="form-control">
-                                </div>
-                            </div>
-                            <button class="btn btn-primary" id="generateReport">
-                                <i class="fas fa-chart-bar"></i>
-                                Generate Report
-                            </button>
-                        </div>
-                        <div class="report-content">
-                            <div id="reportResults">
-                                <!-- Report results will be shown here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Employees Tab -->
-        <div id="employees" class="tab-content">
-            <div class="employees-section">
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-users-cog"></i> Manajemen Karyawan</h3>
-                        <button class="btn btn-primary" id="addEmployeeBtn">
-                            <i class="fas fa-plus"></i>
-                            Tambah Karyawan
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="data-table">
+                    
+                    <div class="results-tab-content" id="attendanceTab">
+                        <div class="table-container">
+                            <table id="attendanceTable">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
+                                        <th>Tanggal</th>
                                         <th>Nama</th>
-                                        <th>Jabatan</th>
-                                        <th>Departemen</th>
+                                        <th>Jam Masuk</th>
+                                        <th>Jam Pulang</th>
+                                        <th>Durasi</th>
                                         <th>Status</th>
-                                        <th>Aksi</th>
+                                        <th>Keterangan</th>
                                     </tr>
                                 </thead>
-                                <tbody id="employeesTable">
-                                    <!-- Employees data will be populated by JavaScript -->
+                                <tbody id="attendanceBody">
+                                    <!-- Data akan diisi -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
+                    
+                    <div class="results-tab-content" id="statisticsTab">
+                        <div class="charts-container">
+                            <div class="chart-box">
+                                <h4><i class="fas fa-chart-pie"></i> Distribusi Lembur</h4>
+                                <div class="chart-placeholder" id="overtimeChart">
+                                    <p>Grafik akan tampil setelah perhitungan</p>
+                                </div>
+                            </div>
+                            <div class="chart-box">
+                                <h4><i class="fas fa-chart-bar"></i> Jam Lembur per Karyawan</h4>
+                                <div class="chart-placeholder" id="employeeChart">
+                                    <p>Grafik akan tampil setelah perhitungan</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Log Aktivitas -->
+            <section class="log-section card">
+                <h2><i class="fas fa-history"></i> Log Aktivitas</h2>
+                <div class="log-container">
+                    <div id="activityLog">
+                        <div class="log-item">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Sistem siap. Upload file Excel untuk memulai.</span>
+                            <span class="log-time">Sekarang</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <div class="footer-info">
+                    <h4><i class="fas fa-university"></i> Universitas Langlangbuana</h4>
+                    <p>Sistem Kalkulator Absensi & Lembur</p>
+                </div>
+                <div class="footer-stats">
+                    <p><i class="fas fa-database"></i> Data diproses secara lokal di browser Anda</p>
+                    <p><i class="fas fa-shield-alt"></i> File Anda tidak dikirim ke server manapun</p>
                 </div>
             </div>
-        </div>
-    </main>
-
-    <!-- Modals -->
-    <div id="employeeModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-user-plus"></i> Tambah Karyawan</h3>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="employeeForm">
-                    <div class="form-group">
-                        <label for="empName">Nama Lengkap</label>
-                        <input type="text" id="empName" class="form-control" required>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="empPosition">Jabatan</label>
-                            <select id="empPosition" class="form-control" required>
-                                <option value="">Pilih Jabatan</option>
-                                <option value="Dosen">Dosen</option>
-                                <option value="Staff">Staff</option>
-                                <option value="Admin">Admin</option>
-                                <option value="Kepala Bagian">Kepala Bagian</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="empDepartment">Departemen</label>
-                            <select id="empDepartment" class="form-control" required>
-                                <option value="">Pilih Departemen</option>
-                                <option value="Teknik Informatika">Teknik Informatika</option>
-                                <option value="Teknik Elektro">Teknik Elektro</option>
-                                <option value="Teknik Mesin">Teknik Mesin</option>
-                                <option value="Administrasi">Administrasi</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="cancelEmployee">Batal</button>
-                        <button type="submit" class="btn btn-primary">Simpan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+            <p class="copyright">© 2024 Kalkulator Absensi & Lembur • v2.0</p>
+        </footer>
     </div>
 
-    <!-- Toast Notifications -->
-    <div id="toastContainer" class="toast-container"></div>
-
     <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
