@@ -127,34 +127,65 @@
                 </div>
 
                 <!-- Processing Options -->
-                <div class="options-section card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-cogs"></i> Opsi Pengolahan Data</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-group">
-                            <label for="salary-per-hour">
-                                <i class="fas fa-money-bill-wave"></i> Gaji per Jam (Rp)
-                            </label>
-                            <input type="number" id="salary-per-hour" value="50000" min="1000" step="1000">
-                        </div>
-                        <div class="form-group">
-                            <label for="overtime-rate">
-                                <i class="fas fa-clock"></i> Tarif Lembur (per Jam)
-                            </label>
-                            <input type="number" id="overtime-rate" value="75000" min="1000" step="1000">
-                        </div>
-                        <div class="form-group">
-                            <label for="tax-rate">
-                                <i class="fas fa-percentage"></i> Potongan Pajak (%)
-                            </label>
-                            <input type="number" id="tax-rate" value="5" min="0" max="100" step="0.1">
-                        </div>
-                        <button class="btn btn-process" id="process-btn" disabled>
-                            <i class="fas fa-calculator"></i> Proses Data Presensi
-                        </button>
-                    </div>
-                </div>
+                <!-- Processing Options -->
+<div class="options-section card">
+    <div class="card-header">
+        <h3><i class="fas fa-cogs"></i> Opsi Pengolahan Data (Opsional)</h3>
+        <p class="subtitle">Kosongkan jika ingin menggunakan nilai default</p>
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <label for="salary-per-hour">
+                <i class="fas fa-money-bill-wave"></i> Gaji per Jam (Rp)
+                <span class="optional-badge">Opsional</span>
+            </label>
+            <div class="input-with-default">
+                <input type="number" id="salary-per-hour" placeholder="50000 (default)" min="1000" step="1000">
+                <button type="button" class="btn-default" data-target="salary-per-hour" data-value="50000">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+            </div>
+            <p class="input-hint">Default: Rp 50.000 per jam</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="overtime-rate">
+                <i class="fas fa-clock"></i> Tarif Lembur (per Jam)
+                <span class="optional-badge">Opsional</span>
+            </label>
+            <div class="input-with-default">
+                <input type="number" id="overtime-rate" placeholder="75000 (default)" min="1000" step="1000">
+                <button type="button" class="btn-default" data-target="overtime-rate" data-value="75000">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+            </div>
+            <p class="input-hint">Default: Rp 75.000 per jam lembur</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="tax-rate">
+                <i class="fas fa-percentage"></i> Potongan Pajak (%)
+                <span class="optional-badge">Opsional</span>
+            </label>
+            <div class="input-with-default">
+                <input type="number" id="tax-rate" placeholder="5 (default)" min="0" max="100" step="0.1">
+                <button type="button" class="btn-default" data-target="tax-rate" data-value="5">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+            </div>
+            <p class="input-hint">Default: 5% dari total gaji</p>
+        </div>
+        
+        <div class="form-actions">
+            <button class="btn btn-process" id="process-btn" disabled>
+                <i class="fas fa-calculator"></i> Proses Data Presensi
+            </button>
+            <button class="btn btn-reset" id="reset-options-btn">
+                <i class="fas fa-redo"></i> Reset Semua ke Default
+            </button>
+        </div>
+    </div>
+</div>
 
                 <!-- Results Section -->
                 <div class="results-section card" id="results-section" style="display: none;">
