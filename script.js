@@ -1,5 +1,5 @@
-// Main JavaScript file - Mengatur seluruh aplikasi
-// SCRIPT UTAMA - SEMUA FUNGSI DI SATU FILE
+// Main JavaScript file - Sistem Pengolahan Data Presensi
+// DIPERBAIKI UNTUK FORMAT EXCEL ANDA
 
 // Global variables
 let originalData = [];
@@ -41,33 +41,28 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
-// Format date
+// Format date from DD/MM/YYYY to YYYY-MM-DD
 function formatDate(dateString) {
     if (!dateString) return '-';
     
     try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) {
-            if (typeof dateString === 'string') {
-                if (dateString.includes('/')) {
-                    const [day, month, year] = dateString.split('/');
-                    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                }
+        if (typeof dateString === 'string') {
+            if (dateString.includes('/')) {
+                // Format: DD/MM/YYYY
+                const [day, month, year] = dateString.split('/');
+                return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            } else if (dateString.includes('-')) {
+                // Format: YYYY-MM-DD
+                return dateString;
             }
-            return dateString;
         }
-        
-        return date.toLocaleDateString('id-ID', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+        return dateString;
     } catch (error) {
         return dateString;
     }
 }
 
-// Format time
+// Format time from "HH:MM" or "H:MM" to "HH:MM"
 function formatTime(timeString) {
     if (!timeString) return '-';
     
@@ -76,16 +71,38 @@ function formatTime(timeString) {
             if (timeString.includes(':')) {
                 const [hours, minutes] = timeString.split(':');
                 return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
-            } else if (timeString.includes('.')) {
-                const hours = Math.floor(timeString);
-                const minutes = Math.round((timeString - hours) * 60);
-                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
             }
         }
         return timeString;
     } catch (error) {
         return timeString;
     }
+}
+
+// Parse datetime string "DD/MM/YYYY HH:MM" to separate date and time
+function parseDateTime(datetimeStr) {
+    if (!datetimeStr) return { date: '', time: '' };
+    
+    try {
+        if (typeof datetimeStr === 'string') {
+            const parts = datetimeStr.split(' ');
+            if (parts.length >= 2) {
+                return {
+                    date: parts[0],  // DD/MM/YYYY
+                    time: parts[1]   // HH:MM
+                };
+            }
+        } else if (datetimeStr instanceof Date) {
+            return {
+                date: datetimeStr.toISOString().split('T')[0],
+                time: datetimeStr.toTimeString().split(' ')[0].substring(0, 5)
+            };
+        }
+    } catch (error) {
+        console.error('Error parsing datetime:', error);
+    }
+    
+    return { date: '', time: '' };
 }
 
 // Calculate hours between two time strings
@@ -105,13 +122,6 @@ function calculateHours(timeIn, timeOut) {
                     const hours = Math.floor(decimal);
                     const minutes = Math.round((decimal - hours) * 60);
                     return { hours, minutes };
-                } else {
-                    const decimal = parseFloat(timeStr);
-                    if (!isNaN(decimal)) {
-                        const hours = Math.floor(decimal);
-                        const minutes = Math.round((decimal - hours) * 60);
-                        return { hours, minutes };
-                    }
                 }
             }
             return null;
@@ -125,11 +135,13 @@ function calculateHours(timeIn, timeOut) {
         let totalMinutes = (outTime.hours * 60 + outTime.minutes) - 
                           (inTime.hours * 60 + inTime.minutes);
         
+        // Jika jam pulang lebih kecil dari jam masuk (misal lembur sampai pagi)
         if (totalMinutes < 0) {
-            totalMinutes += 24 * 60;
+            totalMinutes += 24 * 60; // Tambah 24 jam
         }
         
-        return totalMinutes / 60;
+        // Convert to hours with 2 decimal places
+        return Math.round((totalMinutes / 60) * 100) / 100;
         
     } catch (error) {
         console.error('Error calculating hours:', error);
@@ -137,7 +149,7 @@ function calculateHours(timeIn, timeOut) {
     }
 }
 
-// Process Excel file
+// Process Excel file - KHUSUS UNTUK FORMAT ANDA
 function processExcelFile(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -152,9 +164,12 @@ function processExcelFile(file) {
                 
                 sheets.forEach(sheetName => {
                     const worksheet = workbook.Sheets[sheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
                     
-                    const processedData = processSheetData(jsonData, sheetName);
+                    // Convert to array of arrays untuk format spesifik Anda
+                    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    // Process data based on your specific format
+                    const processedData = processYourExcelFormat(rawData);
                     allData = [...allData, ...processedData];
                 });
                 
@@ -163,9 +178,13 @@ function processExcelFile(file) {
                     return;
                 }
                 
-                resolve(allData);
+                // Pair in-out times
+                const pairedData = pairInOutTimes(allData);
+                
+                resolve(pairedData);
                 
             } catch (error) {
+                console.error('Error processing file:', error);
                 reject(error);
             }
         };
@@ -175,67 +194,106 @@ function processExcelFile(file) {
     });
 }
 
-// Process data from a specific sheet
-function processSheetData(data, sheetName) {
-    if (data.length === 0) return [];
+// Process your specific Excel format (kolom E dan F)
+function processYourExcelFormat(rawData) {
+    const result = [];
     
-    let processedData = [];
-    
-    // Format 1: Standard columns
-    if (data[0].Nama || data[0].nama || data[0]['Nama Lengkap']) {
-        processedData = data.map(row => ({
-            nama: row.Nama || row.nama || row['Nama Lengkap'] || '',
-            tanggal: row.Tanggal || row.tanggal || row.TANGGAL || row.Date || row.date || '',
-            jamMasuk: row['Jam Masuk'] || row['jam masuk'] || row.JamMasuk || row.jamMasuk || row['Jam masuk'] || row['Check-in'] || '',
-            jamKeluar: row['Jam Keluar'] || row['jam keluar'] || row.JamKeluar || row.jamKeluar || row['Jam keluar'] || row['Check-out'] || '',
-            durasi: calculateHours(
-                row['Jam Masuk'] || row['jam masuk'] || row.JamMasuk || row.jamMasuk || row['Jam masuk'] || row['Check-in'] || '',
-                row['Jam Keluar'] || row['jam keluar'] || row.JamKeluar || row.jamKeluar || row['Jam keluar'] || row['Check-out'] || ''
-            )
-        }));
-    }
-    // Format 2: Empty columns format
-    else if (data[0]['__EMPTY_4'] || data[0]['__EMPTY_5']) {
-        processedData = data
-            .filter(row => row['__EMPTY_4'] && row['__EMPTY_5'])
-            .map(row => {
-                const nama = row['__EMPTY_4'];
-                const waktu = row['__EMPTY_5'];
-                
-                let tanggal = '';
-                let jamMasuk = '';
-                
-                if (typeof waktu === 'string') {
-                    const [datePart, timePart] = waktu.split(' ');
-                    tanggal = datePart;
-                    jamMasuk = timePart ? timePart.split(':').slice(0, 2).join(':') : '';
-                } else if (waktu instanceof Date) {
-                    tanggal = waktu.toISOString().split('T')[0];
-                    jamMasuk = waktu.toTimeString().split(' ')[0].substring(0, 5);
-                }
-                
-                return {
+    // Loop melalui semua baris
+    for (let i = 0; i < rawData.length; i++) {
+        const row = rawData[i];
+        
+        // Kolom E adalah indeks 4 (Nama)
+        // Kolom F adalah indeks 5 (Waktu)
+        if (row[4] && row[5]) {
+            const nama = row[4];
+            const waktu = row[5];
+            
+            // Parse datetime
+            const { date, time } = parseDateTime(waktu);
+            
+            if (nama && date && time) {
+                result.push({
                     nama: nama.toString().trim(),
-                    tanggal: tanggal,
-                    jamMasuk: jamMasuk,
-                    jamKeluar: '',
-                    durasi: 0
-                };
-            });
+                    tanggal: date, // Format: DD/MM/YYYY
+                    waktu: time,    // Format: HH:MM
+                    rawDatetime: waktu
+                });
+            }
+        }
     }
     
-    return processedData.filter(item => 
-        item.nama && 
-        item.nama.trim() !== '' && 
-        !item.nama.toLowerCase().includes('nama') && 
-        !item.nama.toLowerCase().includes('name')
-    );
+    return result;
+}
+
+// Pair in and out times for each employee on each date
+function pairInOutTimes(data) {
+    // Group by nama and tanggal
+    const grouped = {};
+    
+    data.forEach(record => {
+        const key = `${record.nama}_${record.tanggal}`;
+        if (!grouped[key]) {
+            grouped[key] = [];
+        }
+        grouped[key].push({
+            time: record.waktu,
+            raw: record
+        });
+    });
+    
+    // Create paired records
+    const result = [];
+    
+    Object.keys(grouped).forEach(key => {
+        const [nama, tanggal] = key.split('_');
+        const times = grouped[key];
+        
+        // Sort by time
+        times.sort((a, b) => {
+            const timeA = a.time.split(':').map(Number);
+            const timeB = b.time.split(':').map(Number);
+            return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
+        });
+        
+        // If we have at least 2 records (in and out)
+        if (times.length >= 2) {
+            // Take first as in, last as out (assuming multiple entries)
+            const jamMasuk = times[0].time;
+            const jamKeluar = times[times.length - 1].time;
+            
+            // Calculate duration
+            const durasi = calculateHours(jamMasuk, jamKeluar);
+            
+            result.push({
+                nama: nama,
+                tanggal: tanggal,
+                jamMasuk: jamMasuk,
+                jamKeluar: jamKeluar,
+                durasi: durasi,
+                jumlahCatatan: times.length
+            });
+        } else if (times.length === 1) {
+            // Only one record (either in or out only)
+            result.push({
+                nama: nama,
+                tanggal: tanggal,
+                jamMasuk: times[0].time,
+                jamKeluar: '',
+                durasi: 0,
+                jumlahCatatan: 1,
+                keterangan: 'Hanya satu catatan'
+            });
+        }
+    });
+    
+    return result;
 }
 
 // Calculate salaries from attendance data
 function calculateSalaries(data, salaryPerHour = 50000, overtimeRate = 75000, taxRate = 5, workHours = 8) {
     const employees = {};
     
+    // Group by employee
     data.forEach(record => {
         const name = record.nama.trim();
         
@@ -246,7 +304,8 @@ function calculateSalaries(data, salaryPerHour = 50000, overtimeRate = 75000, ta
                 totalHari: 0,
                 totalJam: 0,
                 jamNormal: 0,
-                jamLembur: 0
+                jamLembur: 0,
+                detailHari: []
             };
         }
         
@@ -263,14 +322,27 @@ function calculateSalaries(data, salaryPerHour = 50000, overtimeRate = 75000, ta
             employees[name].totalHari++;
             employees[name].totalJam += hoursWorked;
             
+            // Regular hours (max workHours per day)
             const regular = Math.min(hoursWorked, workHours);
             employees[name].jamNormal += regular;
             
+            // Overtime hours (hours beyond workHours)
             const overtime = Math.max(hoursWorked - workHours, 0);
             employees[name].jamLembur += overtime;
+            
+            // Detail per hari
+            employees[name].detailHari.push({
+                tanggal: record.tanggal,
+                jamMasuk: record.jamMasuk,
+                jamKeluar: record.jamKeluar,
+                durasi: hoursWorked,
+                jamNormal: regular,
+                jamLembur: overtime
+            });
         }
     });
     
+    // Calculate salaries for each employee
     const result = Object.values(employees).map(emp => {
         const gajiPokok = emp.jamNormal * salaryPerHour;
         const uangLembur = emp.jamLembur * overtimeRate;
@@ -284,14 +356,17 @@ function calculateSalaries(data, salaryPerHour = 50000, overtimeRate = 75000, ta
             totalJam: emp.totalJam,
             jamNormal: emp.jamNormal,
             jamLembur: emp.jamLembur,
-            gajiPokok: gajiPokok,
-            uangLembur: uangLembur,
-            pajak: pajak,
-            gajiBersih: gajiBersih,
-            records: emp.records
+            gajiPokok: Math.round(gajiPokok),
+            uangLembur: Math.round(uangLembur),
+            pajak: Math.round(pajak),
+            gajiBersih: Math.round(gajiBersih),
+            // For detailed report
+            records: emp.records,
+            detailHari: emp.detailHari
         };
     });
     
+    // Sort by name
     result.sort((a, b) => a.nama.localeCompare(b.nama));
     
     return result;
@@ -325,6 +400,7 @@ function prepareExportData(data) {
     const isProcessedData = data[0].gajiPokok !== undefined;
     
     if (isProcessedData) {
+        // Processed data format
         return data.map((item, index) => ({
             'No': index + 1,
             'Nama Karyawan': item.nama,
@@ -332,13 +408,14 @@ function prepareExportData(data) {
             'Total Jam Kerja': item.totalJam.toFixed(2),
             'Jam Normal': item.jamNormal.toFixed(2),
             'Jam Lembur': item.jamLembur.toFixed(2),
-            'Gaji Pokok': item.gajiPokok,
-            'Uang Lembur': item.uangLembur,
-            'Potongan Pajak': item.pajak,
-            'Gaji Bersih': item.gajiBersih,
+            'Gaji Pokok (Rp)': item.gajiPokok,
+            'Uang Lembur (Rp)': item.uangLembur,
+            'Potongan Pajak (Rp)': item.pajak,
+            'Gaji Bersih (Rp)': item.gajiBersih,
             'Keterangan': 'Data terhitung otomatis'
         }));
     } else {
+        // Original data format (for your specific format)
         return data.map((item, index) => ({
             'No': index + 1,
             'Nama': item.nama,
@@ -346,7 +423,9 @@ function prepareExportData(data) {
             'Jam Masuk': item.jamMasuk,
             'Jam Keluar': item.jamKeluar,
             'Durasi (jam)': item.durasi ? item.durasi.toFixed(2) : '',
-            'Keterangan': item.jamKeluar ? 'Lengkap' : 'Masuk saja'
+            'Keterangan': item.jamKeluar ? 
+                `${item.jamMasuk} - ${item.jamKeluar} (${item.durasi.toFixed(2)} jam)` : 
+                'Hanya jam masuk'
         }));
     }
 }
@@ -435,11 +514,57 @@ async function handleFileSelect(event) {
         showNotification('File berhasil diunggah!', 'success');
         processBtn.disabled = false;
         
+        // Show preview of first few records
+        previewUploadedData(data);
+        
     } catch (error) {
         console.error('Error processing file:', error);
         showNotification('Gagal memproses file. Pastikan format sesuai.', 'error');
         cancelUpload();
     }
+}
+
+// Show preview of uploaded data
+function previewUploadedData(data) {
+    const previewDiv = document.createElement('div');
+    previewDiv.className = 'data-preview';
+    previewDiv.style.cssText = `
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #3498db;
+    `;
+    
+    const previewCount = Math.min(data.length, 5);
+    let previewHtml = `<h4 style="margin-bottom: 0.5rem; color: #2c3e50;">
+        <i class="fas fa-eye"></i> Preview Data (${previewCount} dari ${data.length} entri)
+    </h4>`;
+    
+    previewHtml += `<div style="font-size: 0.9rem; color: #555;">`;
+    
+    for (let i = 0; i < previewCount; i++) {
+        const record = data[i];
+        previewHtml += `
+            <div style="margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #eee;">
+                <strong>${record.nama}</strong> - ${formatDate(record.tanggal)}<br>
+                Masuk: ${record.jamMasuk} | Pulang: ${record.jamKeluar || '-'} 
+                ${record.durasi ? `| Durasi: ${record.durasi.toFixed(2)} jam` : ''}
+            </div>
+        `;
+    }
+    
+    previewHtml += `</div>`;
+    
+    previewDiv.innerHTML = previewHtml;
+    
+    // Insert after file preview
+    const filePreview = document.getElementById('file-preview');
+    const existingPreview = filePreview.querySelector('.data-preview');
+    if (existingPreview) {
+        existingPreview.remove();
+    }
+    filePreview.appendChild(previewDiv);
 }
 
 // Show file preview
@@ -550,7 +675,7 @@ function displayProcessedTable(data) {
             <td>${formatCurrency(item.gajiPokok)}</td>
             <td>${formatCurrency(item.uangLembur)}</td>
             <td>${formatCurrency(item.pajak)}</td>
-            <td><strong>${formatCurrency(item.gajiBersih)}</strong></td>
+            <td><strong style="color: #2ecc71;">${formatCurrency(item.gajiBersih)}</strong></td>
         `;
         tbody.appendChild(row);
     });
@@ -586,9 +711,14 @@ function displaySummaries(data) {
     uniqueEmployees.forEach(employee => {
         const employeeData = data.find(item => item.nama === employee);
         employeeHtml += `
-            <div>
+            <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
                 <strong>${employee}</strong><br>
-                <small>Total Hari: ${employeeData.totalHari} | Total Jam: ${employeeData.totalJam.toFixed(2)} | Lembur: ${employeeData.jamLembur.toFixed(2)} jam</small>
+                <small>
+                    Total Hari: ${employeeData.totalHari} | 
+                    Total Jam: ${employeeData.totalJam.toFixed(2)} | 
+                    Lembur: ${employeeData.jamLembur.toFixed(2)} jam<br>
+                    Gaji Bersih: ${formatCurrency(employeeData.gajiBersih)}
+                </small>
             </div>
         `;
     });
@@ -760,26 +890,26 @@ function resetConfig() {
 function downloadTemplate() {
     const templateData = [
         {
-            'Nama': 'Contoh Karyawan 1',
-            'Tanggal': '2025-11-01',
-            'Jam Masuk': '08:00',
-            'Jam Keluar': '17:00'
+            'Nama': 'Windy',
+            'Tanggal': '01/11/2025',
+            'Jam Masuk': '09:43',
+            'Jam Keluar': '16:36'
         },
         {
-            'Nama': 'Contoh Karyawan 2',
-            'Tanggal': '2025-11-01',
+            'Nama': 'Windy',
+            'Tanggal': '02/11/2025',
             'Jam Masuk': '08:30',
             'Jam Keluar': '17:30'
         },
         {
-            'Nama': 'Contoh Karyawan 1',
-            'Tanggal': '2025-11-02',
-            'Jam Masuk': '08:15',
-            'Jam Keluar': '18:15'
+            'Nama': 'Bu Ali',
+            'Tanggal': '01/11/2025',
+            'Jam Masuk': '08:00',
+            'Jam Keluar': '17:00'
         }
     ];
     
-    downloadFile(templateData, 'template_data_presensi.xlsx', 'Template Presensi');
+    downloadFile(templateData, 'template_format_anda.xlsx', 'Template Presensi');
     showNotification('Template berhasil diunduh.', 'success');
 }
 
