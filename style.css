@@ -699,4 +699,129 @@ tbody tr:hover {
     th, td {
         padding: 8px 10px;
     }
+/* Optional input styles */
+.subtitle {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    margin-top: 5px;
+    font-weight: normal;
+}
+
+.optional-badge {
+    background-color: #f39c12;
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    font-weight: normal;
+}
+
+.input-with-default {
+    display: flex;
+    gap: 10px;
+}
+
+.input-with-default input {
+    flex: 1;
+}
+
+.btn-default {
+    background-color: #95a5a6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0 15px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.btn-default:hover {
+    background-color: #7f8c8d;
+}
+
+.btn-default i {
+    margin-right: 5px;
+}
+
+.input-hint {
+    font-size: 0.8rem;
+    color: #95a5a6;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+/* Placeholder styling */
+input::placeholder {
+    color: #bdc3c7;
+    font-style: italic;
+}
+
+/* Form actions */
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.btn-reset {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.btn-reset:hover {
+    background-color: #7f8c8d;
+}
+
+/* Optional field indicator */
+.optional-field {
+    position: relative;
+}
+
+.optional-field::after {
+    content: '(Opsional)';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #95a5a6;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* Focus states for optional fields */
+input:optional {
+    border-color: #ddd;
+}
+
+input:optional:focus {
+    border-color: #3498db;
+}
+
+/* Clear button for inputs */
+.clear-input {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #e74c3c;
+    cursor: pointer;
+    font-size: 1rem;
+    display: none;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-wrapper input:not(:placeholder-shown) + .clear-input {
+    display: block;
 }
