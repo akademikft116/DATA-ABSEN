@@ -99,6 +99,52 @@ body {
     50% { width: 100%; }
     100% { width: 0%; }
 }
+/* style.css - Tambahkan bagian ini di bawah kode loading screen */
+
+/* Logo Loading */
+.loading-logo-img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 2rem;
+    animation: pulse 2s infinite;
+    border: 5px solid white;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+/* Logo Header */
+.logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--secondary-color);
+    box-shadow: var(--shadow-light);
+}
+
+.logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Hapus atau komentari kode logo lama jika ada */
+/*
+.logo {
+    width: 60px;
+    height: 60px;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+}*/
 
 /* Container */
 .container {
@@ -985,6 +1031,23 @@ body {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     color: rgba(255, 255, 255, 0.6);
     font-size: 0.9rem;
+}
+
+/* style.css - Tambahkan di bagian footer */
+
+.footer-logo {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.footer-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 /* Modal */
