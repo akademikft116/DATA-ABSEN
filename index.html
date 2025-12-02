@@ -3,504 +3,303 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Presensi Digital - Universitas Langlangbuana</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #3498db;
-            --success: #27ae60;
-            --warning: #f39c12;
-            --danger: #e74c3c;
-            --light: #f8f9fa;
-            --dark: #343a40;
-            --border: #dee2e6;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            color: var(--dark);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 3rem;
-            padding: 2rem;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .header h1 {
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-            font-size: 2.5rem;
-        }
-
-        .header p {
-            color: #666;
-            font-size: 1.1rem;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin-bottom: 3rem;
-        }
-
-        .upload-section, .preview-section {
-            background: white;
-            border-radius: 15px;
-            padding: 2rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .section-title {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            color: var(--primary);
-        }
-
-        .section-title i {
-            font-size: 1.5rem;
-            color: var(--secondary);
-        }
-
-        .upload-area {
-            border: 3px dashed var(--border);
-            border-radius: 10px;
-            padding: 3rem 2rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .upload-area:hover {
-            border-color: var(--secondary);
-            background: #f8f9fa;
-        }
-
-        .upload-area i {
-            font-size: 4rem;
-            color: var(--secondary);
-            margin-bottom: 1rem;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .file-info {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            display: none;
-        }
-
-        .file-info.show {
-            display: block;
-        }
-
-        .controls {
-            display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-
-        .btn-primary {
-            background: var(--secondary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
-        }
-
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #219a52;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: var(--dark);
-            color: white;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-
-        .preview-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-
-        .preview-table th,
-        .preview-table td {
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            text-align: left;
-        }
-
-        .preview-table th {
-            background: var(--light);
-            font-weight: 600;
-        }
-
-        .preview-table tr:hover {
-            background: #f8f9fa;
-        }
-
-        .report-section {
-            background: white;
-            border-radius: 15px;
-            padding: 2rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-
-        .reports-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
-        }
-
-        .report-card {
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 1.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .report-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-
-        .report-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .report-card h4 {
-            color: var(--primary);
-        }
-
-        .report-stats {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .stat-item:last-child {
-            border-bottom: none;
-        }
-
-        .stat-label {
-            color: #666;
-        }
-
-        .stat-value {
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            z-index: 1000;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .toast.success {
-            background: var(--success);
-        }
-
-        .toast.error {
-            background: var(--danger);
-        }
-
-        .toast.info {
-            background: var(--secondary);
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .loading.show {
-            display: block;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--secondary);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .summary-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-
-        .summary-card {
-            background: white;
-            border-radius: 10px;
-            padding: 1.5rem;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        }
-
-        .summary-card h4 {
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .summary-card .value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--secondary);
-        }
-
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .controls {
-                flex-direction: column;
-            }
-            
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-    </style>
+    <title>Portal Presensi Universitas - Sistem Pengolahan Data</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- Header -->
-        <div class="header">
-            <h1><i class="fas fa-university"></i> SISTEM PRESENSI DIGITAL</h1>
-            <p>Fakultas Teknik - Universitas Langlangbuana</p>
-            <p>Upload file Excel presensi dan dapatkan laporan otomatis</p>
-        </div>
+        <header class="header">
+            <div class="logo-section">
+                <div class="logo">
+                    <i class="fas fa-university"></i>
+                </div>
+                <div class="university-info">
+                    <h1>Portal Presensi Universitas</h1>
+                    <p>Sistem Pengolahan Data Presensi dan Laporan Keuangan</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-details">
+                    <p class="username">Administrator</p>
+                    <p class="user-role">Fakultas Ekonomi</p>
+                </div>
+            </div>
+        </header>
 
         <!-- Main Content -->
-        <div class="main-content">
-            <!-- Upload Section -->
-            <div class="upload-section">
-                <div class="section-title">
-                    <i class="fas fa-file-upload"></i>
-                    <h2>Upload File Excel Presensi</h2>
-                </div>
-                
-                <div class="upload-area" id="uploadArea">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <h3>Klik atau drag file Excel ke sini</h3>
-                    <p>Format yang didukung: .xlsx, .xls</p>
-                    <p class="text-muted">Maksimal ukuran file: 10MB</p>
-                </div>
-                
-                <input type="file" id="excelFile" class="file-input" accept=".xlsx,.xls">
-                
-                <div class="file-info" id="fileInfo">
-                    <div class="file-details">
-                        <strong>File:</strong> <span id="fileName"></span><br>
-                        <strong>Ukuran:</strong> <span id="fileSize"></span><br>
-                        <strong>Jenis:</strong> <span id="fileType"></span>
-                    </div>
-                </div>
-                
-                <div class="controls">
-                    <button class="btn btn-primary" id="processBtn" disabled>
-                        <i class="fas fa-cogs"></i> Proses Data
-                    </button>
-                    <button class="btn btn-secondary" id="resetBtn">
-                        <i class="fas fa-redo"></i> Reset
-                    </button>
-                </div>
-            </div>
+        <main class="main-content">
+            <!-- Sidebar Navigation -->
+            <nav class="sidebar">
+                <ul class="nav-menu">
+                    <li class="nav-item active">
+                        <a href="#">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#">
+                            <i class="fas fa-file-upload"></i>
+                            <span>Upload Data</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Analisis Presensi</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span>Laporan Keuangan</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#">
+                            <i class="fas fa-cog"></i>
+                            <span>Pengaturan</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Bantuan</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
 
-            <!-- Preview Section -->
-            <div class="preview-section">
-                <div class="section-title">
-                    <i class="fas fa-table"></i>
-                    <h2>Preview Data</h2>
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Page Title -->
+                <div class="page-title">
+                    <h2><i class="fas fa-file-excel"></i> Upload Data Presensi Excel</h2>
+                    <p>Unggah file Excel data presensi untuk diproses menjadi laporan keuangan</p>
                 </div>
-                
-                <div class="loading" id="loadingPreview">
-                    <div class="spinner"></div>
-                    <p>Memproses data...</p>
-                </div>
-                
-                <div id="previewContent">
-                    <p class="text-muted">Data akan muncul setelah file diupload dan diproses</p>
-                </div>
-            </div>
-        </div>
 
-        <!-- Summary Section -->
-        <div class="summary-cards" id="summaryCards" style="display: none;">
-            <div class="summary-card">
-                <h4>Total Karyawan</h4>
-                <div class="value" id="totalEmployees">0</div>
-            </div>
-            <div class="summary-card">
-                <h4>Total Hari Kerja</h4>
-                <div class="value" id="totalDays">0</div>
-            </div>
-            <div class="summary-card">
-                <h4>Total Jam Kerja</h4>
-                <div class="value" id="totalHours">0</div>
-            </div>
-            <div class="summary-card">
-                <h4>Total Lembur</h4>
-                <div class="value" id="totalOvertime">0</div>
-            </div>
-        </div>
+                <!-- Upload Section -->
+                <div class="upload-section card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-cloud-upload-alt"></i> Area Unggah File</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="upload-zone" id="upload-zone">
+                            <div class="upload-icon">
+                                <i class="fas fa-file-excel"></i>
+                            </div>
+                            <h4>Seret & Jatuhkan file Excel di sini</h4>
+                            <p>Atau klik untuk memilih file</p>
+                            <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" hidden>
+                            <button class="btn btn-primary" id="browse-btn">
+                                <i class="fas fa-folder-open"></i> Pilih File
+                            </button>
+                            <p class="file-format-info">Format yang didukung: .xlsx, .xls, .csv</p>
+                        </div>
+                        
+                        <div class="file-info" id="file-info" style="display: none;">
+                            <div class="file-details">
+                                <div class="file-icon">
+                                    <i class="fas fa-file-excel"></i>
+                                </div>
+                                <div class="file-meta">
+                                    <h4 id="file-name">Nama file akan muncul di sini</h4>
+                                    <p id="file-size">Ukuran file akan muncul di sini</p>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" id="progress-bar"></div>
+                                        <span class="progress-text" id="progress-text">0%</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-danger" id="cancel-btn">
+                                    <i class="fas fa-times"></i> Batalkan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        <!-- Reports Section -->
-        <div class="report-section" id="reportSection" style="display: none;">
-            <div class="section-title">
-                <i class="fas fa-chart-bar"></i>
-                <h2>Laporan yang Dihasilkan</h2>
-            </div>
-            
-            <div class="reports-grid">
-                <div class="report-card">
-                    <div class="report-card-header">
-                        <h4>Data Presensi Mentah</h4>
-                        <i class="fas fa-file-excel" style="color: var(--success);"></i>
+                <!-- Processing Options -->
+                <div class="options-section card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-cogs"></i> Opsi Pengolahan Data</h3>
                     </div>
-                    <p>File Excel berisi data presensi asli yang diupload.</p>
-                    <div class="report-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">Format:</span>
-                            <span class="stat-value">Excel (.xlsx)</span>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="salary-per-hour">
+                                <i class="fas fa-money-bill-wave"></i> Gaji per Jam (Rp)
+                            </label>
+                            <input type="number" id="salary-per-hour" value="50000" min="1000" step="1000">
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Sheets:</span>
-                            <span class="stat-value" id="rawSheets">0</span>
+                        <div class="form-group">
+                            <label for="overtime-rate">
+                                <i class="fas fa-clock"></i> Tarif Lembur (per Jam)
+                            </label>
+                            <input type="number" id="overtime-rate" value="75000" min="1000" step="1000">
                         </div>
+                        <div class="form-group">
+                            <label for="tax-rate">
+                                <i class="fas fa-percentage"></i> Potongan Pajak (%)
+                            </label>
+                            <input type="number" id="tax-rate" value="5" min="0" max="100" step="0.1">
+                        </div>
+                        <button class="btn btn-process" id="process-btn" disabled>
+                            <i class="fas fa-calculator"></i> Proses Data Presensi
+                        </button>
                     </div>
-                    <button class="btn btn-success btn-sm" id="downloadRawBtn" style="margin-top: 1rem; width: 100%;">
-                        <i class="fas fa-download"></i> Download Data Presensi
-                    </button>
                 </div>
-                
-                <div class="report-card">
-                    <div class="report-card-header">
-                        <h4>Laporan dengan Perhitungan</h4>
-                        <i class="fas fa-calculator" style="color: var(--warning);"></i>
+
+                <!-- Results Section -->
+                <div class="results-section card" id="results-section" style="display: none;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-line"></i> Hasil Pengolahan Data</h3>
                     </div>
-                    <p>File Excel dengan perhitungan otomatis (termasuk uang lembur).</p>
-                    <div class="report-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">Format:</span>
-                            <span class="stat-value">Excel (.xlsx)</span>
+                    <div class="card-body">
+                        <div class="summary-stats">
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background-color: #4CAF50;">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h4 id="total-employees">0</h4>
+                                    <p>Total Karyawan</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background-color: #2196F3;">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h4 id="total-days">0</h4>
+                                    <p>Hari Kerja</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background-color: #FF9800;">
+                                    <i class="fas fa-money-bill"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h4 id="total-salary">Rp 0</h4>
+                                    <p>Total Gaji</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background-color: #F44336;">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h4 id="total-overtime">0 jam</h4>
+                                    <p>Total Lembur</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Perhitungan:</span>
-                            <span class="stat-value">Lengkap</span>
+
+                        <div class="data-preview">
+                            <div class="preview-header">
+                                <h4><i class="fas fa-table"></i> Preview Data</h4>
+                                <div class="preview-tabs">
+                                    <button class="tab-btn active" data-tab="original">Data Asli</button>
+                                    <button class="tab-btn" data-tab="processed">Data Terhitung</button>
+                                </div>
+                            </div>
+                            <div class="preview-content">
+                                <div class="tab-content active" id="original-tab">
+                                    <div class="table-container">
+                                        <table id="original-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>No</th>
+                                                    <th>Nama</th>
+                                                    <th>NIK</th>
+                                                    <th>Tanggal</th>
+                                                    <th>Jam Masuk</th>
+                                                    <th>Jam Keluar</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Data akan diisi oleh JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="tab-content" id="processed-tab">
+                                    <div class="table-container">
+                                        <table id="processed-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>No</th>
+                                                    <th>Nama</th>
+                                                    <th>NIK</th>
+                                                    <th>Total Hari</th>
+                                                    <th>Total Jam</th>
+                                                    <th>Lembur (jam)</th>
+                                                    <th>Gaji Pokok</th>
+                                                    <th>Uang Lembur</th>
+                                                    <th>Pajak</th>
+                                                    <th>Gaji Bersih</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Data akan diisi oleh JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="download-section">
+                            <h4><i class="fas fa-download"></i> Unduh Laporan</h4>
+                            <p>Klik tombol di bawah untuk mengunduh file hasil pengolahan</p>
+                            <div class="download-buttons">
+                                <button class="btn btn-download" id="download-original">
+                                    <i class="fas fa-file-excel"></i> Unduh Data Asli
+                                </button>
+                                <button class="btn btn-download" id="download-processed">
+                                    <i class="fas fa-file-invoice-dollar"></i> Unduh Data Terhitung
+                                </button>
+                                <button class="btn btn-download" id="download-both">
+                                    <i class="fas fa-file-archive"></i> Unduh Keduanya (ZIP)
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <button class="btn btn-warning btn-sm" id="downloadReportBtn" style="margin-top: 1rem; width: 100%;">
-                        <i class="fas fa-download"></i> Download Laporan
-                    </button>
+                </div>
+
+                <!-- Instructions -->
+                <div class="instructions card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-info-circle"></i> Petunjuk Penggunaan</h3>
+                    </div>
+                    <div class="card-body">
+                        <ol class="instruction-list">
+                            <li>Upload file Excel data presensi dengan format kolom: Nama, NIK, Tanggal, Jam Masuk, Jam Keluar</li>
+                            <li>Atur opsi pengolahan data sesuai dengan kebijakan universitas</li>
+                            <li>Klik tombol "Proses Data Presensi" untuk memulai perhitungan</li>
+                            <li>Setelah proses selesai, preview data akan muncul di bawah</li>
+                            <li>Unduh file hasil pengolahan dalam format Excel yang sudah termasuk perhitungan keuangan</li>
+                            <li>File yang diunduh ada dua: data asli presensi dan data yang sudah dihitung dengan template keuangan</li>
+                        </ol>
+                    </div>
                 </div>
             </div>
-        </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2023 Portal Presensi Universitas. Hak Cipta Dilindungi.</p>
+            <p>Dikembangkan oleh Fakultas Teknologi Informasi</p>
+        </footer>
     </div>
 
-    <!-- Toast Container -->
-    <div id="toastContainer"></div>
-
     <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="app.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
