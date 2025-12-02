@@ -1,5 +1,4 @@
 // Main JavaScript file - Sistem Pengolahan Data Presensi
-// VERSI SIMPLIFIED: Tanpa perhitungan gaji, hanya hitung lembur
 
 // Global variables
 let originalData = [];
