@@ -66,6 +66,38 @@ document.addEventListener('DOMContentLoaded', function() {
     
     cancelBtn.addEventListener('click', cancelUpload);
     processBtn.addEventListener('click', processData);
+
+    // Add this after other event listeners
+const resetOptionsBtn = document.getElementById('reset-options-btn');
+const defaultButtons = document.querySelectorAll('.btn-default');
+
+// Reset all options button
+resetOptionsBtn.addEventListener('click', resetAllOptions);
+
+// Individual reset buttons
+defaultButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+        const targetId = this.getAttribute('data-target');
+        const defaultValue = this.getAttribute('data-value');
+        document.getElementById(targetId).value = defaultValue;
+        showNotification(`Nilai ${targetId.replace('-', ' ')} direset ke default`, 'success');
+    });
+});
+
+// Clear input on focus to show it's optional
+document.querySelectorAll('#salary-per-hour, #overtime-rate, #tax-rate').forEach(input => {
+    input.addEventListener('focus', function() {
+        this.placeholder = '';
+    });
+    
+    input.addEventListener('blur', function() {
+        if (this.value === '') {
+            if (this.id === 'salary-per-hour') this.placeholder = '50000 (default)';
+            if (this.id === 'overtime-rate') this.placeholder = '75000 (default)';
+            if (this.id === 'tax-rate') this.placeholder = '5 (default)';
+        }
+    });
+});
     
     // Tab switching
     tabBtns.forEach(btn => {
