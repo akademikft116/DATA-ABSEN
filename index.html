@@ -203,73 +203,37 @@
                     </div>
                 </div>
 
-                <!-- Configuration Card -->
-                <div class="card config-card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-sliders-h"></i> Konfigurasi Perhitungan</h3>
-                        <p>Atur parameter perhitungan gaji (opsional - gunakan nilai default jika tidak diisi)</p>
-                    </div>
-                    <div class="card-body">
-                        <div class="config-grid">
-                            <div class="config-item">
-                                <label for="salary-per-hour">
-                                    <i class="fas fa-money-bill-wave"></i> Gaji per Jam (Rp)
-                                    <span class="optional-tag">Opsional</span>
-                                </label>
-                                <div class="input-group">
-                                    <input type="number" id="salary-per-hour" placeholder="50.000 (default)" min="10000" step="5000">
-                                    <span class="input-suffix">/jam</span>
-                                </div>
-                                <p class="input-description">Tarif dasar per jam kerja normal</p>
-                            </div>
-
-                            <div class="config-item">
-                                <label for="overtime-rate">
-                                    <i class="fas fa-clock"></i> Tarif Lembur (Rp)
-                                    <span class="optional-tag">Opsional</span>
-                                </label>
-                                <div class="input-group">
-                                    <input type="number" id="overtime-rate" placeholder="75.000 (default)" min="10000" step="5000">
-                                    <span class="input-suffix">/jam</span>
-                                </div>
-                                <p class="input-description">Tarif per jam lembur</p>
-                            </div>
-
-                            <div class="config-item">
-                                <label for="tax-rate">
-                                    <i class="fas fa-percentage"></i> Potongan Pajak (%)
-                                    <span class="optional-tag">Opsional</span>
-                                </label>
-                                <div class="input-group">
-                                    <input type="number" id="tax-rate" placeholder="5 (default)" min="0" max="100" step="0.5">
-                                    <span class="input-suffix">%</span>
-                                </div>
-                                <p class="input-description">Persentase pajak dari total gaji</p>
-                            </div>
-
-                            <div class="config-item">
-                                <label for="work-hours">
-                                    <i class="fas fa-business-time"></i> Jam Kerja Normal
-                                </label>
-                                <div class="input-group">
-                                    <input type="number" id="work-hours" value="8" min="1" max="24" step="0.5">
-                                    <span class="input-suffix">jam/hari</span>
-                                </div>
-                                <p class="input-description">Jam kerja normal sebelum dianggap lembur</p>
-                            </div>
-                        </div>
-
-                        <div class="config-actions">
-                            <button class="btn btn-reset" id="reset-config">
-                                <i class="fas fa-redo"></i> Reset ke Default
-                            </button>
-                            <button class="btn btn-process" id="process-data" disabled>
-                                <i class="fas fa-calculator"></i> Proses Data
-                            </button>
-                        </div>
-                    </div>
+<!-- Configuration Card -->
+<div class="card config-card">
+    <div class="card-header">
+        <h3><i class="fas fa-sliders-h"></i> Konfigurasi Perhitungan</h3>
+        <p>Atur jam kerja normal (gunakan 8 jam jika tidak diisi)</p>
+    </div>
+    <div class="card-body">
+        <div class="config-grid">
+            <!-- HANYA TINGGAL JAM KERJA NORMAL -->
+            <div class="config-item">
+                <label for="work-hours">
+                    <i class="fas fa-business-time"></i> Jam Kerja Normal
+                </label>
+                <div class="input-group">
+                    <input type="number" id="work-hours" value="8" min="1" max="24" step="0.5">
+                    <span class="input-suffix">jam/hari</span>
                 </div>
+                <p class="input-description">Jam kerja normal sebelum dianggap lembur</p>
+            </div>
+        </div>
 
+        <div class="config-actions">
+            <button class="btn btn-reset" id="reset-config">
+                <i class="fas fa-redo"></i> Reset ke Default
+            </button>
+            <button class="btn btn-process" id="process-data" disabled>
+                <i class="fas fa-calculator"></i> Hitung Lembur
+            </button>
+        </div>
+    </div>
+</div>
                 <!-- Results Section -->
                 <div class="results-section" id="results-section">
                     <!-- Statistics Cards -->
