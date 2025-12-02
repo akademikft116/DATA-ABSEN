@@ -1,5 +1,5 @@
 // Main JavaScript file - Sistem Pengolahan Data Presensi
-// MODIFIKASI: HANYA HITUNG LEMBUR SAJA
+// VERSI FIXED: Hitung lembur per hari, tidak di-total per karyawan
 
 // Global variables
 let originalData = [];
@@ -30,15 +30,6 @@ cancelUploadBtn.addEventListener('click', cancelUpload);
 // ============================
 // HELPER FUNCTIONS
 // ============================
-
-// Format currency (Rupiah)
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0
-    }).format(amount);
-}
 
 // Format date from DD/MM/YYYY to readable format
 function formatDate(dateString) {
@@ -280,81 +271,46 @@ function pairInOutTimes(data) {
     return result;
 }
 
-// Calculate overtime only (NO SALARY CALCULATION)
-function calculateOvertimeOnly(data, workHours = 8) {
-    const employees = {};
-    
-    // Group by employee
-    data.forEach(record => {
-        const name = record.nama.trim();
-        
-        if (!employees[name]) {
-            employees[name] = {
-                nama: name,
-                records: [],
-                totalHari: 0,
-                totalJam: 0,
-                jamNormal: 0,
-                jamLembur: 0,
-                detailHari: []
-            };
-        }
-        
+// Calculate overtime per day (NOT total per employee)
+function calculateOvertimePerDay(data, workHours = 8) {
+    // Process each record separately (per hari)
+    const result = data.map(record => {
         const hoursWorked = record.durasi || calculateHours(record.jamMasuk, record.jamKeluar);
         
-        if (hoursWorked > 0) {
-            employees[name].records.push({
-                tanggal: record.tanggal,
-                jamMasuk: record.jamMasuk,
-                jamKeluar: record.jamKeluar,
-                durasi: hoursWorked
-            });
-            
-            employees[name].totalHari++;
-            employees[name].totalJam += hoursWorked;
-            
-            // Regular hours (max workHours per day)
-            const regular = Math.min(hoursWorked, workHours);
-            employees[name].jamNormal += regular;
-            
-            // Overtime hours (hours beyond workHours)
-            const overtime = Math.max(hoursWorked - workHours, 0);
-            employees[name].jamLembur += overtime;
-            
-            // Detail per hari
-            employees[name].detailHari.push({
-                tanggal: record.tanggal,
-                jamMasuk: record.jamMasuk,
-                jamKeluar: record.jamKeluar,
-                durasi: hoursWorked,
-                jamNormal: regular,
-                jamLembur: overtime
-            });
-        }
-    });
-    
-    // Return only overtime data (NO salary calculation)
-    const result = Object.values(employees).map(emp => {
+        // Regular hours (max workHours per day)
+        const jamNormal = Math.min(hoursWorked, workHours);
+        
+        // Overtime hours (hours beyond workHours)
+        const jamLembur = Math.max(hoursWorked - workHours, 0);
+        
         return {
-            nama: emp.nama,
-            totalHari: emp.totalHari,
-            totalJam: emp.totalJam,
-            jamNormal: emp.jamNormal,
-            jamLembur: emp.jamLembur,
-            // For detailed report
-            records: emp.records,
-            detailHari: emp.detailHari
+            nama: record.nama,
+            tanggal: record.tanggal,
+            jamMasuk: record.jamMasuk,
+            jamKeluar: record.jamKeluar,
+            durasi: hoursWorked,
+            jamNormal: jamNormal,
+            jamLembur: jamLembur,
+            keterangan: jamLembur > 0 ? `Lembur ${jamLembur.toFixed(2)} jam` : 'Tidak lembur'
         };
     });
     
-    // Sort by name
-    result.sort((a, b) => a.nama.localeCompare(b.nama));
+    // Sort by nama, then tanggal
+    result.sort((a, b) => {
+        if (a.nama === b.nama) {
+            // Convert tanggal to Date for proper sorting
+            const dateA = a.tanggal.split('/').reverse().join('-');
+            const dateB = b.tanggal.split('/').reverse().join('-');
+            return new Date(dateA) - new Date(dateB);
+        }
+        return a.nama.localeCompare(b.nama);
+    });
     
     return result;
 }
 
-// Generate Excel report (HANYA DATA LEMBUR)
-function generateReport(data, filename, sheetName = 'Data Lembur') {
+// Generate Excel report (DATA PER HARI)
+function generateReport(data, filename, sheetName = 'Data Lembur Harian') {
     try {
         const exportData = prepareExportData(data);
         const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -374,22 +330,24 @@ function generateReport(data, filename, sheetName = 'Data Lembur') {
     }
 }
 
-// Prepare data for export (HANYA DATA LEMBUR)
+// Prepare data for export (DATA PER HARI)
 function prepareExportData(data) {
     if (data.length === 0) return [];
     
-    const hasOvertimeData = data[0].jamLembur !== undefined;
+    const isPerHariData = data[0].jamLembur !== undefined;
     
-    if (hasOvertimeData) {
-        // Overtime data format only
+    if (isPerHariData) {
+        // Data per hari format
         return data.map((item, index) => ({
             'No': index + 1,
             'Nama Karyawan': item.nama,
-            'Total Hari Kerja': item.totalHari,
-            'Total Jam Kerja': item.totalJam.toFixed(2),
+            'Tanggal': formatDate(item.tanggal),
+            'Jam Masuk': item.jamMasuk,
+            'Jam Keluar': item.jamKeluar,
+            'Durasi (jam)': item.durasi.toFixed(2),
             'Jam Normal': item.jamNormal.toFixed(2),
             'Jam Lembur': item.jamLembur.toFixed(2),
-            'Keterangan': item.jamLembur > 0 ? 'Ada lembur' : 'Tidak ada lembur'
+            'Keterangan': item.keterangan
         }));
     } else {
         // Original data format
@@ -439,8 +397,11 @@ function initializeApp() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
     
-    // Sembunyikan input gaji di konfigurasi
-    hideSalaryConfig();
+    // Sembunyikan chart pie yang tidak digunakan
+    const salaryChartCard = document.querySelectorAll('.chart-card')[1];
+    if (salaryChartCard) {
+        salaryChartCard.style.display = 'none';
+    }
     
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -475,44 +436,6 @@ function initializeApp() {
             mainContainer.classList.add('loaded');
         }, 500);
     }, 2000);
-}
-
-// Hide salary configuration inputs
-function hideSalaryConfig() {
-    // Sembunyikan input gaji per jam
-    const salaryInput = document.getElementById('salary-per-hour');
-    if (salaryInput) {
-        salaryInput.parentElement.parentElement.style.display = 'none';
-    }
-    
-    // Sembunyikan input tarif lembur
-    const overtimeInput = document.getElementById('overtime-rate');
-    if (overtimeInput) {
-        overtimeInput.parentElement.parentElement.style.display = 'none';
-    }
-    
-    // Sembunyikan input pajak
-    const taxInput = document.getElementById('tax-rate');
-    if (taxInput) {
-        taxInput.parentElement.parentElement.style.display = 'none';
-    }
-    
-    // Update label jam kerja normal
-    const workHoursLabel = document.querySelector('label[for="work-hours"]');
-    if (workHoursLabel) {
-        workHoursLabel.innerHTML = '<i class="fas fa-business-time"></i> Batas Jam Kerja Normal (jam/hari)';
-        const optionalTag = workHoursLabel.querySelector('.optional-tag');
-        if (optionalTag) {
-            optionalTag.textContent = 'Wajib';
-            optionalTag.style.background = '#e74c3c';
-        }
-    }
-    
-    // Update deskripsi
-    const workHoursDesc = document.querySelector('#work-hours').parentElement.nextElementSibling;
-    if (workHoursDesc && workHoursDesc.classList.contains('input-description')) {
-        workHoursDesc.textContent = 'Jam kerja normal sebelum dianggap lembur (contoh: 8 jam)';
-    }
 }
 
 // Handle file selection
@@ -619,7 +542,7 @@ function simulateUploadProgress() {
     }, 100);
 }
 
-// Process data (HANYA HITUNG LEMBUR)
+// Process data (HITUNG LEMBUR PER HARI)
 function processData() {
     if (originalData.length === 0) {
         showNotification('Tidak ada data untuk diproses.', 'warning');
@@ -633,8 +556,8 @@ function processData() {
     
     setTimeout(() => {
         try {
-            // Hanya hitung lembur saja
-            processedData = calculateOvertimeOnly(originalData, workHours);
+            // Hitung lembur per hari
+            processedData = calculateOvertimePerDay(originalData, workHours);
             
             displayResults(processedData);
             createCharts(processedData);
@@ -654,7 +577,7 @@ function processData() {
     }, 1500);
 }
 
-// Display results (HANYA DATA LEMBUR)
+// Display results (DATA PER HARI)
 function displayResults(data) {
     updateMainStatistics(data);
     displayProcessedTable(data);
@@ -662,20 +585,20 @@ function displayResults(data) {
     displaySummaries(data);
 }
 
-// Update main statistics (HANYA DATA LEMBUR)
+// Update main statistics
 function updateMainStatistics(data) {
     const totalKaryawan = new Set(data.map(item => item.nama)).size;
-    const totalHari = data.reduce((sum, item) => sum + item.totalHari, 0);
-    const totalJam = data.reduce((sum, item) => sum + item.totalJam, 0);
+    const totalHari = data.length;
+    const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
     const totalLembur = data.reduce((sum, item) => sum + item.jamLembur, 0);
     
     document.getElementById('total-karyawan').textContent = totalKaryawan;
     document.getElementById('total-hari').textContent = totalHari;
-    document.getElementById('total-gaji').textContent = totalJam.toFixed(1) + ' jam';
+    document.getElementById('total-jam').textContent = totalJam.toFixed(1) + ' jam';
     document.getElementById('total-lembur').textContent = totalLembur.toFixed(1) + ' jam';
 }
 
-// Display processed table (HANYA DATA LEMBUR)
+// Display processed table (DATA PER HARI)
 function displayProcessedTable(data) {
     const tbody = document.getElementById('processed-table-body');
     tbody.innerHTML = '';
@@ -685,13 +608,10 @@ function displayProcessedTable(data) {
         row.innerHTML = `
             <td>${index + 1}</td>
             <td><strong>${item.nama}</strong></td>
-            <td>${item.totalHari}</td>
-            <td>${item.totalJam.toFixed(2)}</td>
-            <td><strong style="color: #e74c3c;">${item.jamLembur.toFixed(2)}</strong></td>
+            <td>${formatDate(item.tanggal)}</td>
+            <td>${item.durasi.toFixed(2)}</td>
             <td>${item.jamNormal.toFixed(2)}</td>
-            <td>-</td>
-            <td>-</td>
-            <td>-</td>
+            <td><strong style="color: ${item.jamLembur > 0 ? '#e74c3c' : '#27ae60'};">${item.jamLembur.toFixed(2)}</strong></td>
         `;
         tbody.appendChild(row);
     });
@@ -718,22 +638,35 @@ function displayOriginalTable() {
     });
 }
 
-// Display summaries (HANYA DATA LEMBUR)
+// Display summaries
 function displaySummaries(data) {
     const employeeSummary = document.getElementById('employee-summary');
-    const uniqueEmployees = [...new Set(data.map(item => item.nama))];
+    
+    // Group by employee untuk ringkasan
+    const employeeGroups = {};
+    data.forEach(item => {
+        if (!employeeGroups[item.nama]) {
+            employeeGroups[item.nama] = [];
+        }
+        employeeGroups[item.nama].push(item);
+    });
     
     let employeeHtml = '';
-    uniqueEmployees.forEach(employee => {
-        const employeeData = data.find(item => item.nama === employee);
+    Object.keys(employeeGroups).forEach(employee => {
+        const records = employeeGroups[employee];
+        const totalHari = records.length;
+        const totalJam = records.reduce((sum, item) => sum + item.durasi, 0);
+        const totalLembur = records.reduce((sum, item) => sum + item.jamLembur, 0);
+        const hariLembur = records.filter(item => item.jamLembur > 0).length;
+        
         employeeHtml += `
             <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
                 <strong>${employee}</strong><br>
                 <small>
-                    Total Hari: ${employeeData.totalHari} | 
-                    Total Jam: ${employeeData.totalJam.toFixed(2)} jam<br>
+                    Total Hari: ${totalHari} | 
+                    Total Jam: ${totalJam.toFixed(2)} jam<br>
                     <span style="color: #e74c3c; font-weight: bold;">
-                        Lembur: ${employeeData.jamLembur.toFixed(2)} jam
+                        Lembur: ${totalLembur.toFixed(2)} jam (${hariLembur} hari)
                     </span>
                 </small>
             </div>
@@ -742,37 +675,43 @@ function displaySummaries(data) {
     employeeSummary.innerHTML = employeeHtml;
     
     const financialSummary = document.getElementById('financial-summary');
-    const totalJam = data.reduce((sum, item) => sum + item.totalJam, 0);
+    const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
     const totalLembur = data.reduce((sum, item) => sum + item.jamLembur, 0);
     const totalNormal = data.reduce((sum, item) => sum + item.jamNormal, 0);
+    const hariDenganLembur = data.filter(item => item.jamLembur > 0).length;
     
     financialSummary.innerHTML = `
-        <div>Total Jam Kerja Semua Karyawan: <strong>${totalJam.toFixed(2)} jam</strong></div>
+        <div>Total Entri Data: <strong>${data.length} hari</strong></div>
+        <div>Hari dengan Lembur: <strong>${hariDenganLembur} hari</strong></div>
+        <div>Total Jam Kerja: <strong>${totalJam.toFixed(2)} jam</strong></div>
         <div>Total Jam Normal: <strong>${totalNormal.toFixed(2)} jam</strong></div>
         <div style="color: #e74c3c; font-weight: bold;">
             Total Jam Lembur: <strong>${totalLembur.toFixed(2)} jam</strong>
         </div>
         <div style="border-top: 2px solid #3498db; padding-top: 0.5rem; margin-top: 0.5rem;">
-            Rata-rata Lembur per Karyawan: <strong>${(totalLembur / data.length).toFixed(2)} jam</strong>
+            Rata-rata Lembur per Hari: <strong>${(totalLembur / data.length).toFixed(2)} jam</strong>
         </div>
     `;
 }
 
-// Create charts (HANYA DATA LEMBUR)
+// Create charts
 function createCharts(data) {
     if (hoursChart) hoursChart.destroy();
     
-    const employeeNames = [...new Set(data.map(item => item.nama))];
-    
-    const regularHours = employeeNames.map(name => {
-        const employeeData = data.find(item => item.nama === name);
-        return employeeData ? employeeData.jamNormal : 0;
+    // Group by employee untuk chart
+    const employeeGroups = {};
+    data.forEach(item => {
+        if (!employeeGroups[item.nama]) {
+            employeeGroups[item.nama] = { normal: 0, lembur: 0 };
+        }
+        employeeGroups[item.nama].normal += item.jamNormal;
+        employeeGroups[item.nama].lembur += item.jamLembur;
     });
     
-    const overtimeHours = employeeNames.map(name => {
-        const employeeData = data.find(item => item.nama === name);
-        return employeeData ? employeeData.jamLembur : 0;
-    });
+    const employeeNames = Object.keys(employeeGroups);
+    
+    const regularHours = employeeNames.map(name => employeeGroups[name].normal);
+    const overtimeHours = employeeNames.map(name => employeeGroups[name].lembur);
     
     const hoursCtx = document.getElementById('hoursChart').getContext('2d');
     hoursChart = new Chart(hoursCtx, {
@@ -816,12 +755,6 @@ function createCharts(data) {
             }
         }
     });
-    
-    // Hide salary chart container
-    const salaryChartContainer = document.querySelector('#salaryChart').closest('.chart-card');
-    if (salaryChartContainer) {
-        salaryChartContainer.style.display = 'none';
-    }
 }
 
 // Switch tabs
@@ -907,12 +840,12 @@ async function downloadReport(type) {
             await generateReport(originalData, 'data_presensi_asli.xlsx', 'Data Asli');
             showNotification('Data asli berhasil diunduh.', 'success');
         } else if (type === 'processed') {
-            await generateReport(processedData, 'data_lembur_terhitung.xlsx', 'Data Lembur');
-            showNotification('Data lembur berhasil diunduh.', 'success');
+            await generateReport(processedData, 'data_lembur_harian.xlsx', 'Data Lembur Harian');
+            showNotification('Data lembur harian berhasil diunduh.', 'success');
         } else if (type === 'both') {
             await generateReport(originalData, 'data_presensi_asli.xlsx', 'Data Asli');
             setTimeout(async () => {
-                await generateReport(processedData, 'data_lembur_terhitung.xlsx', 'Data Lembur');
+                await generateReport(processedData, 'data_lembur_harian.xlsx', 'Data Lembur Harian');
                 showNotification('Kedua file berhasil diunduh.', 'success');
             }, 500);
         }
