@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -34,13 +33,12 @@
         <header class="header">
             <div class="header-top">
                 <div class="university-brand">
-                    <!-- Ganti dengan logo Anda -->
                     <div class="logo">
                         <img src="logo.jpeg" alt="Logo Universitas Langlangbuana" class="logo-img">
                     </div>
                     <div class="university-info">
                         <h1>Universitas Langlangbuana</h1>
-                        <p class="tagline">Sistem Pengolahan Data Presensi & Pengajian</p>
+                        <p class="tagline">Sistem Pengolahan Data Presensi & Penggajian</p>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -66,11 +64,11 @@
             <nav class="header-nav">
                 <ul>
                     <li class="active"><a href="#"><i class="fas fa-home"></i> Dashboard</a></li>
-                    <li><a href="#"><i class="fas fa-file-upload"></i> Upload Data</a></li>
-                    <li><a href="#"><i class="fas fa-chart-pie"></i> Analisis</a></li>
-                    <li><a href="#"><i class="fas fa-file-invoice-dollar"></i> Laporan</a></li>
-                    <li><a href="#"><i class="fas fa-cog"></i> Pengaturan</a></li>
-                    <li><a href="#"><i class="fas fa-question-circle"></i> Bantuan</a></li>
+                    <li><a href="#" id="nav-upload"><i class="fas fa-file-upload"></i> Upload Data</a></li>
+                    <li><a href="#" id="nav-analysis"><i class="fas fa-chart-pie"></i> Analisis</a></li>
+                    <li><a href="#" id="nav-report"><i class="fas fa-file-invoice-dollar"></i> Laporan</a></li>
+                    <li><a href="#" id="nav-settings"><i class="fas fa-cog"></i> Pengaturan</a></li>
+                    <li><a href="#" id="nav-help"><i class="fas fa-question-circle"></i> Bantuan</a></li>
                 </ul>
             </nav>
         </header>
@@ -83,37 +81,37 @@
                     <h3><i class="fas fa-briefcase"></i> Menu Utama</h3>
                 </div>
                 <div class="sidebar-menu">
-                    <div class="menu-item active">
+                    <div class="menu-item active" id="menu-dashboard">
                         <a href="#">
                             <i class="fas fa-tachometer-alt"></i>
                             <span>Dashboard</span>
                         </a>
                     </div>
-                    <div class="menu-item">
+                    <div class="menu-item" id="menu-import">
                         <a href="#">
                             <i class="fas fa-file-excel"></i>
                             <span>Import Excel</span>
                         </a>
                     </div>
-                    <div class="menu-item">
+                    <div class="menu-item" id="menu-calculate">
                         <a href="#">
                             <i class="fas fa-calculator"></i>
                             <span>Kalkulasi Gaji</span>
                         </a>
                     </div>
-                    <div class="menu-item">
+                    <div class="menu-item" id="menu-analysis">
                         <a href="#">
                             <i class="fas fa-chart-line"></i>
                             <span>Analisis Data</span>
                         </a>
                     </div>
-                    <div class="menu-item">
+                    <div class="menu-item" id="menu-history">
                         <a href="#">
                             <i class="fas fa-history"></i>
                             <span>Riwayat</span>
                         </a>
                     </div>
-                    <div class="menu-item">
+                    <div class="menu-item" id="menu-export">
                         <a href="#">
                             <i class="fas fa-download"></i>
                             <span>Ekspor Data</span>
@@ -134,6 +132,13 @@
                         <div class="stat-info">
                             <span class="value" id="stat-attendance">0</span>
                             <span class="label">Hari Kerja</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <div class="stat-info">
+                            <span class="value" id="stat-salary">Rp 0</span>
+                            <span class="label">Total Gaji</span>
                         </div>
                     </div>
                 </div>
@@ -158,7 +163,7 @@
                 </div>
 
                 <!-- Upload Card -->
-                <div class="card upload-card">
+                <div class="card upload-card" id="upload-section">
                     <div class="card-header">
                         <h3><i class="fas fa-cloud-upload-alt"></i> Unggah File Excel Presensi</h3>
                         <p>Format yang didukung: .xlsx, .xls, .csv</p>
@@ -204,37 +209,73 @@
                     </div>
                 </div>
 
-<!-- Configuration Card -->
-<div class="card config-card">
-    <div class="card-header">
-        <h3><i class="fas fa-sliders-h"></i> Konfigurasi Perhitungan</h3>
-        <p>Atur jam kerja normal (gunakan 8 jam jika tidak diisi)</p>
-    </div>
-    <div class="card-body">
-        <div class="config-grid">
-            <!-- HANYA TINGGAL JAM KERJA NORMAL -->
-            <div class="config-item">
-                <label for="work-hours">
-                    <i class="fas fa-business-time"></i> Jam Kerja Normal
-                </label>
-                <div class="input-group">
-                    <input type="number" id="work-hours" value="8" min="1" max="24" step="0.5">
-                    <span class="input-suffix">jam/hari</span>
-                </div>
-                <p class="input-description">Jam kerja normal sebelum dianggap lembur</p>
-            </div>
-        </div>
+                <!-- Configuration Card -->
+                <div class="card config-card" id="config-section">
+                    <div class="card-header">
+                        <h3><i class="fas fa-sliders-h"></i> Konfigurasi Perhitungan Gaji</h3>
+                        <p>Atur parameter perhitungan gaji dan lembur</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="config-grid">
+                            <div class="config-item">
+                                <label for="work-hours">
+                                    <i class="fas fa-business-time"></i> Jam Kerja Normal
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" id="work-hours" value="8" min="1" max="24" step="0.5">
+                                    <span class="input-suffix">jam/hari</span>
+                                </div>
+                                <p class="input-description">Jam kerja normal sebelum dianggap lembur</p>
+                            </div>
 
-        <div class="config-actions">
-            <button class="btn btn-reset" id="reset-config">
-                <i class="fas fa-redo"></i> Reset ke Default
-            </button>
-            <button class="btn btn-process" id="process-data" disabled>
-                <i class="fas fa-calculator"></i> Hitung Lembur
-            </button>
-        </div>
-    </div>
-</div>
+                            <div class="config-item">
+                                <label for="salary-per-hour">
+                                    <i class="fas fa-money-bill-wave"></i> Gaji per Jam
+                                    <span class="optional-tag">Opsional</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-suffix">Rp</span>
+                                    <input type="number" id="salary-per-hour" placeholder="50000" min="1000" step="1000">
+                                </div>
+                                <p class="input-description">Gaji pokok per jam kerja normal</p>
+                            </div>
+
+                            <div class="config-item">
+                                <label for="overtime-multiplier">
+                                    <i class="fas fa-clock"></i> Multiplier Lembur
+                                    <span class="optional-tag">Opsional</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" id="overtime-multiplier" placeholder="1.5" min="1" step="0.1" value="1.5">
+                                    <span class="input-suffix">x</span>
+                                </div>
+                                <p class="input-description">Pengali gaji untuk jam lembur</p>
+                            </div>
+
+                            <div class="config-item">
+                                <label for="tax-percentage">
+                                    <i class="fas fa-percentage"></i> Pajak (%) 
+                                    <span class="optional-tag">Opsional</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" id="tax-percentage" placeholder="5" min="0" max="100" step="0.1" value="5">
+                                    <span class="input-suffix">%</span>
+                                </div>
+                                <p class="input-description">Persentase pajak penghasilan</p>
+                            </div>
+                        </div>
+
+                        <div class="config-actions">
+                            <button class="btn btn-reset" id="reset-config">
+                                <i class="fas fa-redo"></i> Reset ke Default
+                            </button>
+                            <button class="btn btn-process" id="process-data" disabled>
+                                <i class="fas fa-calculator"></i> Hitung Lembur & Gaji
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Results Section -->
                 <div class="results-section" id="results-section">
                     <!-- Statistics Cards -->
@@ -322,13 +363,14 @@
                         <div class="card-header">
                             <h3><i class="fas fa-table"></i> Preview Data Terproses</h3>
                             <div class="tabs">
-                                <button class="tab-btn active" data-tab="original">Data Asli</button>
-                                <button class="tab-btn" data-tab="processed">Data Terhitung</button>
+                                <button class="tab-btn active" data-tab="daily">Data Harian</button>
+                                <button class="tab-btn" data-tab="employee">Rekap Karyawan</button>
                                 <button class="tab-btn" data-tab="summary">Ringkasan</button>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div class="tab-content" id="processed-tab">
+                            <!-- Tab Data Harian -->
+                            <div class="tab-content active" id="daily-tab">
                                 <div class="table-responsive">
                                     <table class="data-table">
                                         <thead>
@@ -336,18 +378,24 @@
                                                 <th>No</th>
                                                 <th>Nama</th>
                                                 <th>Tanggal</th>
+                                                <th>Jam Masuk</th>
+                                                <th>Jam Keluar</th>
                                                 <th>Durasi</th>
                                                 <th>Jam Normal</th>
                                                 <th>Jam Lembur</th>
+                                                <th>Gaji Normal</th>
+                                                <th>Gaji Lembur</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="processed-table-body">
-                                            <!-- Data akan diisi oleh JavaScript -->
+                                        <tbody id="daily-table-body">
+                                            <!-- Data harian akan diisi -->
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
-                            <div class="tab-content" id="processed-tab">
+
+                            <!-- Tab Rekap Karyawan -->
+                            <div class="tab-content" id="employee-tab">
                                 <div class="table-responsive">
                                     <table class="data-table">
                                         <thead>
@@ -363,13 +411,14 @@
                                                 <th>Gaji Bersih</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="processed-table-body">
-                                            <!-- Data akan diisi oleh JavaScript -->
+                                        <tbody id="employee-table-body">
+                                            <!-- Data karyawan akan diisi -->
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
 
+                            <!-- Tab Ringkasan -->
                             <div class="tab-content" id="summary-tab">
                                 <div class="summary-grid">
                                     <div class="summary-item">
@@ -415,27 +464,40 @@
                                         <i class="fas fa-file-invoice-dollar" style="color: #4A90E2;"></i>
                                     </div>
                                     <div class="option-content">
-                                        <h4>Data Terhitung dengan Gaji</h4>
-                                        <p>File Excel dengan perhitungan gaji lengkap</p>
+                                        <h4>Data Harian dengan Gaji</h4>
+                                        <p>File Excel dengan perhitungan gaji harian lengkap</p>
                                     </div>
-                                    <button class="btn btn-download" id="download-processed">
+                                    <button class="btn btn-download" id="download-daily">
                                         <i class="fas fa-download"></i> Unduh (.xlsx)
                                     </button>
                                 </div>
 
                                 <div class="download-option">
                                     <div class="option-icon">
-                                        <i class="fas fa-file-archive" style="color: #F5A623;"></i>
+                                        <i class="fas fa-file-invoice" style="color: #F5A623;"></i>
                                     </div>
                                     <div class="option-content">
-                                        <h4>Paket Lengkap</h4>
-                                        <p>Kedua file dalam satu paket ZIP</p>
+                                        <h4>Rekap Karyawan</h4>
+                                        <p>File Excel dengan rekap gaji per karyawan</p>
                                     </div>
-                                    <button class="btn btn-download" id="download-both">
-                                        <i class="fas fa-file-archive"></i> Unduh (.zip)
+                                    <button class="btn btn-download" id="download-employee">
+                                        <i class="fas fa-download"></i> Unduh (.xlsx)
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Section (Hidden by default) -->
+                <div class="card analysis-section" id="analysis-section" style="display: none;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-line"></i> Analisis Data</h3>
+                        <p>Analisis statistik dan tren data presensi</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="analysis-grid">
+                            <!-- Analysis content will be populated by JavaScript -->
                         </div>
                     </div>
                 </div>
@@ -443,30 +505,29 @@
         </main>
 
         <!-- Footer -->
-<footer class="footer">
-    <div class="footer-content">
-        <div class="footer-section">
-            <!-- Tambahkan logo kecil di footer -->
-            <div class="footer-logo">
-                <img src="logo.jpeg" alt="Logo Universitas Langlangbuana" class="footer-logo-img">
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <img src="logo.jpeg" alt="Logo Universitas Langlangbuana" class="footer-logo-img">
+                    </div>
+                    <h4>Universitas Langlangbuana</h4>
+                    <p>Sistem Pengolahan Data Presensi</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak</h4>
+                    <p><i class="fas fa-envelope"></i> presensi@unla.ac.id</p>
+                    <p><i class="fas fa-phone"></i> (022) 1234567</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Dikembangkan Oleh</h4>
+                    <p>M. Shidqi F</p>
+                </div>
             </div>
-            <h4>Universitas Langlangbuana</h4>
-            <p>Sistem Pengolahan Data Presensi</p>
-        </div>
-        <div class="footer-section">
-            <h4>Kontak</h4>
-            <p><i class="fas fa-envelope"></i> presensi@unla.ac.id</p>
-            <p><i class="fas fa-phone"></i> (022) 1234567</p>
-        </div>
-        <div class="footer-section">
-            <h4>Dikembangkan Oleh</h4>
-            <p>M. Shidqi F</p>
-        </div>
-    </div>
-    <div class="footer-bottom">
-        <p>&copy; 2025 Universitas Langlangbuana</p>
-    </div>
-</footer>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Universitas Langlangbuana</p>
+            </div>
+        </footer>
     </div>
 
     <!-- Modal Help -->
@@ -485,7 +546,7 @@
                     <p>Atur parameter perhitungan gaji (opsional). Jika dikosongkan, sistem akan menggunakan nilai default.</p>
                     
                     <h4><i class="fas fa-calculator"></i> Langkah 3: Proses Data</h4>
-                    <p>Klik tombol "Proses Data" untuk memulai kalkulasi otomatis.</p>
+                    <p>Klik tombol "Proses Data" untuk memulai kalkulasi otomatis gaji dan lembur.</p>
                     
                     <h4><i class="fas fa-download"></i> Langkah 4: Download Laporan</h4>
                     <p>Download hasil pengolahan dalam format Excel yang sudah lengkap dengan perhitungan keuangan.</p>
