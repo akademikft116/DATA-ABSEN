@@ -1,21 +1,11 @@
-// Main JavaScript file - Sistem Pengolahan Data Presensi & Gaji
+// Main JavaScript file - Sistem Pengolahan Data Presensi
 
 // Global variables
 let originalData = [];
 let processedData = [];
-let salaryData = [];
 let currentFile = null;
 let uploadProgressInterval = null;
 let hoursChart = null;
-let salaryChart = null;
-
-// Configuration defaults
-const DEFAULT_CONFIG = {
-    workHours: 8,
-    salaryPerHour: 50000,
-    overtimeMultiplier: 1.5,
-    taxPercentage: 5
-};
 
 // DOM Elements
 const loadingScreen = document.getElementById('loading-screen');
@@ -137,17 +127,6 @@ function calculateHours(timeIn, timeOut) {
     }
 }
 
-// Format currency to Indonesian Rupiah
-function formatRupiah(amount) {
-    if (amount === 0) return 'Rp 0';
-    
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0
-    }).format(amount);
-}
-
 // Process Excel file
 function processExcelFile(file) {
     return new Promise((resolve, reject) => {
@@ -164,7 +143,7 @@ function processExcelFile(file) {
                 sheets.forEach(sheetName => {
                     const worksheet = workbook.Sheets[sheetName];
                     const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                    const processedData = processExcelFormat(rawData);
+                    const processedData = processYourExcelFormat(rawData);
                     allData = [...allData, ...processedData];
                 });
                 
@@ -187,18 +166,17 @@ function processExcelFile(file) {
     });
 }
 
-// Process Excel format
-function processExcelFormat(rawData) {
+// Process your specific Excel format (kolom E dan F)
+function processYourExcelFormat(rawData) {
     const result = [];
     
     for (let i = 0; i < rawData.length; i++) {
         const row = rawData[i];
         
-        // Try different column configurations
         if (row[4] && row[5]) {
-            // Format: kolom E dan F
             const nama = row[4];
             const waktu = row[5];
+            
             const { date, time } = parseDateTime(waktu);
             
             if (nama && date && time) {
@@ -208,44 +186,6 @@ function processExcelFormat(rawData) {
                     waktu: time,
                     rawDatetime: waktu
                 });
-            }
-        } else if (row[0] && row[1]) {
-            // Format: kolom A dan B
-            const nama = row[0];
-            const waktu = row[1];
-            const { date, time } = parseDateTime(waktu);
-            
-            if (nama && date && time) {
-                result.push({
-                    nama: nama.toString().trim(),
-                    tanggal: date,
-                    waktu: time,
-                    rawDatetime: waktu
-                });
-            }
-        } else if (row[0] && row[2] && row[3]) {
-            // Format: Nama, Tanggal, Jam Masuk, Jam Keluar
-            const nama = row[0];
-            const tanggal = row[1];
-            const jamMasuk = row[2];
-            const jamKeluar = row[3];
-            
-            if (nama && tanggal) {
-                result.push({
-                    nama: nama.toString().trim(),
-                    tanggal: tanggal,
-                    waktu: jamMasuk || '',
-                    tipe: 'masuk'
-                });
-                
-                if (jamKeluar) {
-                    result.push({
-                        nama: nama.toString().trim(),
-                        tanggal: tanggal,
-                        waktu: jamKeluar,
-                        tipe: 'keluar'
-                    });
-                }
             }
         }
     }
@@ -309,21 +249,13 @@ function pairInOutTimes(data) {
     return result;
 }
 
-// Calculate overtime and salary per day
-function calculateOvertimeAndSalary(data, config) {
+// Calculate overtime per day (hanya jam lembur)
+function calculateOvertimePerDay(data, workHours = 8) {
     const result = data.map(record => {
         const hoursWorked = record.durasi || calculateHours(record.jamMasuk, record.jamKeluar);
         
-        // Calculate normal and overtime hours
-        const jamNormal = Math.min(hoursWorked, config.workHours);
-        const jamLembur = Math.max(hoursWorked - config.workHours, 0);
-        
-        // Calculate earnings
-        const gajiNormal = jamNormal * config.salaryPerHour;
-        const gajiLembur = jamLembur * config.salaryPerHour * config.overtimeMultiplier;
-        const totalKotor = gajiNormal + gajiLembur;
-        const pajak = totalKotor * (config.taxPercentage / 100);
-        const gajiBersih = totalKotor - pajak;
+        const jamNormal = Math.min(hoursWorked, workHours);
+        const jamLembur = Math.max(hoursWorked - workHours, 0);
         
         return {
             nama: record.nama,
@@ -333,11 +265,6 @@ function calculateOvertimeAndSalary(data, config) {
             durasi: hoursWorked,
             jamNormal: jamNormal,
             jamLembur: jamLembur,
-            gajiNormal: gajiNormal,
-            gajiLembur: gajiLembur,
-            totalKotor: totalKotor,
-            pajak: pajak,
-            gajiBersih: gajiBersih,
             keterangan: jamLembur > 0 ? `Lembur ${jamLembur.toFixed(2)} jam` : 'Tidak lembur'
         };
     });
@@ -354,45 +281,8 @@ function calculateOvertimeAndSalary(data, config) {
     return result;
 }
 
-// Calculate employee summary (aggregated per employee)
-function calculateEmployeeSummary(dailyData, config) {
-    const employeeGroups = {};
-    
-    dailyData.forEach(record => {
-        if (!employeeGroups[record.nama]) {
-            employeeGroups[record.nama] = {
-                nama: record.nama,
-                totalHari: 0,
-                totalJam: 0,
-                totalJamNormal: 0,
-                totalJamLembur: 0,
-                totalGajiNormal: 0,
-                totalGajiLembur: 0,
-                totalPajak: 0,
-                totalGajiBersih: 0
-            };
-        }
-        
-        const employee = employeeGroups[record.nama];
-        employee.totalHari++;
-        employee.totalJam += record.durasi;
-        employee.totalJamNormal += record.jamNormal;
-        employee.totalJamLembur += record.jamLembur;
-        employee.totalGajiNormal += record.gajiNormal;
-        employee.totalGajiLembur += record.gajiLembur;
-        employee.totalPajak += record.pajak;
-        employee.totalGajiBersih += record.gajiBersih;
-    });
-    
-    // Convert to array and sort
-    const result = Object.values(employeeGroups);
-    result.sort((a, b) => a.nama.localeCompare(b.nama));
-    
-    return result;
-}
-
 // Generate Excel report
-function generateReport(data, filename, sheetName = 'Data') {
+function generateReport(data, filename, sheetName = 'Data Lembur Harian') {
     try {
         const exportData = prepareExportData(data);
         const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -416,10 +306,9 @@ function generateReport(data, filename, sheetName = 'Data') {
 function prepareExportData(data) {
     if (data.length === 0) return [];
     
-    // Check if it's daily data or employee summary
-    const isDailyData = data[0].tanggal !== undefined;
+    const hasOvertimeData = data[0].jamLembur !== undefined;
     
-    if (isDailyData) {
+    if (hasOvertimeData) {
         return data.map((item, index) => ({
             'No': index + 1,
             'Nama Karyawan': item.nama,
@@ -429,26 +318,19 @@ function prepareExportData(data) {
             'Durasi (jam)': item.durasi.toFixed(2),
             'Jam Normal': item.jamNormal.toFixed(2),
             'Jam Lembur': item.jamLembur.toFixed(2),
-            'Gaji Normal': formatRupiah(item.gajiNormal),
-            'Gaji Lembur': formatRupiah(item.gajiLembur),
-            'Total Kotor': formatRupiah(item.totalKotor),
-            'Pajak': formatRupiah(item.pajak),
-            'Gaji Bersih': formatRupiah(item.gajiBersih),
             'Keterangan': item.keterangan
         }));
     } else {
-        // Employee summary
         return data.map((item, index) => ({
             'No': index + 1,
-            'Nama Karyawan': item.nama,
-            'Total Hari': item.totalHari,
-            'Total Jam Kerja': item.totalJam.toFixed(2),
-            'Total Jam Normal': item.totalJamNormal.toFixed(2),
-            'Total Jam Lembur': item.totalJamLembur.toFixed(2),
-            'Total Gaji Normal': formatRupiah(item.totalGajiNormal),
-            'Total Gaji Lembur': formatRupiah(item.totalGajiLembur),
-            'Total Pajak': formatRupiah(item.totalPajak),
-            'Total Gaji Bersih': formatRupiah(item.totalGajiBersih)
+            'Nama': item.nama,
+            'Tanggal': formatDate(item.tanggal),
+            'Jam Masuk': item.jamMasuk,
+            'Jam Keluar': item.jamKeluar,
+            'Durasi (jam)': item.durasi ? item.durasi.toFixed(2) : '',
+            'Keterangan': item.jamKeluar ? 
+                `${item.jamMasuk} - ${item.jamKeluar} (${item.durasi.toFixed(2)} jam)` : 
+                'Hanya jam masuk'
         }));
     }
 }
@@ -476,12 +358,10 @@ function getColumnWidths(data) {
 
 // Initialize application
 function initializeApp() {
-    // Set current date
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
     
-    // Setup tab navigation
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const tabId = this.getAttribute('data-tab');
@@ -489,7 +369,6 @@ function initializeApp() {
         });
     });
     
-    // Setup help modal
     const helpBtn = document.getElementById('help-btn');
     const closeHelpBtns = document.querySelectorAll('#close-help, #close-help-btn');
     const helpModal = document.getElementById('help-modal');
@@ -499,23 +378,16 @@ function initializeApp() {
         btn.addEventListener('click', () => helpModal.classList.remove('active'));
     });
     
-    // Setup template download
     const templateBtn = document.getElementById('template-btn');
     templateBtn.addEventListener('click', downloadTemplate);
     
-    // Setup reset config
     const resetBtn = document.getElementById('reset-config');
     resetBtn.addEventListener('click', resetConfig);
     
-    // Setup download buttons
     document.getElementById('download-original').addEventListener('click', () => downloadReport('original'));
-    document.getElementById('download-daily').addEventListener('click', () => downloadReport('daily'));
-    document.getElementById('download-employee').addEventListener('click', () => downloadReport('employee'));
+    document.getElementById('download-processed').addEventListener('click', () => downloadReport('processed'));
+    document.getElementById('download-both').addEventListener('click', () => downloadReport('both'));
     
-    // Setup navigation
-    setupNavigation();
-    
-    // Initialize with loading animation
     setTimeout(() => {
         loadingScreen.style.opacity = '0';
         setTimeout(() => {
@@ -523,169 +395,6 @@ function initializeApp() {
             mainContainer.classList.add('loaded');
         }, 500);
     }, 2000);
-}
-
-// Setup navigation menu
-function setupNavigation() {
-    // Header navigation
-    document.querySelectorAll('.header-nav a').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const target = this.getAttribute('id');
-            
-            // Update active state
-            document.querySelectorAll('.header-nav li').forEach(li => li.classList.remove('active'));
-            this.parentElement.classList.add('active');
-            
-            // Show corresponding section
-            switch(target) {
-                case 'nav-upload':
-                    showSection('upload-section');
-                    break;
-                case 'nav-analysis':
-                    showAnalysis();
-                    break;
-                case 'nav-report':
-                    showSection('results-section');
-                    break;
-                case 'nav-settings':
-                    showSection('config-section');
-                    break;
-                case 'nav-help':
-                    document.getElementById('help-modal').classList.add('active');
-                    break;
-                default:
-                    showSection('upload-section');
-            }
-        });
-    });
-    
-    // Sidebar menu
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Update active state
-            document.querySelectorAll('.menu-item').forEach(mi => mi.classList.remove('active'));
-            this.classList.add('active');
-            
-            const menuId = this.getAttribute('id');
-            switch(menuId) {
-                case 'menu-dashboard':
-                    showSection('upload-section');
-                    break;
-                case 'menu-import':
-                    showSection('upload-section');
-                    break;
-                case 'menu-calculate':
-                    processData();
-                    break;
-                case 'menu-analysis':
-                    showAnalysis();
-                    break;
-                case 'menu-history':
-                    // For now, show results
-                    if (processedData.length > 0) {
-                        showSection('results-section');
-                    } else {
-                        showNotification('Harap proses data terlebih dahulu', 'warning');
-                    }
-                    break;
-                case 'menu-export':
-                    if (processedData.length > 0) {
-                        downloadReport('daily');
-                    } else {
-                        showNotification('Tidak ada data untuk diekspor', 'warning');
-                    }
-                    break;
-            }
-        });
-    });
-}
-
-// Show specific section
-function showSection(sectionId) {
-    // Hide all main sections
-    document.getElementById('upload-section').style.display = 'none';
-    document.getElementById('config-section').style.display = 'none';
-    document.getElementById('results-section').style.display = 'none';
-    document.getElementById('analysis-section').style.display = 'none';
-    
-    // Show selected section
-    document.getElementById(sectionId).style.display = 'block';
-    
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// Show analysis section
-function showAnalysis() {
-    if (processedData.length === 0) {
-        showNotification('Harap proses data terlebih dahulu', 'warning');
-        return;
-    }
-    
-    showSection('analysis-section');
-    displayAnalysisData();
-}
-
-// Display analysis data
-function displayAnalysisData() {
-    const analysisGrid = document.querySelector('.analysis-grid');
-    if (!analysisGrid) return;
-    
-    // Calculate analysis metrics
-    const totalEmployees = new Set(processedData.map(item => item.nama)).size;
-    const totalDays = processedData.length;
-    const totalHours = processedData.reduce((sum, item) => sum + item.durasi, 0);
-    const totalOvertime = processedData.reduce((sum, item) => sum + item.jamLembur, 0);
-    const avgHoursPerDay = totalHours / totalDays;
-    const avgOvertimePerDay = totalOvertime / totalDays;
-    
-    const totalSalary = processedData.reduce((sum, item) => sum + item.gajiBersih, 0);
-    const avgSalaryPerEmployee = totalSalary / totalEmployees;
-    const totalTax = processedData.reduce((sum, item) => sum + item.pajak, 0);
-    
-    const analysisData = [
-        {
-            title: 'Rata-rata Jam Kerja/Hari',
-            value: avgHoursPerDay.toFixed(2) + ' jam',
-            description: 'Durasi kerja rata-rata per hari'
-        },
-        {
-            title: 'Rata-rata Lembur/Hari',
-            value: avgOvertimePerDay.toFixed(2) + ' jam',
-            description: 'Jam lembur rata-rata per hari'
-        },
-        {
-            title: 'Rata-rata Gaji/Karyawan',
-            value: formatRupiah(avgSalaryPerEmployee),
-            description: 'Gaji bersih rata-rata per karyawan'
-        },
-        {
-            title: 'Total Pajak',
-            value: formatRupiah(totalTax),
-            description: 'Total pajak yang dipotong'
-        },
-        {
-            title: 'Hari dengan Lembur',
-            value: processedData.filter(item => item.jamLembur > 0).length + ' hari',
-            description: 'Jumlah hari terjadi lembur'
-        },
-        {
-            title: 'Efisiensi Kerja',
-            value: ((totalHours / (totalDays * 8)) * 100).toFixed(1) + '%',
-            description: 'Persentase pemanfaatan jam kerja'
-        }
-    ];
-    
-    analysisGrid.innerHTML = analysisData.map(item => `
-        <div class="analysis-card">
-            <h4><i class="fas fa-chart-line"></i> ${item.title}</h4>
-            <div class="analysis-value">${item.value}</div>
-            <div class="analysis-description">${item.description}</div>
-        </div>
-    `).join('');
 }
 
 // Handle file selection
@@ -790,84 +499,74 @@ function simulateUploadProgress() {
     }, 100);
 }
 
-// Process data (calculate overtime and salary)
+// Process data (HITUNG LEMBUR SAJA)
 function processData() {
     if (originalData.length === 0) {
         showNotification('Tidak ada data untuk diproses.', 'warning');
         return;
     }
     
-    // Get configuration values
-    const config = {
-        workHours: parseFloat(document.getElementById('work-hours').value) || DEFAULT_CONFIG.workHours,
-        salaryPerHour: parseFloat(document.getElementById('salary-per-hour').value) || DEFAULT_CONFIG.salaryPerHour,
-        overtimeMultiplier: parseFloat(document.getElementById('overtime-multiplier').value) || DEFAULT_CONFIG.overtimeMultiplier,
-        taxPercentage: parseFloat(document.getElementById('tax-percentage').value) || DEFAULT_CONFIG.taxPercentage
-    };
+    const workHours = parseFloat(document.getElementById('work-hours').value) || 8;
     
-    processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung Gaji...';
+    processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung Lembur...';
     processBtn.disabled = true;
     
     setTimeout(() => {
         try {
-            // Calculate daily data
-            processedData = calculateOvertimeAndSalary(originalData, config);
+            // Hitung lembur per hari
+            processedData = calculateOvertimePerDay(originalData, workHours);
             
-            // Calculate employee summary
-            salaryData = calculateEmployeeSummary(processedData, config);
+            displayResults(processedData);
+            createCharts(processedData);
             
-            // Display results
-            displayResults(processedData, salaryData);
-            
-            // Show results section
             resultsSection.style.display = 'block';
             resultsSection.scrollIntoView({ behavior: 'smooth' });
             
-            showNotification('Perhitungan gaji selesai!', 'success');
-            
-            // Update sidebar
-            document.getElementById('stat-salary').textContent = formatRupiah(
-                salaryData.reduce((sum, emp) => sum + emp.totalGajiBersih, 0)
-            );
+            showNotification('Perhitungan lembur selesai!', 'success');
             
         } catch (error) {
             console.error('Error processing data:', error);
-            showNotification('Terjadi kesalahan saat menghitung gaji.', 'error');
+            showNotification('Terjadi kesalahan saat menghitung lembur.', 'error');
         } finally {
-            processBtn.innerHTML = '<i class="fas fa-calculator"></i> Hitung Lembur & Gaji';
+            processBtn.innerHTML = '<i class="fas fa-calculator"></i> Hitung Lembur';
             processBtn.disabled = false;
         }
     }, 1500);
 }
 
 // Display results
-function displayResults(dailyData, employeeData) {
-    updateMainStatistics(dailyData, employeeData);
-    displayDailyTable(dailyData);
-    displayEmployeeTable(employeeData);
-    displaySummaries(employeeData);
-    createCharts(employeeData);
+function displayResults(data) {
+    updateMainStatistics(data);
+    displayProcessedTable(data);
+    displaySummaries(data);
 }
 
 // Update main statistics
-function updateMainStatistics(dailyData, employeeData) {
-    const totalKaryawan = new Set(dailyData.map(item => item.nama)).size;
-    const totalHari = dailyData.length;
-    const totalJam = dailyData.reduce((sum, item) => sum + item.durasi, 0);
-    const totalLembur = dailyData.reduce((sum, item) => sum + item.jamLembur, 0);
-    const totalGaji = employeeData.reduce((sum, emp) => sum + emp.totalGajiBersih, 0);
+function updateMainStatistics(data) {
+    const totalKaryawan = new Set(data.map(item => item.nama)).size;
+    const totalHari = data.length;
+    const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
+    const totalLembur = data.reduce((sum, item) => sum + item.jamLembur, 0);
     
-    document.getElementById('total-karyawan').textContent = totalKaryawan;
-    document.getElementById('total-hari').textContent = totalHari;
-    document.getElementById('total-jam').textContent = totalJam.toFixed(1) + ' jam';
-    document.getElementById('total-lembur').textContent = totalLembur.toFixed(1) + ' jam';
-    document.getElementById('total-gaji').textContent = formatRupiah(totalGaji);
+    // Perbaikan: Gunakan element yang benar
+    const totalKaryawanElem = document.getElementById('total-karyawan');
+    const totalHariElem = document.getElementById('total-hari');
+    const totalJamElem = document.getElementById('total-jam');
+    const totalLemburElem = document.getElementById('total-lembur');
+    
+    if (totalKaryawanElem) totalKaryawanElem.textContent = totalKaryawan;
+    if (totalHariElem) totalHariElem.textContent = totalHari;
+    if (totalJamElem) totalJamElem.textContent = totalJam.toFixed(1) + ' jam';
+    if (totalLemburElem) totalLemburElem.textContent = totalLembur.toFixed(1) + ' jam';
 }
 
-// Display daily table
-function displayDailyTable(data) {
-    const tbody = document.getElementById('daily-table-body');
-    if (!tbody) return;
+// Display processed table (DATA PER HARI)
+function displayProcessedTable(data) {
+    const tbody = document.getElementById('processed-table-body');
+    if (!tbody) {
+        console.error('Element #processed-table-body tidak ditemukan');
+        return;
+    }
     
     tbody.innerHTML = '';
     
@@ -877,37 +576,9 @@ function displayDailyTable(data) {
             <td>${index + 1}</td>
             <td><strong>${item.nama}</strong></td>
             <td>${formatDate(item.tanggal)}</td>
-            <td>${item.jamMasuk}</td>
-            <td>${item.jamKeluar || '-'}</td>
             <td>${item.durasi.toFixed(2)}</td>
             <td>${item.jamNormal.toFixed(2)}</td>
             <td><strong style="color: ${item.jamLembur > 0 ? '#e74c3c' : '#27ae60'};">${item.jamLembur.toFixed(2)}</strong></td>
-            <td>${formatRupiah(item.gajiNormal)}</td>
-            <td>${formatRupiah(item.gajiLembur)}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// Display employee table
-function displayEmployeeTable(data) {
-    const tbody = document.getElementById('employee-table-body');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-    
-    data.forEach((item, index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td><strong>${item.nama}</strong></td>
-            <td>${item.totalHari}</td>
-            <td>${item.totalJam.toFixed(2)}</td>
-            <td><strong style="color: ${item.totalJamLembur > 0 ? '#e74c3c' : '#27ae60'};">${item.totalJamLembur.toFixed(2)}</strong></td>
-            <td>${formatRupiah(item.totalGajiNormal)}</td>
-            <td>${formatRupiah(item.totalGajiLembur)}</td>
-            <td>${formatRupiah(item.totalPajak)}</td>
-            <td><strong>${formatRupiah(item.totalGajiBersih)}</strong></td>
         `;
         tbody.appendChild(row);
     });
@@ -920,19 +591,32 @@ function displaySummaries(data) {
     
     if (!employeeSummary && !financialSummary) return;
     
-    // Employee summary
+    // Group by employee
+    const employeeGroups = {};
+    data.forEach(item => {
+        if (!employeeGroups[item.nama]) {
+            employeeGroups[item.nama] = [];
+        }
+        employeeGroups[item.nama].push(item);
+    });
+    
     let employeeHtml = '';
-    data.forEach(employee => {
+    Object.keys(employeeGroups).forEach(employee => {
+        const records = employeeGroups[employee];
+        const totalHari = records.length;
+        const totalJam = records.reduce((sum, item) => sum + item.durasi, 0);
+        const totalLembur = records.reduce((sum, item) => sum + item.jamLembur, 0);
+        const hariLembur = records.filter(item => item.jamLembur > 0).length;
+        
         employeeHtml += `
             <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
-                <strong>${employee.nama}</strong><br>
+                <strong>${employee}</strong><br>
                 <small>
-                    Hari Kerja: ${employee.totalHari} hari | 
-                    Total Jam: ${employee.totalJam.toFixed(2)} jam<br>
+                    Total Hari: ${totalHari} | 
+                    Total Jam: ${totalJam.toFixed(2)} jam<br>
                     <span style="color: #e74c3c; font-weight: bold;">
-                        Lembur: ${employee.totalJamLembur.toFixed(2)} jam
-                    </span><br>
-                    Gaji Bersih: ${formatRupiah(employee.totalGajiBersih)}
+                        Lembur: ${totalLembur.toFixed(2)} jam (${hariLembur} hari)
+                    </span>
                 </small>
             </div>
         `;
@@ -940,41 +624,46 @@ function displaySummaries(data) {
     
     if (employeeSummary) employeeSummary.innerHTML = employeeHtml;
     
-    // Financial summary
-    const totalJam = data.reduce((sum, emp) => sum + emp.totalJam, 0);
-    const totalLembur = data.reduce((sum, emp) => sum + emp.totalJamLembur, 0);
-    const totalGajiPokok = data.reduce((sum, emp) => sum + emp.totalGajiNormal, 0);
-    const totalGajiLembur = data.reduce((sum, emp) => sum + emp.totalGajiLembur, 0);
-    const totalPajak = data.reduce((sum, emp) => sum + emp.totalPajak, 0);
-    const totalGajiBersih = data.reduce((sum, emp) => sum + emp.totalGajiBersih, 0);
+    // Financial summary (simplified tanpa gaji)
+    const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
+    const totalLembur = data.reduce((sum, item) => sum + item.jamLembur, 0);
+    const totalNormal = data.reduce((sum, item) => sum + item.jamNormal, 0);
+    const hariDenganLembur = data.filter(item => item.jamLembur > 0).length;
     
     if (financialSummary) {
         financialSummary.innerHTML = `
-            <div>Total Karyawan: <strong>${data.length} orang</strong></div>
+            <div>Total Entri Data: <strong>${data.length} hari</strong></div>
+            <div>Hari dengan Lembur: <strong>${hariDenganLembur} hari</strong></div>
             <div>Total Jam Kerja: <strong>${totalJam.toFixed(2)} jam</strong></div>
-            <div>Total Jam Lembur: <strong>${totalLembur.toFixed(2)} jam</strong></div>
-            <div>Total Gaji Pokok: <strong>${formatRupiah(totalGajiPokok)}</strong></div>
-            <div style="color: #e74c3c;">Total Uang Lembur: <strong>${formatRupiah(totalGajiLembur)}</strong></div>
-            <div>Total Pajak: <strong>${formatRupiah(totalPajak)}</strong></div>
-            <div style="border-top: 2px solid #3498db; padding-top: 0.5rem; margin-top: 0.5rem; font-weight: bold;">
-                Total Penggajian: <strong>${formatRupiah(totalGajiBersih)}</strong>
+            <div>Total Jam Normal: <strong>${totalNormal.toFixed(2)} jam</strong></div>
+            <div style="color: #e74c3c; font-weight: bold;">
+                Total Jam Lembur: <strong>${totalLembur.toFixed(2)} jam</strong>
+            </div>
+            <div style="border-top: 2px solid #3498db; padding-top: 0.5rem; margin-top: 0.5rem;">
+                Rata-rata Lembur per Hari: <strong>${(totalLembur / data.length).toFixed(2)} jam</strong>
             </div>
         `;
     }
 }
 
 // Create charts
-function createCharts(employeeData) {
-    // Destroy existing charts
+function createCharts(data) {
     if (hoursChart) hoursChart.destroy();
-    if (salaryChart) salaryChart.destroy();
     
-    // Prepare data for hours chart
-    const employeeNames = employeeData.map(emp => emp.nama);
-    const regularHours = employeeData.map(emp => emp.totalJamNormal);
-    const overtimeHours = employeeData.map(emp => emp.totalJamLembur);
+    // Group by employee untuk chart
+    const employeeGroups = {};
+    data.forEach(item => {
+        if (!employeeGroups[item.nama]) {
+            employeeGroups[item.nama] = { normal: 0, lembur: 0 };
+        }
+        employeeGroups[item.nama].normal += item.jamNormal;
+        employeeGroups[item.nama].lembur += item.jamLembur;
+    });
     
-    // Hours chart
+    const employeeNames = Object.keys(employeeGroups);
+    const regularHours = employeeNames.map(name => employeeGroups[name].normal);
+    const overtimeHours = employeeNames.map(name => employeeGroups[name].lembur);
+    
     const hoursCtx = document.getElementById('hoursChart').getContext('2d');
     hoursChart = new Chart(hoursCtx, {
         type: 'bar',
@@ -1017,53 +706,6 @@ function createCharts(employeeData) {
             }
         }
     });
-    
-    // Prepare data for salary chart
-    const salaryComponents = [
-        employeeData.reduce((sum, emp) => sum + emp.totalGajiNormal, 0),
-        employeeData.reduce((sum, emp) => sum + emp.totalGajiLembur, 0),
-        employeeData.reduce((sum, emp) => sum + emp.totalPajak, 0)
-    ];
-    
-    // Salary chart
-    const salaryCtx = document.getElementById('salaryChart').getContext('2d');
-    salaryChart = new Chart(salaryCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Gaji Pokok', 'Uang Lembur', 'Pajak'],
-            datasets: [{
-                data: salaryComponents,
-                backgroundColor: [
-                    'rgba(52, 152, 219, 0.7)',
-                    'rgba(231, 76, 60, 0.7)',
-                    'rgba(46, 204, 113, 0.7)'
-                ],
-                borderColor: [
-                    'rgba(52, 152, 219, 1)',
-                    'rgba(231, 76, 60, 1)',
-                    'rgba(46, 204, 113, 1)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const value = context.raw;
-                            return `${context.label}: ${formatRupiah(value)}`;
-                        }
-                    }
-                }
-            }
-        }
-    });
 }
 
 // Switch tabs
@@ -1100,12 +742,9 @@ function cancelUpload() {
 
 // Reset configuration
 function resetConfig() {
-    document.getElementById('work-hours').value = DEFAULT_CONFIG.workHours;
-    document.getElementById('salary-per-hour').value = '';
-    document.getElementById('overtime-multiplier').value = DEFAULT_CONFIG.overtimeMultiplier;
-    document.getElementById('tax-percentage').value = DEFAULT_CONFIG.taxPercentage;
+    document.getElementById('work-hours').value = '8';
     
-    showNotification('Konfigurasi telah direset ke nilai default.', 'info');
+    showNotification('Konfigurasi telah direset.', 'info');
 }
 
 // Download template
@@ -1142,7 +781,7 @@ async function downloadReport(type) {
         return;
     }
     
-    if ((type === 'daily' || type === 'employee') && processedData.length === 0) {
+    if ((type === 'processed' || type === 'both') && processedData.length === 0) {
         showNotification('Data belum diproses.', 'warning');
         return;
     }
@@ -1151,12 +790,15 @@ async function downloadReport(type) {
         if (type === 'original') {
             await generateReport(originalData, 'data_presensi_asli.xlsx', 'Data Asli');
             showNotification('Data asli berhasil diunduh.', 'success');
-        } else if (type === 'daily') {
-            await generateReport(processedData, 'data_lembur_gaji_harian.xlsx', 'Data Harian');
-            showNotification('Data lembur & gaji harian berhasil diunduh.', 'success');
-        } else if (type === 'employee') {
-            await generateReport(salaryData, 'rekap_gaji_karyawan.xlsx', 'Rekap Karyawan');
-            showNotification('Rekap gaji karyawan berhasil diunduh.', 'success');
+        } else if (type === 'processed') {
+            await generateReport(processedData, 'data_lembur_harian.xlsx', 'Data Lembur Harian');
+            showNotification('Data lembur harian berhasil diunduh.', 'success');
+        } else if (type === 'both') {
+            await generateReport(originalData, 'data_presensi_asli.xlsx', 'Data Asli');
+            setTimeout(async () => {
+                await generateReport(processedData, 'data_lembur_harian.xlsx', 'Data Lembur Harian');
+                showNotification('Kedua file berhasil diunduh.', 'success');
+            }, 500);
         }
     } catch (error) {
         console.error('Error downloading report:', error);
