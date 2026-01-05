@@ -89,18 +89,6 @@ body {
     animation: loading 3s ease-in-out infinite;
 }
 
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-
-@keyframes loading {
-    0% { width: 0%; }
-    50% { width: 100%; }
-    100% { width: 0%; }
-}
-/* style.css - Tambahkan bagian ini di bawah kode loading screen */
-
 /* Logo Loading */
 .loading-logo-img {
     width: 150px;
@@ -113,38 +101,16 @@ body {
     box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
 }
 
-/* Logo Header */
-.logo {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid var(--secondary-color);
-    box-shadow: var(--shadow-light);
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
 }
 
-.logo-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+@keyframes loading {
+    0% { width: 0%; }
+    50% { width: 100%; }
+    100% { width: 0%; }
 }
-
-/* Hapus atau komentari kode logo lama jika ada */
-/*
-.logo {
-    width: 60px;
-    height: 60px;
-    background: var(--gradient-primary);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 2rem;
-}*/
 
 /* Container */
 .container {
@@ -179,16 +145,23 @@ body {
     gap: 1rem;
 }
 
+/* Logo Header */
 .logo {
     width: 60px;
     height: 60px;
-    background: var(--gradient-primary);
     border-radius: 50%;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 2rem;
+    border: 3px solid var(--secondary-color);
+    box-shadow: var(--shadow-light);
+}
+
+.logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .university-info h1 {
@@ -1025,16 +998,7 @@ body {
     gap: 0.5rem;
 }
 
-.footer-bottom {
-    text-align: center;
-    padding-top: 2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.9rem;
-}
-
-/* style.css - Tambahkan di bagian footer */
-
+/* Footer Logo */
 .footer-logo {
     width: 50px;
     height: 50px;
@@ -1048,6 +1012,14 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.footer-bottom {
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
 }
 
 /* Modal */
