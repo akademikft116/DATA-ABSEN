@@ -204,37 +204,38 @@
                     </div>
                 </div>
 
-<!-- Configuration Card -->
-<div class="card config-card">
-    <div class="card-header">
-        <h3><i class="fas fa-sliders-h"></i> Konfigurasi Perhitungan</h3>
-        <p>Atur jam kerja normal (gunakan 8 jam jika tidak diisi)</p>
-    </div>
-    <div class="card-body">
-        <div class="config-grid">
-            <!-- HANYA TINGGAL JAM KERJA NORMAL -->
-            <div class="config-item">
-                <label for="work-hours">
-                    <i class="fas fa-business-time"></i> Jam Kerja Normal
-                </label>
-                <div class="input-group">
-                    <input type="number" id="work-hours" value="8" min="1" max="24" step="0.5">
-                    <span class="input-suffix">jam/hari</span>
-                </div>
-                <p class="input-description">Jam kerja normal sebelum dianggap lembur</p>
-            </div>
-        </div>
+                <!-- Configuration Card -->
+                <div class="card config-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-sliders-h"></i> Konfigurasi Perhitungan</h3>
+                        <p>Atur jam kerja normal (gunakan 8 jam jika tidak diisi)</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="config-grid">
+                            <!-- HANYA TINGGAL JAM KERJA NORMAL -->
+                            <div class="config-item">
+                                <label for="work-hours">
+                                    <i class="fas fa-business-time"></i> Jam Kerja Normal
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" id="work-hours" value="8" min="1" max="24" step="0.5">
+                                    <span class="input-suffix">jam/hari</span>
+                                </div>
+                                <p class="input-description">Jam kerja normal sebelum dianggap lembur</p>
+                            </div>
+                        </div>
 
-        <div class="config-actions">
-            <button class="btn btn-reset" id="reset-config">
-                <i class="fas fa-redo"></i> Reset ke Default
-            </button>
-            <button class="btn btn-process" id="process-data" disabled>
-                <i class="fas fa-calculator"></i> Hitung Lembur
-            </button>
-        </div>
-    </div>
-</div>
+                        <div class="config-actions">
+                            <button class="btn btn-reset" id="reset-config">
+                                <i class="fas fa-redo"></i> Reset ke Default
+                            </button>
+                            <button class="btn btn-process" id="process-data" disabled>
+                                <i class="fas fa-calculator"></i> Hitung Lembur
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Results Section -->
                 <div class="results-section" id="results-section">
                     <!-- Statistics Cards -->
@@ -328,6 +329,28 @@
                             </div>
                         </div>
                         <div class="card-body">
+                            <!-- Tab 1: Data Original -->
+                            <div class="tab-content active" id="original-tab">
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>No</th>
+                                                <th>Nama</th>
+                                                <th>Tanggal</th>
+                                                <th>Jam Masuk</th>
+                                                <th>Jam Keluar</th>
+                                                <th>Durasi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="original-table-body">
+                                            <!-- Data asli akan diisi oleh JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Tab 2: Data Terproses -->
                             <div class="tab-content" id="processed-tab">
                                 <div class="table-responsive">
                                     <table class="data-table">
@@ -339,28 +362,7 @@
                                                 <th>Durasi</th>
                                                 <th>Jam Normal</th>
                                                 <th>Jam Lembur</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="processed-table-body">
-                                            <!-- Data akan diisi oleh JavaScript -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="tab-content" id="processed-tab">
-                                <div class="table-responsive">
-                                    <table class="data-table">
-                                        <thead>
-                                            <tr>
-                                                <th>No</th>
-                                                <th>Nama</th>
-                                                <th>Total Hari</th>
-                                                <th>Total Jam</th>
-                                                <th>Lembur (jam)</th>
-                                                <th>Gaji Pokok</th>
-                                                <th>Uang Lembur</th>
-                                                <th>Pajak</th>
-                                                <th>Gaji Bersih</th>
+                                                <th>Keterangan</th>
                                             </tr>
                                         </thead>
                                         <tbody id="processed-table-body">
@@ -370,6 +372,7 @@
                                 </div>
                             </div>
 
+                            <!-- Tab 3: Summary -->
                             <div class="tab-content" id="summary-tab">
                                 <div class="summary-grid">
                                     <div class="summary-item">
@@ -415,8 +418,8 @@
                                         <i class="fas fa-file-invoice-dollar" style="color: #4A90E2;"></i>
                                     </div>
                                     <div class="option-content">
-                                        <h4>Data Terhitung dengan Gaji</h4>
-                                        <p>File Excel dengan perhitungan gaji lengkap</p>
+                                        <h4>Data Terhitung dengan Lembur</h4>
+                                        <p>File Excel dengan perhitungan lembur lengkap</p>
                                     </div>
                                     <button class="btn btn-download" id="download-processed">
                                         <i class="fas fa-download"></i> Unduh (.xlsx)
@@ -443,30 +446,30 @@
         </main>
 
         <!-- Footer -->
-<footer class="footer">
-    <div class="footer-content">
-        <div class="footer-section">
-            <!-- Tambahkan logo kecil di footer -->
-            <div class="footer-logo">
-                <img src="logo.jpeg" alt="Logo Universitas Langlangbuana" class="footer-logo-img">
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <!-- Tambahkan logo kecil di footer -->
+                    <div class="footer-logo">
+                        <img src="logo.jpeg" alt="Logo Universitas Langlangbuana" class="footer-logo-img">
+                    </div>
+                    <h4>Universitas Langlangbuana</h4>
+                    <p>Sistem Pengolahan Data Presensi</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak</h4>
+                    <p><i class="fas fa-envelope"></i> presensi@unla.ac.id</p>
+                    <p><i class="fas fa-phone"></i> (022) 1234567</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Dikembangkan Oleh</h4>
+                    <p>M. Shidqi F</p>
+                </div>
             </div>
-            <h4>Universitas Langlangbuana</h4>
-            <p>Sistem Pengolahan Data Presensi</p>
-        </div>
-        <div class="footer-section">
-            <h4>Kontak</h4>
-            <p><i class="fas fa-envelope"></i> presensi@unla.ac.id</p>
-            <p><i class="fas fa-phone"></i> (022) 1234567</p>
-        </div>
-        <div class="footer-section">
-            <h4>Dikembangkan Oleh</h4>
-            <p>M. Shidqi F</p>
-        </div>
-    </div>
-    <div class="footer-bottom">
-        <p>&copy; 2025 Universitas Langlangbuana</p>
-    </div>
-</footer>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Universitas Langlangbuana</p>
+            </div>
+        </footer>
     </div>
 
     <!-- Modal Help -->
