@@ -6,6 +6,7 @@ let processedData = [];
 let currentFile = null;
 let uploadProgressInterval = null;
 let hoursChart = null;
+let salaryChart = null;
 
 // DOM Elements
 const loadingScreen = document.getElementById('loading-screen');
@@ -47,6 +48,21 @@ function formatHoursToHMS(hours) {
     } catch (error) {
         console.error('Error formatting hours:', error);
         return `${hours.toFixed(2)} jam`;
+    }
+}
+
+// Format jam untuk display (format baru)
+function formatHoursToDisplay(hours) {
+    if (!hours || hours <= 0) return "0 jam";
+    
+    const totalMinutes = Math.round(hours * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    
+    if (m === 0) {
+        return `${h} jam`;
+    } else {
+        return `${h} jam ${m} menit`;
     }
 }
 
@@ -277,7 +293,7 @@ function calculateOvertimePerDay(data, workHours = 8) {
         // Jam normal maksimal workHours (8 jam)
         const jamNormal = Math.min(hoursWorked, workHours);
         
-        // Jam lembur jika total jam > workHours
+        // Jam lembur jika total jam > workHours (desimal)
         const jamLemburDesimal = Math.max(hoursWorked - workHours, 0);
         
         // Format jam lembur untuk display
@@ -297,34 +313,13 @@ function calculateOvertimePerDay(data, workHours = 8) {
         }
         
         // Format jam normal untuk display
-        const formatJamNormal = (jam) => {
-            if (!jam || jam <= 0) return "0 jam";
-            
-            const totalMenit = Math.round(jam * 60);
-            const jamNormalJam = Math.floor(totalMenit / 60);
-            const jamNormalMenit = totalMenit % 60;
-            
-            if (jamNormalMenit === 0) {
-                return `${jamNormalJam} jam`;
-            } else {
-                return `${jamNormalJam} jam ${jamNormalMenit} menit`;
-            }
-        };
+        const jamNormalDisplay = formatHoursToDisplay(jamNormal);
         
         // Format durasi untuk display
-        const formatDurasi = (jam) => {
-            if (!jam || jam <= 0) return "0 jam";
-            
-            const totalMenit = Math.round(jam * 60);
-            const durasiJam = Math.floor(totalMenit / 60);
-            const durasiMenit = totalMenit % 60;
-            
-            if (durasiMenit === 0) {
-                return `${durasiJam} jam`;
-            } else {
-                return `${durasiJam} jam ${durasiMenit} menit`;
-            }
-        };
+        const durasiDisplay = formatHoursToDisplay(hoursWorked);
+        
+        // Keterangan
+        const keterangan = jamLemburDesimal > 0 ? `Lembur ${jamLemburDisplay}` : 'Tidak lembur';
         
         return {
             nama: record.nama,
@@ -332,12 +327,12 @@ function calculateOvertimePerDay(data, workHours = 8) {
             jamMasuk: record.jamMasuk,
             jamKeluar: record.jamKeluar,
             durasi: hoursWorked,
-            durasiFormatted: formatDurasi(hoursWorked),
+            durasiFormatted: durasiDisplay,
             jamNormal: jamNormal,
-            jamNormalFormatted: formatJamNormal(jamNormal),
-            jamLembur: jamLemburDisplay, // String untuk display di tabel
-            jamLemburDesimal: jamLemburDesimal, // Desimal untuk perhitungan
-            keterangan: jamLemburDesimal > 0 ? `Lembur ${jamLemburDisplay}` : 'Tidak lembur'
+            jamNormalFormatted: jamNormalDisplay,
+            jamLembur: jamLemburDisplay,
+            jamLemburDesimal: jamLemburDesimal,
+            keterangan: keterangan
         };
     });
     
@@ -352,6 +347,7 @@ function calculateOvertimePerDay(data, workHours = 8) {
     
     return result;
 }
+
 // Generate Excel report
 function generateReport(data, filename, sheetName = 'Data Lembur Harian') {
     try {
@@ -386,10 +382,11 @@ function prepareExportData(data) {
             'Tanggal': formatDate(item.tanggal),
             'Jam Masuk': item.jamMasuk,
             'Jam Keluar': item.jamKeluar,
-            'Durasi': item.durasiFormatted,
+            'Durasi Kerja': item.durasiFormatted,
             'Jam Normal': item.jamNormalFormatted,
-            'Jam Lembur': item.jamLemburFormatted,
+            'Jam Lembur': item.jamLembur,
             'Durasi (Desimal)': item.durasi.toFixed(2),
+            'Lembur (Desimal)': item.jamLemburDesimal.toFixed(2),
             'Keterangan': item.keterangan
         }));
     } else {
@@ -434,6 +431,7 @@ function initializeApp() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
     
+    // Tab functionality
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const tabId = this.getAttribute('data-tab');
@@ -441,31 +439,42 @@ function initializeApp() {
         });
     });
     
+    // Modal functionality
     const helpBtn = document.getElementById('help-btn');
     const closeHelpBtns = document.querySelectorAll('#close-help, #close-help-btn');
     const helpModal = document.getElementById('help-modal');
     
-    helpBtn.addEventListener('click', () => helpModal.classList.add('active'));
+    if (helpBtn) helpBtn.addEventListener('click', () => helpModal.classList.add('active'));
     closeHelpBtns.forEach(btn => {
         btn.addEventListener('click', () => helpModal.classList.remove('active'));
     });
     
+    // Template download
     const templateBtn = document.getElementById('template-btn');
-    templateBtn.addEventListener('click', downloadTemplate);
+    if (templateBtn) templateBtn.addEventListener('click', downloadTemplate);
     
+    // Reset config
     const resetBtn = document.getElementById('reset-config');
-    resetBtn.addEventListener('click', resetConfig);
+    if (resetBtn) resetBtn.addEventListener('click', resetConfig);
     
-    document.getElementById('download-original').addEventListener('click', () => downloadReport('original'));
-    document.getElementById('download-processed').addEventListener('click', () => downloadReport('processed'));
-    document.getElementById('download-both').addEventListener('click', () => downloadReport('both'));
+    // Download buttons
+    const downloadOriginal = document.getElementById('download-original');
+    const downloadProcessed = document.getElementById('download-processed');
+    const downloadBoth = document.getElementById('download-both');
     
+    if (downloadOriginal) downloadOriginal.addEventListener('click', () => downloadReport('original'));
+    if (downloadProcessed) downloadProcessed.addEventListener('click', () => downloadReport('processed'));
+    if (downloadBoth) downloadBoth.addEventListener('click', () => downloadReport('both'));
+    
+    // Loading screen
     setTimeout(() => {
-        loadingScreen.style.opacity = '0';
-        setTimeout(() => {
-            loadingScreen.style.display = 'none';
-            mainContainer.classList.add('loaded');
-        }, 500);
+        if (loadingScreen) {
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                if (mainContainer) mainContainer.classList.add('loaded');
+            }, 500);
+        }
     }, 2000);
 }
 
@@ -609,6 +618,7 @@ function processData() {
 // Display results
 function displayResults(data) {
     updateMainStatistics(data);
+    displayOriginalTable(originalData);
     displayProcessedTable(data);
     displaySummaries(data);
 }
@@ -618,17 +628,40 @@ function updateMainStatistics(data) {
     const totalKaryawan = new Set(data.map(item => item.nama)).size;
     const totalHari = data.length;
     const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
-    const totalLembur = data.reduce((sum, item) => sum + item.jamLembur, 0);
+    const totalLembur = data.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
     
     const totalKaryawanElem = document.getElementById('total-karyawan');
     const totalHariElem = document.getElementById('total-hari');
-    const totalJamElem = document.getElementById('total-jam');
     const totalLemburElem = document.getElementById('total-lembur');
     
     if (totalKaryawanElem) totalKaryawanElem.textContent = totalKaryawan;
     if (totalHariElem) totalHariElem.textContent = totalHari;
-    if (totalJamElem) totalJamElem.textContent = formatHoursToHMS(totalJam);
-    if (totalLemburElem) totalLemburElem.textContent = formatHoursToHMS(totalLembur);
+    if (totalLemburElem) totalLemburElem.textContent = formatHoursToDisplay(totalLembur);
+    
+    // Update total gaji menjadi jam lembur
+    const totalGajiElem = document.getElementById('total-gaji');
+    if (totalGajiElem) totalGajiElem.textContent = formatHoursToDisplay(totalLembur) + ' lembur';
+}
+
+// Tampilkan data original
+function displayOriginalTable(data) {
+    const tbody = document.getElementById('original-table-body');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    data.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td><strong>${item.nama}</strong></td>
+            <td>${formatDate(item.tanggal)}</td>
+            <td>${item.jamMasuk}</td>
+            <td>${item.jamKeluar || '-'}</td>
+            <td>${item.durasi ? item.durasi.toFixed(2) + ' jam' : '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
 }
 
 // Display processed table (DATA PER HARI)
@@ -649,7 +682,14 @@ function displayProcessedTable(data) {
             <td>${formatDate(item.tanggal)}</td>
             <td>${item.durasiFormatted}</td>
             <td>${item.jamNormalFormatted}</td>
-            <td><strong style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'};">${item.jamLembur}</strong></td>
+            <td style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
+                ${item.jamLembur}
+            </td>
+            <td>
+                <span style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-size: 0.85rem;">
+                    ${item.keterangan}
+                </span>
+            </td>
         `;
         tbody.appendChild(row);
     });
@@ -676,17 +716,19 @@ function displaySummaries(data) {
         const records = employeeGroups[employee];
         const totalHari = records.length;
         const totalJam = records.reduce((sum, item) => sum + item.durasi, 0);
-        const totalLembur = records.reduce((sum, item) => sum + item.jamLembur, 0);
-        const hariLembur = records.filter(item => item.jamLembur > 0).length;
+        const totalLemburDesimal = records.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
+        const hariLembur = records.filter(item => item.jamLemburDesimal > 0).length;
+        const totalNormal = records.reduce((sum, item) => sum + item.jamNormal, 0);
         
         employeeHtml += `
             <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
                 <strong>${employee}</strong><br>
                 <small>
                     Total Hari: ${totalHari} | 
-                    Total Jam: ${formatHoursToHMS(totalJam)}<br>
-                    <span style="color: #e74c3c; font-weight: bold;">
-                        Lembur: ${formatHoursToHMS(totalLembur)} (${hariLembur} hari)
+                    Total Jam: ${formatHoursToDisplay(totalJam)}<br>
+                    Jam Normal: ${formatHoursToDisplay(totalNormal)}<br>
+                    <span style="color: ${totalLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
+                        Jam Lembur: ${formatHoursToDisplay(totalLemburDesimal)} (${hariLembur} hari)
                     </span>
                 </small>
             </div>
@@ -695,23 +737,24 @@ function displaySummaries(data) {
     
     if (employeeSummary) employeeSummary.innerHTML = employeeHtml;
     
-    // Financial summary (simplified tanpa gaji)
+    // Financial summary
     const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
-    const totalLembur = data.reduce((sum, item) => sum + item.jamLembur, 0);
+    const totalLemburDesimal = data.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
     const totalNormal = data.reduce((sum, item) => sum + item.jamNormal, 0);
-    const hariDenganLembur = data.filter(item => item.jamLembur > 0).length;
+    const hariDenganLembur = data.filter(item => item.jamLemburDesimal > 0).length;
     
     if (financialSummary) {
         financialSummary.innerHTML = `
             <div>Total Entri Data: <strong>${data.length} hari</strong></div>
             <div>Hari dengan Lembur: <strong>${hariDenganLembur} hari</strong></div>
-            <div>Total Jam Kerja: <strong>${formatHoursToHMS(totalJam)}</strong></div>
-            <div>Total Jam Normal: <strong>${formatHoursToHMS(totalNormal)}</strong></div>
-            <div style="color: #e74c3c; font-weight: bold;">
-                Total Jam Lembur: <strong>${formatHoursToHMS(totalLembur)}</strong>
+            <div>Total Jam Kerja: <strong>${formatHoursToDisplay(totalJam)}</strong></div>
+            <div>Total Jam Normal: <strong>${formatHoursToDisplay(totalNormal)}</strong></div>
+            <div style="color: ${totalLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
+                Total Jam Lembur: <strong>${formatHoursToDisplay(totalLemburDesimal)}</strong>
             </div>
             <div style="border-top: 2px solid #3498db; padding-top: 0.5rem; margin-top: 0.5rem;">
-                Rata-rata Lembur per Hari: <strong>${formatHoursToHMS(totalLembur / data.length)}</strong>
+                Rata-rata Jam Kerja per Hari: <strong>${(totalJam / data.length).toFixed(2)} jam</strong><br>
+                Rata-rata Jam Lembur per Hari: <strong>${(totalLemburDesimal / data.length).toFixed(2)} jam</strong>
             </div>
         `;
     }
@@ -719,22 +762,25 @@ function displaySummaries(data) {
 
 // Create charts
 function createCharts(data) {
+    // Destroy existing charts
     if (hoursChart) hoursChart.destroy();
+    if (salaryChart) salaryChart.destroy();
     
-    // Group by employee untuk chart
+    // Group by employee untuk chart jam kerja
     const employeeGroups = {};
     data.forEach(item => {
         if (!employeeGroups[item.nama]) {
             employeeGroups[item.nama] = { normal: 0, lembur: 0 };
         }
         employeeGroups[item.nama].normal += item.jamNormal;
-        employeeGroups[item.nama].lembur += item.jamLembur;
+        employeeGroups[item.nama].lembur += item.jamLemburDesimal;
     });
     
-    const employeeNames = Object.keys(employeeGroups);
+    const employeeNames = Object.keys(employeeGroups).slice(0, 10);
     const regularHours = employeeNames.map(name => employeeGroups[name].normal);
     const overtimeHours = employeeNames.map(name => employeeGroups[name].lembur);
     
+    // Chart Jam Kerja
     const hoursCtx = document.getElementById('hoursChart').getContext('2d');
     hoursChart = new Chart(hoursCtx, {
         type: 'bar',
@@ -760,12 +806,23 @@ function createCharts(data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Distribusi Jam Kerja per Karyawan'
+                }
+            },
             scales: {
                 y: {
                     beginAtZero: true,
                     title: {
                         display: true,
                         text: 'Jam Kerja'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + ' jam';
+                        }
                     }
                 },
                 x: {
@@ -777,10 +834,61 @@ function createCharts(data) {
             }
         }
     });
+    
+    // Chart Pie untuk komposisi jam kerja
+    const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
+    const totalNormal = data.reduce((sum, item) => sum + item.jamNormal, 0);
+    const totalLembur = data.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
+    
+    const salaryCtx = document.getElementById('salaryChart').getContext('2d');
+    salaryChart = new Chart(salaryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Jam Normal', 'Jam Lembur'],
+            datasets: [{
+                data: [totalNormal, totalLembur],
+                backgroundColor: [
+                    'rgba(52, 152, 219, 0.8)',
+                    'rgba(231, 76, 60, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(52, 152, 219, 1)',
+                    'rgba(231, 76, 60, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Komposisi Jam Kerja'
+                },
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const percentage = context.dataset.data[context.dataIndex] / totalJam * 100;
+                            return `${label}: ${value.toFixed(2)} jam (${percentage.toFixed(1)}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
 // Switch tabs
 function switchTab(tabId) {
+    console.log('Switch to tab:', tabId);
+    
+    // Update tab buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
         if (btn.getAttribute('data-tab') === tabId) {
@@ -788,6 +896,7 @@ function switchTab(tabId) {
         }
     });
     
+    // Update tab contents
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.remove('active');
         if (content.id === `${tabId}-tab`) {
