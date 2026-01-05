@@ -270,77 +270,31 @@ function pairInOutTimes(data) {
 }
 
 // Calculate overtime per day dengan aturan baru
+// Calculate overtime per day - LEMBUR jika total jam > 8 jam
 function calculateOvertimePerDay(data, workHours = 8) {
     const result = data.map(record => {
         const hoursWorked = record.durasi || calculateHours(record.jamMasuk, record.jamKeluar);
         
-        // Parse jam masuk dan keluar
-        const parseTime = (timeStr) => {
-            if (!timeStr) return { hours: 0, minutes: 0 };
-            if (typeof timeStr === 'string') {
-                if (timeStr.includes(':')) {
-                    const parts = timeStr.split(':');
-                    const hours = parseInt(parts[0]) || 0;
-                    const minutes = parseInt(parts[1]) || 0;
-                    return { hours, minutes };
-                }
-            }
-            return { hours: 0, minutes: 0 };
-        };
+        let jamNormal = Math.min(hoursWorked, workHours);
+        let jamLembur = Math.max(hoursWorked - workHours, 0);
         
-        const inTime = parseTime(record.jamMasuk);
-        const outTime = parseTime(record.jamKeluar);
+        // Format untuk display lembur
+        let jamLemburDisplay = "0 jam";
+        let jamLemburDesimal = jamLembur; // Sudah dalam format desimal
         
-        let jamNormal = 0;
-        let jamLemburDisplay = "0 jam"; // Untuk display
-        let jamLemburDesimal = 0; // Untuk perhitungan desimal
-        
-        if (inTime && outTime && record.jamMasuk && record.jamKeluar) {
-            // Konversi ke menit sejak tengah malam
-            const menitMasuk = inTime.hours * 60 + inTime.minutes;
-            const menitKeluar = outTime.hours * 60 + outTime.minutes;
+        if (jamLembur > 0) {
+            // Konversi jamLembur (desimal) ke jam dan menit untuk display
+            const totalMenitLembur = Math.round(jamLembur * 60);
+            const jamLemburJam = Math.floor(totalMenitLembur / 60);
+            const jamLemburMenit = totalMenitLembur % 60;
             
-            // Waktu referensi
-            const jam7Menit = 7 * 60; // 07:00 = 420 menit
-            const jam16Menit = 16 * 60; // 16:00 = 960 menit
-            
-            // 1. Hitung waktu kerja yang dihitung (dimulai dari jam 7)
-            const mulaiHitung = Math.max(menitMasuk, jam7Menit);
-            
-            // 2. Tentukan akhir waktu normal (maksimal jam 16:00)
-            const akhirNormal = Math.min(menitKeluar, jam16Menit);
-            
-            // 3. Hitung jam normal (dari mulai hitung sampai akhir normal)
-            const menitNormal = Math.max(0, akhirNormal - mulaiHitung);
-            jamNormal = Math.min(menitNormal / 60, workHours);
-            
-            // 4. Hitung lembur (jika pulang setelah jam 16:00)
-            if (menitKeluar > jam16Menit) {
-                const menitLembur = menitKeluar - jam16Menit;
-                
-                // Konversi ke desimal untuk perhitungan
-                jamLemburDesimal = menitLembur / 60;
-                
-                // Format untuk display
-                const jamLemburJam = Math.floor(menitLembur / 60);
-                const jamLemburMenit = menitLembur % 60;
-                
-                if (jamLemburJam === 0) {
-                    jamLemburDisplay = `${jamLemburMenit} menit`;
-                } else if (jamLemburMenit === 0) {
-                    jamLemburDisplay = `${jamLemburJam} jam`;
-                } else {
-                    jamLemburDisplay = `${jamLemburJam} jam ${jamLemburMenit} menit`;
-                }
+            if (jamLemburJam === 0) {
+                jamLemburDisplay = `${jamLemburMenit} menit`;
+            } else if (jamLemburMenit === 0) {
+                jamLemburDisplay = `${jamLemburJam} jam`;
             } else {
-                jamLemburDisplay = "0 jam";
-                jamLemburDesimal = 0;
+                jamLemburDisplay = `${jamLemburJam} jam ${jamLemburMenit} menit`;
             }
-        } else {
-            // Fallback jika data tidak lengkap
-            jamNormal = Math.min(hoursWorked, workHours);
-            jamLemburDisplay = "0 jam";
-            jamLemburDesimal = 0;
         }
         
         // Format jam normal untuk display
@@ -368,7 +322,7 @@ function calculateOvertimePerDay(data, workHours = 8) {
             jamNormal: jamNormal,
             jamNormalFormatted: formatJamNormal(jamNormal),
             jamLembur: jamLemburDisplay, // String untuk display
-            jamLemburDesimal: jamLemburDesimal, // Desimal untuk perhitungan
+            jamLemburDesimal: jamLemburDesimal, // Desimal untuk perhitungan (misal: 0.5 untuk 30 menit)
             keterangan: jamLemburDesimal > 0 ? `Lembur ${jamLemburDisplay}` : 'Tidak lembur'
         };
     });
