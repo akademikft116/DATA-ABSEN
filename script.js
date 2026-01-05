@@ -30,6 +30,26 @@ cancelUploadBtn.addEventListener('click', cancelUpload);
 // HELPER FUNCTIONS
 // ============================
 
+// Format hours from decimal to hours:minutes
+function formatHoursToHMS(hours) {
+    if (!hours || hours <= 0) return '0 jam';
+    
+    try {
+        const totalMinutes = Math.round(hours * 60);
+        const h = Math.floor(totalMinutes / 60);
+        const m = totalMinutes % 60;
+        
+        if (m === 0) {
+            return `${h} jam`;
+        } else {
+            return `${h} jam ${m} menit`;
+        }
+    } catch (error) {
+        console.error('Error formatting hours:', error);
+        return `${hours.toFixed(2)} jam`;
+    }
+}
+
 // Format date from DD/MM/YYYY to readable format
 function formatDate(dateString) {
     if (!dateString) return '-';
@@ -250,6 +270,7 @@ function pairInOutTimes(data) {
 }
 
 // Calculate overtime per day (hanya jam lembur)
+// Calculate overtime per day (hanya jam lembur)
 function calculateOvertimePerDay(data, workHours = 8) {
     const result = data.map(record => {
         const hoursWorked = record.durasi || calculateHours(record.jamMasuk, record.jamKeluar);
@@ -263,9 +284,12 @@ function calculateOvertimePerDay(data, workHours = 8) {
             jamMasuk: record.jamMasuk,
             jamKeluar: record.jamKeluar,
             durasi: hoursWorked,
+            durasiFormatted: formatHoursToHMS(hoursWorked),  // TAMBAHAN
             jamNormal: jamNormal,
+            jamNormalFormatted: formatHoursToHMS(jamNormal), // TAMBAHAN
             jamLembur: jamLembur,
-            keterangan: jamLembur > 0 ? `Lembur ${jamLembur.toFixed(2)} jam` : 'Tidak lembur'
+            jamLemburFormatted: formatHoursToHMS(jamLembur), // TAMBAHAN
+            keterangan: jamLembur > 0 ? `Lembur ${formatHoursToHMS(jamLembur)}` : 'Tidak lembur'
         };
     });
     
@@ -303,6 +327,7 @@ function generateReport(data, filename, sheetName = 'Data Lembur Harian') {
 }
 
 // Prepare data for export
+// Prepare data for export
 function prepareExportData(data) {
     if (data.length === 0) return [];
     
@@ -315,9 +340,10 @@ function prepareExportData(data) {
             'Tanggal': formatDate(item.tanggal),
             'Jam Masuk': item.jamMasuk,
             'Jam Keluar': item.jamKeluar,
-            'Durasi (jam)': item.durasi.toFixed(2),
-            'Jam Normal': item.jamNormal.toFixed(2),
-            'Jam Lembur': item.jamLembur.toFixed(2),
+            'Durasi': item.durasiFormatted,  // PERUBAHAN
+            'Jam Normal': item.jamNormalFormatted,  // PERUBAHAN
+            'Jam Lembur': item.jamLemburFormatted,  // PERUBAHAN
+            'Durasi (Desimal)': item.durasi.toFixed(2),  // TAMBAHAN: backup desimal
             'Keterangan': item.keterangan
         }));
     } else {
@@ -327,9 +353,9 @@ function prepareExportData(data) {
             'Tanggal': formatDate(item.tanggal),
             'Jam Masuk': item.jamMasuk,
             'Jam Keluar': item.jamKeluar,
-            'Durasi (jam)': item.durasi ? item.durasi.toFixed(2) : '',
+            'Durasi': item.durasi ? item.durasiFormatted : '',  // PERUBAHAN
             'Keterangan': item.jamKeluar ? 
-                `${item.jamMasuk} - ${item.jamKeluar} (${item.durasi.toFixed(2)} jam)` : 
+                `${item.jamMasuk} - ${item.jamKeluar} (${item.durasiFormatted})` : 
                 'Hanya jam masuk'
         }));
     }
@@ -542,13 +568,13 @@ function displayResults(data) {
 }
 
 // Update main statistics
+// Update main statistics
 function updateMainStatistics(data) {
     const totalKaryawan = new Set(data.map(item => item.nama)).size;
     const totalHari = data.length;
     const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
     const totalLembur = data.reduce((sum, item) => sum + item.jamLembur, 0);
     
-    // Perbaikan: Gunakan element yang benar
     const totalKaryawanElem = document.getElementById('total-karyawan');
     const totalHariElem = document.getElementById('total-hari');
     const totalJamElem = document.getElementById('total-jam');
@@ -556,10 +582,12 @@ function updateMainStatistics(data) {
     
     if (totalKaryawanElem) totalKaryawanElem.textContent = totalKaryawan;
     if (totalHariElem) totalHariElem.textContent = totalHari;
-    if (totalJamElem) totalJamElem.textContent = totalJam.toFixed(1) + ' jam';
-    if (totalLemburElem) totalLemburElem.textContent = totalLembur.toFixed(1) + ' jam';
+    // PERUBAHAN DI SINI:
+    if (totalJamElem) totalJamElem.textContent = formatHoursToHMS(totalJam);
+    if (totalLemburElem) totalLemburElem.textContent = formatHoursToHMS(totalLembur);
 }
 
+// Display processed table (DATA PER HARI)
 // Display processed table (DATA PER HARI)
 function displayProcessedTable(data) {
     const tbody = document.getElementById('processed-table-body');
@@ -576,29 +604,18 @@ function displayProcessedTable(data) {
             <td>${index + 1}</td>
             <td><strong>${item.nama}</strong></td>
             <td>${formatDate(item.tanggal)}</td>
-            <td>${item.durasi.toFixed(2)}</td>
-            <td>${item.jamNormal.toFixed(2)}</td>
-            <td><strong style="color: ${item.jamLembur > 0 ? '#e74c3c' : '#27ae60'};">${item.jamLembur.toFixed(2)}</strong></td>
+            <td>${item.durasiFormatted}</td>
+            <td>${item.jamNormalFormatted}</td>
+            <td><strong style="color: ${item.jamLembur > 0 ? '#e74c3c' : '#27ae60'};">${item.jamLemburFormatted}</strong></td>
         `;
         tbody.appendChild(row);
     });
 }
 
 // Display summaries
+// Display summaries
 function displaySummaries(data) {
-    const employeeSummary = document.getElementById('employee-summary');
-    const financialSummary = document.getElementById('financial-summary');
-    
-    if (!employeeSummary && !financialSummary) return;
-    
-    // Group by employee
-    const employeeGroups = {};
-    data.forEach(item => {
-        if (!employeeGroups[item.nama]) {
-            employeeGroups[item.nama] = [];
-        }
-        employeeGroups[item.nama].push(item);
-    });
+    // ... kode sebelumnya ...
     
     let employeeHtml = '';
     Object.keys(employeeGroups).forEach(employee => {
@@ -608,19 +625,44 @@ function displaySummaries(data) {
         const totalLembur = records.reduce((sum, item) => sum + item.jamLembur, 0);
         const hariLembur = records.filter(item => item.jamLembur > 0).length;
         
+        // PERUBAHAN DI SINI:
         employeeHtml += `
             <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
                 <strong>${employee}</strong><br>
                 <small>
                     Total Hari: ${totalHari} | 
-                    Total Jam: ${totalJam.toFixed(2)} jam<br>
+                    Total Jam: ${formatHoursToHMS(totalJam)}<br>
                     <span style="color: #e74c3c; font-weight: bold;">
-                        Lembur: ${totalLembur.toFixed(2)} jam (${hariLembur} hari)
+                        Lembur: ${formatHoursToHMS(totalLembur)} (${hariLembur} hari)
                     </span>
                 </small>
             </div>
         `;
     });
+    
+    // ... kode setelahnya ...
+    
+    // Financial summary (simplified tanpa gaji)
+    const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
+    const totalLembur = data.reduce((sum, item) => sum + item.jamLembur, 0);
+    const totalNormal = data.reduce((sum, item) => sum + item.jamNormal, 0);
+    const hariDenganLembur = data.filter(item => item.jamLembur > 0).length;
+    
+    if (financialSummary) {
+        financialSummary.innerHTML = `
+            <div>Total Entri Data: <strong>${data.length} hari</strong></div>
+            <div>Hari dengan Lembur: <strong>${hariDenganLembur} hari</strong></div>
+            <div>Total Jam Kerja: <strong>${formatHoursToHMS(totalJam)}</strong></div>
+            <div>Total Jam Normal: <strong>${formatHoursToHMS(totalNormal)}</strong></div>
+            <div style="color: #e74c3c; font-weight: bold;">
+                Total Jam Lembur: <strong>${formatHoursToHMS(totalLembur)}</strong>
+            </div>
+            <div style="border-top: 2px solid #3498db; padding-top: 0.5rem; margin-top: 0.5rem;">
+                Rata-rata Lembur per Hari: <strong>${formatHoursToHMS(totalLembur / data.length)}</strong>
+            </div>
+        `;
+    }
+}
     
     if (employeeSummary) employeeSummary.innerHTML = employeeHtml;
     
