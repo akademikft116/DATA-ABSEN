@@ -269,13 +269,74 @@ function pairInOutTimes(data) {
     return result;
 }
 
-// Calculate overtime per day (hanya jam lembur)
+// Calculate overtime per day dengan aturan baru
 function calculateOvertimePerDay(data, workHours = 8) {
     const result = data.map(record => {
         const hoursWorked = record.durasi || calculateHours(record.jamMasuk, record.jamKeluar);
         
-        const jamNormal = Math.min(hoursWorked, workHours);
-        const jamLembur = Math.max(hoursWorked - workHours, 0);
+        // Parse jam masuk dan keluar
+        const parseTime = (timeStr) => {
+            if (!timeStr) return null;
+            if (typeof timeStr === 'string') {
+                if (timeStr.includes(':')) {
+                    const [hours, minutes] = timeStr.split(':').map(Number);
+                    return { hours, minutes: minutes || 0 };
+                }
+            }
+            return null;
+        };
+        
+        const inTime = parseTime(record.jamMasuk);
+        const outTime = parseTime(record.jamKeluar);
+        
+        let jamNormal = 0;
+        let jamLembur = 0;
+        
+        if (inTime && outTime) {
+            // Hitung total menit bekerja
+            const totalMenit = calculateHours(record.jamMasuk, record.jamKeluar) * 60;
+            
+            // Aturan: Lembur hanya dihitung dari jam 7 pagi
+            const jamMulaiHitung = 7; // 07:00
+            const jamSelesaiNormal = 16; // 16:00
+            
+            // Konversi waktu ke menit sejak tengah malam
+            const menitMasuk = inTime.hours * 60 + inTime.minutes;
+            const menitKeluar = outTime.hours * 60 + outTime.minutes;
+            const menitMulaiHitung = jamMulaiHitung * 60; // 07:00 = 420 menit
+            const menitSelesaiNormal = jamSelesaiNormal * 60; // 16:00 = 960 menit
+            
+            // Jika masuk sebelum jam 7, hitung dari jam 7
+            const mulaiHitung = Math.max(menitMasuk, menitMulaiHitung);
+            
+            // Jika keluar setelah jam 4 (16:00), hitung lembur
+            let selesaiNormal = menitKeluar;
+            if (menitKeluar > menitSelesaiNormal) {
+                selesaiNormal = menitSelesaiNormal;
+            }
+            
+            // Hitung jam normal (dari mulai hitung sampai selesai normal, maksimal 8 jam)
+            const menitNormal = Math.max(0, selesaiNormal - mulaiHitung);
+            jamNormal = Math.min(menitNormal / 60, workHours);
+            
+            // Hitung jam lembur (jika keluar setelah jam 16:00)
+            if (menitKeluar > menitSelesaiNormal) {
+                const menitLembur = menitKeluar - menitSelesaiNormal;
+                jamLembur = menitLembur / 60;
+            }
+            
+            // Jika total jam normal + lembur kurang dari durasi asli, 
+            // selisihnya karena masuk sebelum jam 7 tidak dihitung
+            const totalDihitung = jamNormal + jamLembur;
+            if (totalDihitung < hoursWorked) {
+                // Selisihnya adalah waktu sebelum jam 7 yang tidak dihitung
+                // Tidak perlu diassign ke manapun
+            }
+        } else {
+            // Fallback jika parsing gagal
+            jamNormal = Math.min(hoursWorked, workHours);
+            jamLembur = Math.max(hoursWorked - workHours, 0);
+        }
         
         return {
             nama: record.nama,
