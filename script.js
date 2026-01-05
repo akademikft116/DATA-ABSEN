@@ -269,22 +269,21 @@ function pairInOutTimes(data) {
     return result;
 }
 
-// Calculate overtime per day dengan aturan baru
 // Calculate overtime per day - LEMBUR jika total jam > 8 jam
 function calculateOvertimePerDay(data, workHours = 8) {
     const result = data.map(record => {
         const hoursWorked = record.durasi || calculateHours(record.jamMasuk, record.jamKeluar);
         
-        let jamNormal = Math.min(hoursWorked, workHours);
-        let jamLembur = Math.max(hoursWorked - workHours, 0);
+        // Jam normal maksimal workHours (8 jam)
+        const jamNormal = Math.min(hoursWorked, workHours);
         
-        // Format untuk display lembur
+        // Jam lembur jika total jam > workHours
+        const jamLemburDesimal = Math.max(hoursWorked - workHours, 0);
+        
+        // Format jam lembur untuk display
         let jamLemburDisplay = "0 jam";
-        let jamLemburDesimal = jamLembur; // Sudah dalam format desimal
-        
-        if (jamLembur > 0) {
-            // Konversi jamLembur (desimal) ke jam dan menit untuk display
-            const totalMenitLembur = Math.round(jamLembur * 60);
+        if (jamLemburDesimal > 0) {
+            const totalMenitLembur = Math.round(jamLemburDesimal * 60);
             const jamLemburJam = Math.floor(totalMenitLembur / 60);
             const jamLemburMenit = totalMenitLembur % 60;
             
@@ -312,17 +311,32 @@ function calculateOvertimePerDay(data, workHours = 8) {
             }
         };
         
+        // Format durasi untuk display
+        const formatDurasi = (jam) => {
+            if (!jam || jam <= 0) return "0 jam";
+            
+            const totalMenit = Math.round(jam * 60);
+            const durasiJam = Math.floor(totalMenit / 60);
+            const durasiMenit = totalMenit % 60;
+            
+            if (durasiMenit === 0) {
+                return `${durasiJam} jam`;
+            } else {
+                return `${durasiJam} jam ${durasiMenit} menit`;
+            }
+        };
+        
         return {
             nama: record.nama,
             tanggal: record.tanggal,
             jamMasuk: record.jamMasuk,
             jamKeluar: record.jamKeluar,
             durasi: hoursWorked,
-            durasiFormatted: formatHoursToHMS(hoursWorked),
+            durasiFormatted: formatDurasi(hoursWorked),
             jamNormal: jamNormal,
             jamNormalFormatted: formatJamNormal(jamNormal),
-            jamLembur: jamLemburDisplay, // String untuk display
-            jamLemburDesimal: jamLemburDesimal, // Desimal untuk perhitungan (misal: 0.5 untuk 30 menit)
+            jamLembur: jamLemburDisplay, // String untuk display di tabel
+            jamLemburDesimal: jamLemburDesimal, // Desimal untuk perhitungan
             keterangan: jamLemburDesimal > 0 ? `Lembur ${jamLemburDisplay}` : 'Tidak lembur'
         };
     });
@@ -338,7 +352,6 @@ function calculateOvertimePerDay(data, workHours = 8) {
     
     return result;
 }
-
 // Generate Excel report
 function generateReport(data, filename, sheetName = 'Data Lembur Harian') {
     try {
@@ -636,7 +649,7 @@ function displayProcessedTable(data) {
             <td>${formatDate(item.tanggal)}</td>
             <td>${item.durasiFormatted}</td>
             <td>${item.jamNormalFormatted}</td>
-            <td><strong style="color: ${item.jamLembur > 0 ? '#e74c3c' : '#27ae60'};">${item.jamLemburFormatted}</strong></td>
+            <td><strong style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'};">${item.jamLembur}</strong></td>
         `;
         tbody.appendChild(row);
     });
