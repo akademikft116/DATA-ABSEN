@@ -615,7 +615,7 @@ function createOvertimeTablePerPerson(data) {
     return tables;
 }
 
-// Update fungsi generateOvertimeExcelLikeImage untuk format yang lebih baik
+// Update fungsi generateOvertimeExcelLikeImage dengan styling center
 function generateOvertimeExcelLikeImage(data) {
     try {
         const tables = createOvertimeTablePerPerson(data);
@@ -648,17 +648,151 @@ function generateOvertimeExcelLikeImage(data) {
             ];
             worksheet['!cols'] = colWidths;
             
-            // Tambahkan styling (merge cells) untuk header
+            // Dapatkan range worksheet
             const range = XLSX.utils.decode_range(worksheet['!ref']);
             
-            // Merge cells untuk header LEMBUR KARYAWAN
-            worksheet['!merges'] = [
-                XLSX.utils.decode_range("A1:H1"), // LEMBUR KARYAWAN
-                XLSX.utils.decode_range("A2:H2")  // BULAN NOVEMBER 2025
-            ];
+            // Inisialisasi array untuk merges
+            const merges = [];
+            
+            // Merge cells untuk header LEMBUR KARYAWAN (baris 1, kolom A-H)
+            merges.push({
+                s: { r: 0, c: 0 }, // Start row 0, col 0 (A1)
+                e: { r: 0, c: 7 }  // End row 0, col 7 (H1)
+            });
+            
+            // Merge cells untuk BULAN NOVEMBER 2025 (baris 2, kolom A-H)
+            merges.push({
+                s: { r: 1, c: 0 }, // Start row 1, col 0 (A2)
+                e: { r: 1, c: 7 }  // End row 1, col 7 (H2)
+            });
+            
+            // Set merges
+            worksheet['!merges'] = merges;
+            
+            // Tambahkan styling untuk semua sel
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cell_address = {c: C, r: R};
+                    const cell_ref = XLSX.utils.encode_cell(cell_address);
+                    
+                    if (!worksheet[cell_ref]) continue;
+                    
+                    // Inisialisasi properti sel jika belum ada
+                    if (!worksheet[cell_ref].s) {
+                        worksheet[cell_ref].s = {};
+                    }
+                    
+                    // Set alignment center untuk semua sel
+                    worksheet[cell_ref].s.alignment = {
+                        horizontal: 'center',
+                        vertical: 'center'
+                    };
+                    
+                    // Styling khusus untuk header
+                    if (R === 0 || R === 1) {
+                        // Header LEMBUR KARYAWAN dan BULAN NOVEMBER
+                        worksheet[cell_ref].s.font = {
+                            bold: true,
+                            sz: 14,
+                            color: { rgb: "000000" }
+                        };
+                        worksheet[cell_ref].s.fill = {
+                            fgColor: { rgb: "C6E0B4" } // Hijau muda
+                        };
+                    } else if (R === 3) {
+                        // RATE BAYARAN LEMBUR
+                        worksheet[cell_ref].s.font = {
+                            bold: true,
+                            sz: 12,
+                            color: { rgb: "000000" }
+                        };
+                    } else if (R === 4 || R === 5 || R === 6) {
+                        // Rate TU, STAFF, K3
+                        worksheet[cell_ref].s.font = {
+                            sz: 11
+                        };
+                        if (C === 1) { // Kolom rate
+                            worksheet[cell_ref].s.font = {
+                                bold: true,
+                                sz: 11,
+                                color: { rgb: "FF0000" } // Merah untuk angka
+                            };
+                        }
+                    } else if (R === 8) {
+                        // Header tabel (Name, Hari, Tanggal, etc.)
+                        worksheet[cell_ref].s.font = {
+                            bold: true,
+                            sz: 11,
+                            color: { rgb: "FFFFFF" }
+                        };
+                        worksheet[cell_ref].s.fill = {
+                            fgColor: { rgb: "4472C4" } // Biru tua
+                        };
+                        worksheet[cell_ref].s.border = {
+                            top: { style: "thin", color: { rgb: "000000" } },
+                            bottom: { style: "thin", color: { rgb: "000000" } },
+                            left: { style: "thin", color: { rgb: "000000" } },
+                            right: { style: "thin", color: { rgb: "000000" } }
+                        };
+                    } else if (R >= 9 && R < range.e.r - 3) {
+                        // Data isian
+                        worksheet[cell_ref].s.font = {
+                            sz: 11
+                        };
+                        worksheet[cell_ref].s.border = {
+                            top: { style: "thin", color: { rgb: "D9D9D9" } },
+                            bottom: { style: "thin", color: { rgb: "D9D9D9" } },
+                            left: { style: "thin", color: { rgb: "D9D9D9" } },
+                            right: { style: "thin", color: { rgb: "D9D9D9" } }
+                        };
+                        
+                        // Warna latar bergantian untuk readability
+                        if (R % 2 === 0) {
+                            worksheet[cell_ref].s.fill = {
+                                fgColor: { rgb: "F2F2F2" } // Abu-abu sangat muda
+                            };
+                        }
+                        
+                        // Kolom TOTAL (jam lembur) - bold
+                        if (C === 6) {
+                            worksheet[cell_ref].s.font = {
+                                bold: true,
+                                sz: 11,
+                                color: { rgb: "FF0000" } // Merah untuk angka
+                            };
+                        }
+                    } else if (R >= range.e.r - 3) {
+                        // Baris total dan gaji
+                        worksheet[cell_ref].s.font = {
+                            bold: true,
+                            sz: 11
+                        };
+                        
+                        // Baris total jam lembur (baris ke-2 dari bawah)
+                        if (R === range.e.r - 2 && C === 5) {
+                            worksheet[cell_ref].s.font = {
+                                bold: true,
+                                sz: 11,
+                                color: { rgb: "0000FF" } // Biru
+                            };
+                        }
+                        
+                        // Baris gaji lembur (2 baris terakhir)
+                        if ((R === range.e.r - 1 || R === range.e.r) && C === 5) {
+                            worksheet[cell_ref].s.font = {
+                                bold: true,
+                                sz: 12,
+                                color: { rgb: "008000" } // Hijau
+                            };
+                            worksheet[cell_ref].s.fill = {
+                                fgColor: { rgb: "E2EFDA" } // Hijau muda
+                            };
+                        }
+                    }
+                }
+            }
             
             // Tambahkan worksheet ke workbook
-            // Gunakan nama worksheet yang aman
             const sheetName = table.employee.substring(0, 30).replace(/[\\/*\[\]:?]/g, '');
             
             // Cek jika nama worksheet sudah ada
@@ -672,17 +806,22 @@ function generateOvertimeExcelLikeImage(data) {
             XLSX.utils.book_append_sheet(workbook, worksheet, finalSheetName);
         });
         
-        // Buat worksheet summary
+        // Buat worksheet summary dengan styling center
         const summaryData = generateSummaryWorksheet(tables);
         const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
         
-        // Merge cells untuk header summary
-        summaryWs['!merges'] = [
-            XLSX.utils.decode_range("A1:F1"), // REKAPITULASI LEMBUR KARYAWAN
-            XLSX.utils.decode_range("A2:F2"), // BULAN NOVEMBER 2025
-            XLSX.utils.decode_range("A3:F3")  // FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA
-        ];
+        // Dapatkan range summary
+        const summaryRange = XLSX.utils.decode_range(summaryWs['!ref']);
         
+        // Merge cells untuk header summary
+        const summaryMerges = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }, // REKAPITULASI LEMBUR KARYAWAN
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }, // BULAN NOVEMBER 2025
+            { s: { r: 2, c: 0 }, e: { r: 2, c: 5 } }  // FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA
+        ];
+        summaryWs['!merges'] = summaryMerges;
+        
+        // Set column widths summary
         summaryWs['!cols'] = [
             { wch: 5 },  // No
             { wch: 25 }, // Nama Karyawan
@@ -691,6 +830,105 @@ function generateOvertimeExcelLikeImage(data) {
             { wch: 20 }, // Total Gaji Lembur
             { wch: 15 }  // Rate
         ];
+        
+        // Tambahkan styling untuk summary
+        for (let R = summaryRange.s.r; R <= summaryRange.e.r; ++R) {
+            for (let C = summaryRange.s.c; C <= summaryRange.e.c; ++C) {
+                const cell_address = {c: C, r: R};
+                const cell_ref = XLSX.utils.encode_cell(cell_address);
+                
+                if (!summaryWs[cell_ref]) continue;
+                
+                // Inisialisasi properti sel jika belum ada
+                if (!summaryWs[cell_ref].s) {
+                    summaryWs[cell_ref].s = {};
+                }
+                
+                // Set alignment center untuk semua sel
+                summaryWs[cell_ref].s.alignment = {
+                    horizontal: 'center',
+                    vertical: 'center'
+                };
+                
+                // Styling header
+                if (R <= 2) {
+                    // Header utama
+                    summaryWs[cell_ref].s.font = {
+                        bold: true,
+                        sz: R === 0 ? 16 : 14,
+                        color: { rgb: "000000" }
+                    };
+                    summaryWs[cell_ref].s.fill = {
+                        fgColor: { rgb: R === 0 ? "4472C4" : "8EA9DB" } // Biru gradasi
+                    };
+                    if (R === 0) {
+                        summaryWs[cell_ref].s.font.color = { rgb: "FFFFFF" }; // Putih untuk header utama
+                    }
+                } else if (R === 4) {
+                    // Header tabel
+                    summaryWs[cell_ref].s.font = {
+                        bold: true,
+                        sz: 12,
+                        color: { rgb: "FFFFFF" }
+                    };
+                    summaryWs[cell_ref].s.fill = {
+                        fgColor: { rgb: "5B9BD5" } // Biru medium
+                    };
+                    summaryWs[cell_ref].s.border = {
+                        top: { style: "medium", color: { rgb: "000000" } },
+                        bottom: { style: "medium", color: { rgb: "000000" } },
+                        left: { style: "thin", color: { rgb: "000000" } },
+                        right: { style: "thin", color: { rgb: "000000" } }
+                    };
+                } else if (R > 4 && R < summaryRange.e.r - 8) {
+                    // Data karyawan
+                    summaryWs[cell_ref].s.font = {
+                        sz: 11
+                    };
+                    summaryWs[cell_ref].s.border = {
+                        top: { style: "thin", color: { rgb: "D9D9D9" } },
+                        bottom: { style: "thin", color: { rgb: "D9D9D9" } },
+                        left: { style: "thin", color: { rgb: "D9D9D9" } },
+                        right: { style: "thin", color: { rgb: "D9D9D9" } }
+                    };
+                    
+                    // Warna latar bergantian
+                    if (R % 2 === 1) {
+                        summaryWs[cell_ref].s.fill = {
+                            fgColor: { rgb: "F2F2F2" }
+                        };
+                    }
+                    
+                    // Kolom gaji - warna hijau
+                    if (C === 4) {
+                        summaryWs[cell_ref].s.font = {
+                            bold: true,
+                            sz: 11,
+                            color: { rgb: "008000" }
+                        };
+                    }
+                } else if (R === summaryRange.e.r - 7) {
+                    // Baris TOTAL KESELURUHAN
+                    summaryWs[cell_ref].s.font = {
+                        bold: true,
+                        sz: 12,
+                        color: { rgb: "000000" }
+                    };
+                    summaryWs[cell_ref].s.fill = {
+                        fgColor: { rgb: "FFD966" } // Kuning
+                    };
+                    summaryWs[cell_ref].s.border = {
+                        top: { style: "medium", color: { rgb: "000000" } },
+                        bottom: { style: "medium", color: { rgb: "000000" } }
+                    };
+                    
+                    // Kolom gaji total - warna merah
+                    if (C === 4) {
+                        summaryWs[cell_ref].s.font.color = { rgb: "FF0000" };
+                    }
+                }
+            }
+        }
         
         XLSX.utils.book_append_sheet(workbook, summaryWs, 'SUMMARY');
         
@@ -707,6 +945,176 @@ function generateOvertimeExcelLikeImage(data) {
         console.error('Error generating Excel:', error);
         throw error;
     }
+}
+
+// Update fungsi previewOvertimeTable untuk styling center di UI
+function previewOvertimeTable(data) {
+    const summaryTab = document.getElementById('summary-tab');
+    
+    if (!summaryTab) return;
+    
+    const dataWithOvertime = data.filter(item => item.jamLemburDesimal > 0);
+    
+    if (dataWithOvertime.length === 0) return;
+    
+    const tables = createOvertimeTablePerPerson(dataWithOvertime);
+    
+    let previewHtml = `
+        <div class="overtime-preview-section" style="margin-top: 2rem;">
+            <h4><i class="fas fa-file-excel"></i> Preview Format Tabel Excel</h4>
+            <p style="color: var(--gray-color); margin-bottom: 1rem;">
+                Format tabel yang akan diunduh dalam file Excel (semua teks akan di-center):
+            </p>
+    `;
+    
+    // Tampilkan preview untuk 2 karyawan pertama saja
+    const previewTables = tables.slice(0, 2);
+    
+    previewTables.forEach((table, tableIndex) => {
+        previewHtml += `
+            <div class="table-preview-card" style="background: white; border-radius: var(--border-radius-sm); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-light);">
+                <h5 style="color: var(--primary-color); margin-bottom: 1rem; border-bottom: 2px solid var(--secondary-color); padding-bottom: 0.5rem; text-align: center;">
+                    ${table.employee} (${table.category})
+                </h5>
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+        `;
+        
+        // Tampilkan preview 10 baris pertama
+        const previewRows = table.data.slice(0, 15);
+        previewRows.forEach((row, rowIndex) => {
+            previewHtml += '<tr>';
+            row.forEach((cell, cellIndex) => {
+                const cellContent = cell || '';
+                
+                // Styling berdasarkan baris
+                if (rowIndex === 0 || rowIndex === 1) {
+                    // Header LEMBUR KARYAWAN dan BULAN
+                    previewHtml += `
+                        <th colspan="8" style="padding: 0.75rem; background: #C6E0B4; color: #000; border: 1px solid #ddd; font-weight: bold; text-align: center; font-size: 1rem;">
+                            ${cellContent}
+                        </th>
+                    `;
+                } else if (rowIndex === 3) {
+                    // RATE BAYARAN LEMBUR
+                    previewHtml += `
+                        <th colspan="8" style="padding: 0.5rem; background: #f8f9fa; color: #000; border: 1px solid #ddd; font-weight: bold; text-align: center;">
+                            ${cellContent}
+                        </th>
+                    `;
+                } else if (rowIndex >= 4 && rowIndex <= 6) {
+                    // Rate TU, STAFF, K3
+                    if (cellIndex === 0) {
+                        previewHtml += `
+                            <td style="padding: 0.4rem; background: #f8f9fa; border: 1px solid #ddd; text-align: center; font-weight: bold;">
+                                ${cellContent}
+                            </td>
+                        `;
+                    } else if (cellIndex === 1) {
+                        previewHtml += `
+                            <td style="padding: 0.4rem; background: #f8f9fa; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #e74c3c;">
+                                ${cellContent}
+                            </td>
+                        `;
+                    } else {
+                        previewHtml += `
+                            <td style="padding: 0.4rem; background: #f8f9fa; border: 1px solid #ddd; text-align: center;">
+                                ${cellContent}
+                            </td>
+                        `;
+                    }
+                } else if (rowIndex === 8) {
+                    // Header tabel
+                    previewHtml += `
+                        <th style="padding: 0.5rem; background: #4472C4; color: white; border: 1px solid #ddd; font-weight: bold; text-align: center;">
+                            ${cellContent}
+                        </th>
+                    `;
+                } else if (rowIndex > 8 && rowIndex < previewRows.length - 4) {
+                    // Data isian
+                    const bgColor = rowIndex % 2 === 0 ? '#f8f9fa' : 'white';
+                    const textAlign = cellIndex === 6 ? 'center' : 'center'; // Semua center
+                    const fontWeight = cellIndex === 6 ? 'bold' : 'normal';
+                    const textColor = cellIndex === 6 ? '#e74c3c' : '#000';
+                    
+                    previewHtml += `
+                        <td style="padding: 0.4rem; background: ${bgColor}; border: 1px solid #ddd; text-align: ${textAlign}; font-weight: ${fontWeight}; color: ${textColor};">
+                            ${cellContent}
+                        </td>
+                    `;
+                } else if (rowIndex >= previewRows.length - 4) {
+                    // Baris total dan gaji
+                    const isGajiRow = rowIndex >= previewRows.length - 2;
+                    const bgColor = isGajiRow ? '#E2EFDA' : '#f8f9fa';
+                    const textColor = isGajiRow ? '#008000' : (cellIndex === 5 ? '#0000FF' : '#000');
+                    const fontWeight = 'bold';
+                    
+                    if (cellIndex === 5 || cellContent.includes('Rp')) {
+                        previewHtml += `
+                            <td style="padding: 0.5rem; background: ${bgColor}; border: 1px solid #ddd; text-align: center; font-weight: ${fontWeight}; color: ${textColor}; font-size: ${isGajiRow ? '1rem' : '0.9rem'};">
+                                ${cellContent}
+                            </td>
+                        `;
+                    } else {
+                        previewHtml += `
+                            <td style="padding: 0.4rem; background: ${bgColor}; border: 1px solid #ddd; text-align: center;">
+                                ${cellContent}
+                            </td>
+                        `;
+                    }
+                } else {
+                    // Baris kosong
+                    previewHtml += `
+                        <td style="padding: 0.4rem; border: 1px solid #ddd; text-align: center;">
+                            ${cellContent}
+                        </td>
+                    `;
+                }
+            });
+            previewHtml += '</tr>';
+        });
+        
+        previewHtml += `
+                    </table>
+                </div>
+                <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: var(--border-radius-sm); text-align: center;">
+                    <div><strong>Total Jam Lembur:</strong> ${table.totalLembur.toFixed(2)} jam</div>
+                    <div><strong>Total Gaji Lembur:</strong> Rp ${table.totalGaji.toLocaleString('id-ID')}</div>
+                    <div><strong>Rate:</strong> Rp ${table.rate.toLocaleString('id-ID')}/jam</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    if (tables.length > 2) {
+        previewHtml += `
+            <div style="text-align: center; padding: 1rem; color: var(--gray-color);">
+                <i class="fas fa-info-circle"></i> Dan ${tables.length - 2} karyawan lainnya...
+            </div>
+        `;
+    }
+    
+    previewHtml += `
+            <div style="margin-top: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: var(--border-radius-sm); text-align: center;">
+                <h5><i class="fas fa-download"></i> File Excel akan berisi:</h5>
+                <ul style="list-style-type: none; padding-left: 0; text-align: left; display: inline-block;">
+                    <li><i class="fas fa-check"></i> Worksheet terpisah untuk setiap karyawan</li>
+                    <li><i class="fas fa-check"></i> Worksheet "SUMMARY" untuk rekap total</li>
+                    <li><i class="fas fa-check"></i> Semua teks di-center (horizontal dan vertikal)</li>
+                    <li><i class="fas fa-check"></i> Warna dan styling seperti contoh gambar</li>
+                    <li><i class="fas fa-check"></i> Perhitungan gaji otomatis berdasarkan kategori</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    // Tambahkan ke summary tab
+    const existingPreview = summaryTab.querySelector('.overtime-preview-section');
+    if (existingPreview) {
+        existingPreview.remove();
+    }
+    
+    summaryTab.insertAdjacentHTML('beforeend', previewHtml);
 }
 
 // Update fungsi downloadOvertimeSalaryReport untuk testing
