@@ -83,6 +83,468 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
+// ============================
+// FUNGSI UNTUK TABEL LEMBUR PER ORANG (LIKE EXCEL)
+// ============================
+
+// Fungsi untuk format tabel per orang
+function createOvertimeTablePerPerson(data) {
+    if (!data || data.length === 0) return [];
+    
+    // Kelompokkan data per orang
+    const employeeGroups = {};
+    data.forEach(record => {
+        const employeeName = record.nama;
+        if (!employeeGroups[employeeName]) {
+            employeeGroups[employeeName] = [];
+        }
+        employeeGroups[employeeName].push(record);
+    });
+    
+    const tables = [];
+    
+    Object.keys(employeeGroups).forEach(employeeName => {
+        const records = employeeGroups[employeeName];
+        const category = employeeCategories[employeeName] || 'STAFF';
+        const rate = overtimeRates[category];
+        
+        // Urutkan berdasarkan tanggal
+        records.sort((a, b) => {
+            const dateA = a.tanggal.split('/').reverse().join('-');
+            const dateB = b.tanggal.split('/').reverse().join('-');
+            return new Date(dateA) - new Date(dateB);
+        });
+        
+        // Hitung total per orang
+        const totalLembur = records.reduce((sum, item) => sum + (item.jamLemburDesimal || 0), 0);
+        const totalGaji = totalLembur * rate;
+        
+        // Buat data untuk tabel per orang
+        const tableData = [];
+        
+        // Header untuk setiap orang
+        tableData.push({
+            '': `LEMBUR KARYAWAN - ${employeeName.toUpperCase()}`,
+            'A': 'BULAN NOVEMBER 2025',
+            'B': '',
+            'C': '',
+            'D': '',
+            'E': '',
+            'F': '',
+            'G': '',
+            'H': ''
+        });
+        
+        tableData.push({
+            '': 'RATE BAYARAN LEMBUR',
+            'A': '',
+            'B': '',
+            'C': '',
+            'D': '',
+            'E': '',
+            'F': '',
+            'G': '',
+            'H': ''
+        });
+        
+        tableData.push({
+            '': 'KABAG/K.TU',
+            'A': 'Rp 12.500',
+            'B': '',
+            'C': '',
+            'D': '',
+            'E': '',
+            'F': '',
+            'G': '',
+            'H': ''
+        });
+        
+        tableData.push({
+            '': 'STAF',
+            'A': 'Rp 10.000',
+            'B': '',
+            'C': '',
+            'D': '',
+            'E': '',
+            'F': '',
+            'G': '',
+            'H': ''
+        });
+        
+        tableData.push({
+            '': 'K3',
+            'A': 'Rp 8.000',
+            'B': '',
+            'C': '',
+            'D': '',
+            'E': '',
+            'F': '',
+            'G': '',
+            'H': ''
+        });
+        
+        tableData.push({}); // Baris kosong
+        
+        // Header tabel
+        tableData.push({
+            '': 'Name',
+            'A': 'Hari',
+            'B': 'Tanggal',
+            'C': 'IN',
+            'D': 'OUT',
+            'E': 'JAM KERJA',
+            'F': 'TOTAL',
+            'G': 'TANDA TANGAN'
+        });
+        
+        // Data per hari
+        let cumulativeTotal = 0;
+        records.forEach((record, index) => {
+            if (record.jamLemburDesimal > 0) {
+                const hari = getDayName(record.tanggal);
+                const jamMasuk = record.jamMasuk || '-';
+                const jamKeluar = record.jamKeluar || '-';
+                const totalJam = record.durasi ? record.durasi.toFixed(2) : '0';
+                const lemburJam = record.jamLemburDesimal.toFixed(2);
+                
+                cumulativeTotal += parseFloat(lemburJam);
+                
+                tableData.push({
+                    '': employeeName,
+                    'A': hari,
+                    'B': formatExcelDate(record.tanggal),
+                    'C': jamMasuk,
+                    'D': jamKeluar,
+                    'E': '8', // Jam kerja normal
+                    'F': lemburJam,
+                    'G': ''
+                });
+            }
+        });
+        
+        // Baris total per orang
+        tableData.push({
+            '': '',
+            'A': '',
+            'B': '',
+            'C': '',
+            'D': '',
+            'E': '',
+            'F': cumulativeTotal.toFixed(2),
+            'G': ''
+        });
+        
+        tableData.push({
+            '': '',
+            'A': '',
+            'B': '',
+            'C': '',
+            'D': '',
+            'E': Math.round(cumulativeTotal), // Jam lembur dibulatkan
+            'F': '',
+            'G': ''
+        });
+        
+        tableData.push({
+            '': '',
+            'A': '',
+            'B': '',
+            'C': '',
+            'D': '',
+            'E': `Rp ${(Math.round(cumulativeTotal) * rate).toLocaleString('id-ID')}`,
+            'F': '',
+            'G': ''
+        });
+        
+        tableData.push({
+            '': '',
+            'A': '',
+            'B': '',
+            'C': '',
+            'D': '',
+            'E': `Rp ${(Math.round(cumulativeTotal) * rate).toLocaleString('id-ID')}`,
+            'F': '',
+            'G': ''
+        });
+        
+        tables.push({
+            employee: employeeName,
+            category: category,
+            rate: rate,
+            data: tableData,
+            totalLembur: cumulativeTotal,
+            totalGaji: Math.round(cumulativeTotal) * rate
+        });
+    });
+    
+    return tables;
+}
+
+// Helper functions
+function getDayName(dateString) {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    try {
+        const [day, month, year] = dateString.split('/');
+        const date = new Date(year, month - 1, day);
+        return days[date.getDay()];
+    } catch (error) {
+        return '';
+    }
+}
+
+function formatExcelDate(dateString) {
+    try {
+        const [day, month, year] = dateString.split('/');
+        const shortYear = year.slice(-2);
+        return `${day.padStart(2, '0')}-${month.padStart(2, '0')}-${shortYear}`;
+    } catch (error) {
+        return dateString;
+    }
+}
+
+// Fungsi untuk generate Excel dengan format seperti gambar
+function generateOvertimeExcelLikeImage(data) {
+    try {
+        const tables = createOvertimeTablePerPerson(data);
+        
+        if (tables.length === 0) {
+            throw new Error('Tidak ada data lembur untuk diekspor');
+        }
+        
+        // Buat workbook baru
+        const workbook = XLSX.utils.book_new();
+        
+        // Buat worksheet untuk setiap karyawan
+        tables.forEach((table, index) => {
+            // Konversi data ke format worksheet
+            const wsData = table.data.map(row => {
+                return [
+                    row[''] || '',
+                    row['A'] || '',
+                    row['B'] || '',
+                    row['C'] || '',
+                    row['D'] || '',
+                    row['E'] || '',
+                    row['F'] || '',
+                    row['G'] || ''
+                ];
+            });
+            
+            // Buat worksheet
+            const worksheet = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // Set column widths
+            const colWidths = [
+                { wch: 15 }, // Kolom 0: Name
+                { wch: 10 }, // Kolom 1: Hari
+                { wch: 12 }, // Kolom 2: Tanggal
+                { wch: 8 },  // Kolom 3: IN
+                { wch: 8 },  // Kolom 4: OUT
+                { wch: 10 }, // Kolom 5: JAM KERJA
+                { wch: 10 }, // Kolom 6: TOTAL
+                { wch: 15 }  // Kolom 7: TANDA TANGAN
+            ];
+            worksheet['!cols'] = colWidths;
+            
+            // Tambahkan worksheet ke workbook
+            // Gunakan nama worksheet yang aman (maks 31 karakter, tanpa karakter khusus)
+            const sheetName = table.employee.substring(0, 30).replace(/[\\/*\[\]:?]/g, '');
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+        });
+        
+        // Buat worksheet summary
+        const summaryData = generateSummaryWorksheet(tables);
+        const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+        summaryWs['!cols'] = [
+            { wch: 25 }, // Nama
+            { wch: 10 }, // Kategori
+            { wch: 15 }, // Total Jam Lembur
+            { wch: 20 }, // Total Gaji Lembur
+            { wch: 15 }  // Rate
+        ];
+        XLSX.utils.book_append_sheet(workbook, summaryWs, 'SUMMARY');
+        
+        // Simpan file
+        const filename = `lembur_per_orang_${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(workbook, filename);
+        
+        return true;
+        
+    } catch (error) {
+        console.error('Error generating Excel:', error);
+        throw error;
+    }
+}
+
+// Fungsi untuk membuat worksheet summary
+function generateSummaryWorksheet(tables) {
+    const summaryData = [];
+    
+    // Header
+    summaryData.push(['REKAPITULASI LEMBUR KARYAWAN']);
+    summaryData.push(['BULAN NOVEMBER 2025']);
+    summaryData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
+    summaryData.push([]);
+    summaryData.push(['No', 'Nama Karyawan', 'Kategori', 'Total Jam Lembur', 'Total Gaji Lembur', 'Rate']);
+    
+    // Data per karyawan
+    let totalJamAll = 0;
+    let totalGajiAll = 0;
+    
+    tables.forEach((table, index) => {
+        summaryData.push([
+            index + 1,
+            table.employee,
+            table.category,
+            table.totalLembur.toFixed(2),
+            `Rp ${table.totalGaji.toLocaleString('id-ID')}`,
+            `Rp ${table.rate.toLocaleString('id-ID')}/jam`
+        ]);
+        
+        totalJamAll += table.totalLembur;
+        totalGajiAll += table.totalGaji;
+    });
+    
+    summaryData.push([]);
+    summaryData.push(['TOTAL KESELURUHAN', '', '', totalJamAll.toFixed(2), `Rp ${totalGajiAll.toLocaleString('id-ID')}`, '']);
+    
+    summaryData.push([]);
+    summaryData.push([]);
+    summaryData.push(['Mengetahui/Menyetujui']);
+    summaryData.push([]);
+    summaryData.push(['Dekan', '', '', 'Bandung, November 2025', '', 'Wakil Dekan II']);
+    summaryData.push([]);
+    summaryData.push([]);
+    summaryData.push(['Dr. Sally Octaviana Sari, ST., MT', '', '', '', '', 'Aisyah Nuraeni, ST., MT']);
+    
+    return summaryData;
+}
+
+// Update fungsi downloadOvertimeSalaryReport
+function downloadOvertimeSalaryReport(data) {
+    if (data.length === 0) {
+        showNotification('Tidak ada data lembur untuk diunduh.', 'warning');
+        return;
+    }
+    
+    try {
+        // Tampilkan opsi download
+        showDownloadOptions(data);
+    } catch (error) {
+        console.error('Error generating salary report:', error);
+        showNotification('Gagal mengunduh laporan gaji lembur.', 'error');
+    }
+}
+
+// Fungsi untuk menampilkan opsi download
+function showDownloadOptions(data) {
+    // Buat modal untuk pilihan format
+    const modalHtml = `
+        <div class="modal" id="download-options-modal">
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-download"></i> Pilih Format Download</h3>
+                    <button class="modal-close" id="close-download-options">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="download-options-modal">
+                        <div class="option-card" id="option-excel-format">
+                            <div class="option-icon">
+                                <i class="fas fa-file-excel" style="color: #217346; font-size: 2.5rem;"></i>
+                            </div>
+                            <div class="option-content">
+                                <h4>Format Tabel per Orang</h4>
+                                <p>File Excel dengan tabel lembur per orang (seperti contoh gambar)</p>
+                                <ul style="text-align: left; margin-top: 0.5rem;">
+                                    <li>Tabel terpisah per karyawan</li>
+                                    <li>Format seperti lembar kerja Excel</li>
+                                    <li>Include rate bayaran lembur</li>
+                                    <li>Worksheet summary</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="option-card" id="option-simple-format">
+                            <div class="option-icon">
+                                <i class="fas fa-table" style="color: #4A90E2; font-size: 2.5rem;"></i>
+                            </div>
+                            <div class="option-content">
+                                <h4>Format Sederhana</h4>
+                                <p>File Excel dengan data rekap gaji lembur</p>
+                                <ul style="text-align: left; margin-top: 0.5rem;">
+                                    <li>Satu worksheet rekap</li>
+                                    <li>Data per karyawan dalam tabel</li>
+                                    <li>Perhitungan gaji otomatis</li>
+                                    <li>Format ringkas</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancel-download">Batal</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Tambahkan modal ke body
+    const existingModal = document.getElementById('download-options-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('download-options-modal');
+    modal.classList.add('active');
+    
+    // Event listeners
+    document.getElementById('close-download-options').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    document.getElementById('cancel-download').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    // Pilihan format Excel seperti gambar
+    document.getElementById('option-excel-format').addEventListener('click', () => {
+        modal.remove();
+        generateOvertimeExcelLikeImage(data);
+        showNotification('File Excel dengan format tabel per orang berhasil diunduh!', 'success');
+    });
+    
+    // Pilihan format sederhana
+    document.getElementById('option-simple-format').addEventListener('click', () => {
+        modal.remove();
+        generateSimpleOvertimeReport(data);
+        showNotification('File Excel rekap gaji lembur berhasil diunduh!', 'success');
+    });
+}
+
+// Fungsi untuk generate report sederhana
+function generateSimpleOvertimeReport(data) {
+    const reportData = generateOvertimeSalaryReport(data);
+    const worksheet = XLSX.utils.json_to_sheet(reportData);
+    
+    const wscols = [
+        { wch: 5 },
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 20 },
+        { wch: 25 },
+        { wch: 30 }
+    ];
+    worksheet['!cols'] = wscols;
+    
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Gaji Lembur');
+    
+    const filename = `rekap_gaji_lembur_sederhana_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(workbook, filename);
+}
+
 // Generate laporan gaji lembur
 function generateOvertimeSalaryReport(data) {
     const summary = calculateOvertimeSummary(data);
