@@ -392,58 +392,70 @@
                         </div>
                     </div>
 
-                    <!-- Download Section -->
-                    <div class="card download-card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-download"></i> Unduh Laporan</h3>
-                            <p>Download hasil pengolahan data dalam format Excel</p>
-                        </div>
-                        <div class="card-body">
-                            <div class="download-options">
-                                <div class="download-option">
-                                    <div class="option-icon">
-                                        <i class="fas fa-file-excel" style="color: #217346;"></i>
-                                    </div>
-                                    <div class="option-content">
-                                        <h4>Data Presensi Asli</h4>
-                                        <p>File Excel berisi data presensi yang diupload</p>
-                                    </div>
-                                    <button class="btn btn-download" id="download-original">
-                                        <i class="fas fa-download"></i> Unduh (.xlsx)
-                                    </button>
-                                </div>
-
-                                <div class="download-option">
-                                    <div class="option-icon">
-                                        <i class="fas fa-file-invoice-dollar" style="color: #4A90E2;"></i>
-                                    </div>
-                                    <div class="option-content">
-                                        <h4>Data Terhitung dengan Lembur</h4>
-                                        <p>File Excel dengan perhitungan lembur lengkap</p>
-                                    </div>
-                                    <button class="btn btn-download" id="download-processed">
-                                        <i class="fas fa-download"></i> Unduh (.xlsx)
-                                    </button>
-                                </div>
-
-                                <div class="download-option">
-                                    <div class="option-icon">
-                                        <i class="fas fa-file-archive" style="color: #F5A623;"></i>
-                                    </div>
-                                    <div class="option-content">
-                                        <h4>Paket Lengkap</h4>
-                                        <p>Kedua file dalam satu paket ZIP</p>
-                                    </div>
-                                    <button class="btn btn-download" id="download-both">
-                                        <i class="fas fa-file-archive"></i> Unduh (.zip)
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Download Section - Tambahkan opsi baru -->
+<div class="card download-card">
+    <div class="card-header">
+        <h3><i class="fas fa-download"></i> Unduh Laporan</h3>
+        <p>Download hasil pengolahan data dalam format Excel</p>
+    </div>
+    <div class="card-body">
+        <div class="download-options">
+            <!-- Opsi yang sudah ada -->
+            <div class="download-option">
+                <div class="option-icon">
+                    <i class="fas fa-file-excel" style="color: #217346;"></i>
                 </div>
+                <div class="option-content">
+                    <h4>Data Presensi Asli</h4>
+                    <p>File Excel berisi data presensi yang diupload</p>
+                </div>
+                <button class="btn btn-download" id="download-original">
+                    <i class="fas fa-download"></i> Unduh (.xlsx)
+                </button>
             </div>
-        </main>
+
+            <div class="download-option">
+                <div class="option-icon">
+                    <i class="fas fa-file-invoice-dollar" style="color: #4A90E2;"></i>
+                </div>
+                <div class="option-content">
+                    <h4>Data Terhitung dengan Lembur</h4>
+                    <p>File Excel dengan perhitungan lembur lengkap</p>
+                </div>
+                <button class="btn btn-download" id="download-processed">
+                    <i class="fas fa-download"></i> Unduh (.xlsx)
+                </button>
+            </div>
+
+            <div class="download-option">
+                <div class="option-icon">
+                    <i class="fas fa-file-archive" style="color: #F5A623;"></i>
+                </div>
+                <div class="option-content">
+                    <h4>Paket Lengkap</h4>
+                    <p>Kedua file dalam satu paket ZIP</p>
+                </div>
+                <button class="btn btn-download" id="download-both">
+                    <i class="fas fa-file-archive"></i> Unduh (.zip)
+                </button>
+            </div>
+
+            <!-- TAMBAHAN BARU: Tombol download gaji lembur -->
+            <div class="download-option">
+                <div class="option-icon">
+                    <i class="fas fa-money-bill-wave" style="color: #27ae60;"></i>
+                </div>
+                <div class="option-content">
+                    <h4>Rekap Gaji Lembur</h4>
+                    <p>Perhitungan gaji lembur berdasarkan kategori (TU: Rp 12.500, Staff: Rp 10.000, K3: Rp 8.000)</p>
+                </div>
+                <button class="btn btn-download" id="download-salary">
+                    <i class="fas fa-download"></i> Unduh (.xlsx)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- Footer -->
         <footer class="footer">
