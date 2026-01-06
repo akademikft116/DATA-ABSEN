@@ -569,6 +569,16 @@ function initializeApp() {
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
+    const downloadSalaryBtn = document.getElementById('download-salary');
+    if (downloadSalaryBtn) {
+        downloadSalaryBtn.addEventListener('click', () => {
+            if (processedData.length === 0) {
+                showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
+                return;
+            }
+            downloadOvertimeSalaryReport(processedData);
+        });
+    }
     
     // Tab functionality
     document.querySelectorAll('.tab-btn').forEach(btn => {
