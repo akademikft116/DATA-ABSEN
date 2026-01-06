@@ -8,6 +8,145 @@ let uploadProgressInterval = null;
 let hoursChart = null;
 let salaryChart = null;
 
+// ============================
+// FUNGSI PERHITUNGAN GAJI LEMBUR
+// ============================
+
+// Kategori karyawan dan rate lembur
+const overtimeRates = {
+    'TU': 12500,
+    'STAFF': 10000,
+    'K3': 8000
+};
+
+// Mapping nama karyawan ke kategori
+const employeeCategories = {
+    // TU
+    'Bu Ati': 'TU',
+    'Pak Irvan': 'TU',
+    // STAFF
+    'Pak Ardhi': 'STAFF',
+    'Windy': 'STAFF',
+    'Bu Elzi': 'STAFF',
+    'Intan': 'STAFF',
+    'Pak Rafly': 'STAFF',
+    'Erni': 'STAFF',
+    'Bu Dian': 'STAFF',
+    'Pebi': 'STAFF',
+    'Bu Wahyu': 'STAFF',
+    'Devi': 'STAFF',
+    'Alifah': 'STAFF',
+    // K3
+    'Pak Saji': 'K3',
+    'Pa Nanang': 'K3',
+    'Pak Nanang': 'K3'
+};
+
+// Hitung total jam lembur per karyawan
+function calculateOvertimeSummary(data) {
+    const summary = {};
+    
+    data.forEach(item => {
+        const employeeName = item.nama;
+        const overtimeHours = item.jamLemburDesimal || 0;
+        
+        if (!summary[employeeName]) {
+            summary[employeeName] = {
+                nama: employeeName,
+                totalLembur: 0,
+                kategori: employeeCategories[employeeName] || 'STAFF',
+                rate: overtimeRates[employeeCategories[employeeName]] || 10000
+            };
+        }
+        
+        summary[employeeName].totalLembur += overtimeHours;
+    });
+    
+    // Hitung total gaji
+    Object.keys(summary).forEach(employee => {
+        const record = summary[employee];
+        record.totalGaji = record.totalLembur * record.rate;
+        record.totalGajiFormatted = formatCurrency(record.totalGaji);
+        record.totalLemburFormatted = formatHoursToDisplay(record.totalLembur);
+    });
+    
+    return Object.values(summary);
+}
+
+// Format currency
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
+// Generate laporan gaji lembur
+function generateOvertimeSalaryReport(data) {
+    const summary = calculateOvertimeSummary(data);
+    
+    const reportData = summary.map((item, index) => ({
+        'No': index + 1,
+        'Nama Karyawan': item.nama,
+        'Kategori': item.kategori,
+        'Total Jam Lembur': item.totalLembur.toFixed(2),
+        'Rate Lembur (per jam)': `Rp ${item.rate.toLocaleString('id-ID')}`,
+        'Total Gaji Lembur': `Rp ${Math.round(item.totalGaji).toLocaleString('id-ID')}`,
+        'Keterangan': `Lembur ${item.totalLemburFormatted} x Rp ${item.rate.toLocaleString('id-ID')}`
+    }));
+    
+    // Tambahkan total keseluruhan
+    const totalJamLembur = summary.reduce((sum, item) => sum + item.totalLembur, 0);
+    const totalGajiLembur = summary.reduce((sum, item) => sum + item.totalGaji, 0);
+    
+    reportData.push({});
+    reportData.push({
+        'Nama Karyawan': 'TOTAL KESELURUHAN',
+        'Total Jam Lembur': totalJamLembur.toFixed(2),
+        'Total Gaji Lembur': `Rp ${Math.round(totalGajiLembur).toLocaleString('id-ID')}`
+    });
+    
+    return reportData;
+}
+
+// Download laporan gaji lembur
+function downloadOvertimeSalaryReport(data) {
+    if (data.length === 0) {
+        showNotification('Tidak ada data lembur untuk diunduh.', 'warning');
+        return;
+    }
+    
+    try {
+        const reportData = generateOvertimeSalaryReport(data);
+        const worksheet = XLSX.utils.json_to_sheet(reportData);
+        
+        const wscols = [
+            { wch: 5 },   // No
+            { wch: 25 },  // Nama Karyawan
+            { wch: 15 },  // Kategori
+            { wch: 15 },  // Total Jam Lembur
+            { wch: 20 },  // Rate Lembur
+            { wch: 25 },  // Total Gaji Lembur
+            { wch: 30 }   // Keterangan
+        ];
+        worksheet['!cols'] = wscols;
+        
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Gaji Lembur');
+        
+        const filename = `rekap_gaji_lembur_${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(workbook, filename);
+        
+        showNotification('Laporan gaji lembur berhasil diunduh!', 'success');
+        
+    } catch (error) {
+        console.error('Error generating salary report:', error);
+        showNotification('Gagal mengunduh laporan gaji lembur.', 'error');
+    }
+}
+
 // DOM Elements
 const loadingScreen = document.getElementById('loading-screen');
 const mainContainer = document.getElementById('main-container');
