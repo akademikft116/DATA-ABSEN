@@ -1209,3 +1209,58 @@ body {
 .fa-money-bill-wave {
     color: #27ae60 !important;
 }
+
+/* Dalam style.css tambahkan */
+.download-options-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.option-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--light-color);
+    border-radius: var(--border-radius-sm);
+    border-left: 5px solid var(--secondary-color);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.option-card:hover {
+    transform: translateX(10px);
+    box-shadow: var(--shadow-medium);
+}
+
+.option-card .option-content h4 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.option-card .option-content p {
+    color: var(--gray-color);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.option-card .option-content ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.option-card .option-content li {
+    color: var(--gray-color);
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+    position: relative;
+    padding-left: 1rem;
+}
+
+.option-card .option-content li:before {
+    content: "✓";
+    color: var(--success-color);
+    position: absolute;
+    left: 0;
+}
