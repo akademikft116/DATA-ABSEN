@@ -1197,3 +1197,15 @@ body {
         justify-content: center;
     }
 }
+
+/* Dalam style.css tambahkan */
+.download-option .option-content p {
+    color: var(--gray-color);
+    font-size: 0.85rem; /* Sedikit lebih kecil untuk deskripsi yang lebih panjang */
+    line-height: 1.4;
+}
+
+/* Warna khusus untuk ikon gaji lembur */
+.fa-money-bill-wave {
+    color: #27ae60 !important;
+}
