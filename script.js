@@ -7,6 +7,7 @@ let currentFile = null;
 let uploadProgressInterval = null;
 let hoursChart = null;
 let salaryChart = null;
+let currentWorkHours = 8;
 
 // ============================
 // KONFIGURASI KATEGORI DAN RATE LEMBUR
@@ -350,17 +351,18 @@ function pairInOutTimes(data) {
 }
 
 // Calculate overtime per day - LEMBUR jika total jam > 8 jam
+// Calculate overtime per day - LEMBUR jika total jam > currentWorkHours
 function calculateOvertimePerDay(data, workHours = 8) {
     const result = data.map(record => {
         const hoursWorked = record.durasi || calculateHours(record.jamMasuk, record.jamKeluar);
         
-        // Jam normal maksimal workHours (8 jam)
+        // Jam normal maksimal workHours (yang diatur pengguna)
         const jamNormal = Math.min(hoursWorked, workHours);
         
-        // Jam lembur jika total jam > workHours (desimal)
+        // Jam lembur jika total jam > workHours
         const jamLemburDesimal = Math.max(hoursWorked - workHours, 0);
         
-        // Format jam lembur untuk display
+        // Format untuk display
         let jamLemburDisplay = "0 jam";
         if (jamLemburDesimal > 0) {
             const totalMenitLembur = Math.round(jamLemburDesimal * 60);
@@ -376,13 +378,8 @@ function calculateOvertimePerDay(data, workHours = 8) {
             }
         }
         
-        // Format jam normal untuk display
         const jamNormalDisplay = formatHoursToDisplay(jamNormal);
-        
-        // Format durasi untuk display
         const durasiDisplay = formatHoursToDisplay(hoursWorked);
-        
-        // Keterangan
         const keterangan = jamLemburDesimal > 0 ? `Lembur ${jamLemburDisplay}` : 'Tidak lembur';
         
         return {
@@ -396,7 +393,8 @@ function calculateOvertimePerDay(data, workHours = 8) {
             jamNormalFormatted: jamNormalDisplay,
             jamLembur: jamLemburDisplay,
             jamLemburDesimal: jamLemburDesimal,
-            keterangan: keterangan
+            keterangan: keterangan,
+            jamKerjaNormal: workHours // <-- TAMBAHKAN FIELD INI
         };
     });
     
@@ -411,7 +409,6 @@ function calculateOvertimePerDay(data, workHours = 8) {
     
     return result;
 }
-
 // Hitung total jam lembur per karyawan
 function calculateOvertimeSummary(data) {
     const summary = {};
@@ -447,8 +444,7 @@ function calculateOvertimeSummary(data) {
 // FUNGSI UNTUK TABEL LEMBUR PER ORANG (LIKE EXCEL)
 // ============================
 
-// Fungsi untuk format tabel per orang
-// Update fungsi createOvertimeTablePerPerson agar lebih sesuai dengan format gambar
+// Update fungsi untuk menggunakan currentWorkHours
 function createOvertimeTablePerPerson(data) {
     if (!data || data.length === 0) return [];
     
@@ -480,10 +476,10 @@ function createOvertimeTablePerPerson(data) {
         const totalLembur = records.reduce((sum, item) => sum + (item.jamLemburDesimal || 0), 0);
         const totalGaji = totalLembur * rate;
         
-        // Buat data untuk tabel per orang - format seperti gambar
+        // Buat data untuk tabel per orang
         const tableData = [];
         
-        // Header untuk setiap orang (lebih sederhana seperti gambar)
+        // Header untuk setiap orang
         tableData.push([
             `LEMBUR KARYAWAN - ${employeeName.toUpperCase()}`,
             '', '', '', '', '', '', ''
@@ -496,7 +492,7 @@ function createOvertimeTablePerPerson(data) {
         
         tableData.push([]); // Baris kosong
         
-        // Rate bayaran lembur (sesuai gambar)
+        // Rate bayaran lembur
         tableData.push([
             'RATE BAYARAN LEMBUR',
             '', '', '', '', '', '', ''
@@ -522,14 +518,14 @@ function createOvertimeTablePerPerson(data) {
         
         tableData.push([]); // Baris kosong
         
-        // Header tabel (sesuai gambar)
+        // Header tabel dengan JAM KERJA NORMAL yang dinamis
         tableData.push([
             'Name',
             'Hari',
             'Tanggal',
             'IN',
             'OUT',
-            'JAM KERJA',
+            `JAM KERJA (${currentWorkHours} jam)`, // <-- TAMPILKAN JAM KERJA YANG DIPILIH
             'TOTAL',
             'TANDA TANGAN'
         ]);
@@ -552,7 +548,7 @@ function createOvertimeTablePerPerson(data) {
                 formatExcelDate(record.tanggal),
                 jamMasuk,
                 jamKeluar,
-                '8', // Jam kerja normal (sesuai gambar)
+                currentWorkHours, // <-- GUNAKAN currentWorkHours BUKAN HARDCODE 8
                 lemburJam,
                 '' // Kolom tanda tangan kosong
             ]);
@@ -566,7 +562,7 @@ function createOvertimeTablePerPerson(data) {
             ]);
         }
         
-        // Baris total (sesuai format gambar)
+        // Baris total
         tableData.push([
             '', // Name kosong
             '', // Hari kosong
@@ -595,7 +591,7 @@ function createOvertimeTablePerPerson(data) {
             '', ''
         ]);
         
-        // Baris gaji lembur (duplikat seperti gambar)
+        // Baris gaji lembur (duplikat)
         tableData.push([
             '', '', '', '', '',
             `Rp ${totalGajiRounded.toLocaleString('id-ID')}`,
@@ -1648,21 +1644,22 @@ function simulateUploadProgress() {
 }
 
 // Process data (HITUNG LEMBUR SAJA)
+// Process data (HITUNG LEMBUR SAJA)
 function processData() {
     if (originalData.length === 0) {
         showNotification('Tidak ada data untuk diproses.', 'warning');
         return;
     }
     
-    const workHours = parseFloat(document.getElementById('work-hours').value) || 8;
+    currentWorkHours = parseFloat(document.getElementById('work-hours').value) || 8; // <-- SIMPAN KE VARIABEL GLOBAL
     
     processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung Lembur...';
     processBtn.disabled = true;
     
     setTimeout(() => {
         try {
-            // Hitung lembur per hari
-            processedData = calculateOvertimePerDay(originalData, workHours);
+            // Hitung lembur per hari dengan jam kerja yang diatur
+            processedData = calculateOvertimePerDay(originalData, currentWorkHours);
             
             displayResults(processedData);
             createCharts(processedData);
@@ -1670,7 +1667,7 @@ function processData() {
             resultsSection.style.display = 'block';
             resultsSection.scrollIntoView({ behavior: 'smooth' });
             
-            showNotification('Perhitungan lembur selesai!', 'success');
+            showNotification(`Perhitungan lembur selesai! (Jam kerja: ${currentWorkHours} jam)`, 'success');
             
         } catch (error) {
             console.error('Error processing data:', error);
@@ -1763,44 +1760,36 @@ function displayProcessedTable(data) {
 }
 
 // Display summaries
+// Display summaries - Update bagian financial summary
 function displaySummaries(data) {
     const employeeSummary = document.getElementById('employee-summary');
     const financialSummary = document.getElementById('financial-summary');
     
     if (!employeeSummary && !financialSummary) return;
     
-    // Group by employee
-    const employeeGroups = {};
-    data.forEach(item => {
-        if (!employeeGroups[item.nama]) {
-            employeeGroups[item.nama] = [];
-        }
-        employeeGroups[item.nama].push(item);
-    });
+    // ... (kode sebelumnya tetap) ...
     
-    let employeeHtml = '';
-    Object.keys(employeeGroups).forEach(employee => {
-        const records = employeeGroups[employee];
-        const totalHari = records.length;
-        const totalJam = records.reduce((sum, item) => sum + item.durasi, 0);
-        const totalLemburDesimal = records.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
-        const hariLembur = records.filter(item => item.jamLemburDesimal > 0).length;
-        const totalNormal = records.reduce((sum, item) => sum + item.jamNormal, 0);
-        
-        employeeHtml += `
-            <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
-                <strong>${employee}</strong><br>
-                <small>
-                    Total Hari: ${totalHari} | 
-                    Total Jam: ${formatHoursToDisplay(totalJam)}<br>
-                    Jam Normal: ${formatHoursToDisplay(totalNormal)}<br>
-                    <span style="color: ${totalLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
-                        Jam Lembur: ${formatHoursToDisplay(totalLemburDesimal)} (${hariLembur} hari)
-                    </span>
-                </small>
+    // Financial summary dengan perhitungan gaji
+    if (financialSummary) {
+        financialSummary.innerHTML = `
+            <div>Konfigurasi Jam Kerja: <strong>${currentWorkHours} jam/hari</strong></div> <!-- TAMBAHKAN INI -->
+            <div>Total Entri Data: <strong>${data.length} hari</strong></div>
+            <div>Hari dengan Lembur: <strong>${hariDenganLembur} hari</strong></div>
+            <div>Total Jam Kerja: <strong>${formatHoursToDisplay(totalJam)}</strong></div>
+            <div>Total Jam Normal: <strong>${formatHoursToDisplay(totalNormal)}</strong></div>
+            <div style="color: ${totalLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
+                Total Jam Lembur: <strong>${formatHoursToDisplay(totalLemburDesimal)}</strong>
+            </div>
+            <div style="border-top: 2px solid #3498db; padding-top: 0.5rem; margin-top: 0.5rem;">
+                <strong>Perhitungan Gaji Lembur:</strong><br>
+                ${salaryHtml}
+                <div style="font-weight: bold; color: #2c3e50; margin-top: 0.5rem;">
+                    TOTAL GAJI LEMBUR: Rp ${Math.round(totalGajiAll).toLocaleString('id-ID')}
+                </div>
             </div>
         `;
-    });
+    }
+}
     
     if (employeeSummary) employeeSummary.innerHTML = employeeHtml;
     
@@ -2025,6 +2014,7 @@ function cancelUpload() {
 // Reset configuration
 function resetConfig() {
     document.getElementById('work-hours').value = '8';
+    currentWorkHours = 8;
     
     showNotification('Konfigurasi telah direset.', 'info');
 }
