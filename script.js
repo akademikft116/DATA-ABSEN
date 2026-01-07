@@ -350,7 +350,6 @@ function pairInOutTimes(data) {
     return result;
 }
 
-// Calculate overtime per day - LEMBUR jika total jam > 8 jam
 // Calculate overtime per day - LEMBUR jika total jam > currentWorkHours
 function calculateOvertimePerDay(data, workHours = 8) {
     const result = data.map(record => {
@@ -394,7 +393,7 @@ function calculateOvertimePerDay(data, workHours = 8) {
             jamLembur: jamLemburDisplay,
             jamLemburDesimal: jamLemburDesimal,
             keterangan: keterangan,
-            jamKerjaNormal: workHours // <-- TAMBAHKAN FIELD INI
+            jamKerjaNormal: workHours
         };
     });
     
@@ -409,6 +408,7 @@ function calculateOvertimePerDay(data, workHours = 8) {
     
     return result;
 }
+
 // Hitung total jam lembur per karyawan
 function calculateOvertimeSummary(data) {
     const summary = {};
@@ -444,7 +444,7 @@ function calculateOvertimeSummary(data) {
 // FUNGSI UNTUK TABEL LEMBUR PER ORANG (LIKE EXCEL)
 // ============================
 
-// Update fungsi untuk menggunakan currentWorkHours
+// Fungsi untuk format tabel per orang
 function createOvertimeTablePerPerson(data) {
     if (!data || data.length === 0) return [];
     
@@ -476,10 +476,10 @@ function createOvertimeTablePerPerson(data) {
         const totalLembur = records.reduce((sum, item) => sum + (item.jamLemburDesimal || 0), 0);
         const totalGaji = totalLembur * rate;
         
-        // Buat data untuk tabel per orang
+        // Buat data untuk tabel per orang - format seperti gambar
         const tableData = [];
         
-        // Header untuk setiap orang
+        // Header untuk setiap orang (lebih sederhana seperti gambar)
         tableData.push([
             `LEMBUR KARYAWAN - ${employeeName.toUpperCase()}`,
             '', '', '', '', '', '', ''
@@ -492,7 +492,7 @@ function createOvertimeTablePerPerson(data) {
         
         tableData.push([]); // Baris kosong
         
-        // Rate bayaran lembur
+        // Rate bayaran lembur (sesuai gambar)
         tableData.push([
             'RATE BAYARAN LEMBUR',
             '', '', '', '', '', '', ''
@@ -518,14 +518,14 @@ function createOvertimeTablePerPerson(data) {
         
         tableData.push([]); // Baris kosong
         
-        // Header tabel dengan JAM KERJA NORMAL yang dinamis
+        // Header tabel (sesuai gambar)
         tableData.push([
             'Name',
             'Hari',
             'Tanggal',
             'IN',
             'OUT',
-            `JAM KERJA (${currentWorkHours} jam)`, // <-- TAMPILKAN JAM KERJA YANG DIPILIH
+            `JAM KERJA (${currentWorkHours} jam)`,
             'TOTAL',
             'TANDA TANGAN'
         ]);
@@ -548,7 +548,7 @@ function createOvertimeTablePerPerson(data) {
                 formatExcelDate(record.tanggal),
                 jamMasuk,
                 jamKeluar,
-                currentWorkHours, // <-- GUNAKAN currentWorkHours BUKAN HARDCODE 8
+                currentWorkHours,
                 lemburJam,
                 '' // Kolom tanda tangan kosong
             ]);
@@ -562,7 +562,7 @@ function createOvertimeTablePerPerson(data) {
             ]);
         }
         
-        // Baris total
+        // Baris total (sesuai format gambar)
         tableData.push([
             '', // Name kosong
             '', // Hari kosong
@@ -591,7 +591,7 @@ function createOvertimeTablePerPerson(data) {
             '', ''
         ]);
         
-        // Baris gaji lembur (duplikat)
+        // Baris gaji lembur (duplikat seperti gambar)
         tableData.push([
             '', '', '', '', '',
             `Rp ${totalGajiRounded.toLocaleString('id-ID')}`,
@@ -1029,7 +1029,7 @@ function previewOvertimeTable(data) {
                 } else if (rowIndex > 8 && rowIndex < previewRows.length - 4) {
                     // Data isian
                     const bgColor = rowIndex % 2 === 0 ? '#f8f9fa' : 'white';
-                    const textAlign = cellIndex === 6 ? 'center' : 'center'; // Semua center
+                    const textAlign = 'center';
                     const fontWeight = cellIndex === 6 ? 'bold' : 'normal';
                     const textColor = cellIndex === 6 ? '#e74c3c' : '#000';
                     
@@ -1151,122 +1151,6 @@ function downloadOvertimeSalaryReport() {
         console.error('Error generating salary report:', error);
         showNotification('Gagal mengunduh laporan gaji lembur: ' + error.message, 'error');
     }
-}
-
-// Tambahkan fungsi untuk menampilkan preview tabel di UI
-function previewOvertimeTable(data) {
-    const summaryTab = document.getElementById('summary-tab');
-    
-    if (!summaryTab) return;
-    
-    const dataWithOvertime = data.filter(item => item.jamLemburDesimal > 0);
-    
-    if (dataWithOvertime.length === 0) return;
-    
-    const tables = createOvertimeTablePerPerson(dataWithOvertime);
-    
-    let previewHtml = `
-        <div class="overtime-preview-section" style="margin-top: 2rem;">
-            <h4><i class="fas fa-file-excel"></i> Preview Format Tabel Excel</h4>
-            <p style="color: var(--gray-color); margin-bottom: 1rem;">
-                Format tabel yang akan diunduh dalam file Excel:
-            </p>
-    `;
-    
-    // Tampilkan preview untuk 2 karyawan pertama saja
-    const previewTables = tables.slice(0, 2);
-    
-    previewTables.forEach((table, tableIndex) => {
-        previewHtml += `
-            <div class="table-preview-card" style="background: white; border-radius: var(--border-radius-sm); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-light);">
-                <h5 style="color: var(--primary-color); margin-bottom: 1rem; border-bottom: 2px solid var(--secondary-color); padding-bottom: 0.5rem;">
-                    ${table.employee} (${table.category})
-                </h5>
-                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-        `;
-        
-        // Tampilkan preview 5 baris pertama
-        const previewRows = table.data.slice(0, 10);
-        previewRows.forEach((row, rowIndex) => {
-            previewHtml += '<tr>';
-            row.forEach((cell, cellIndex) => {
-                if (rowIndex === 0 || rowIndex === 1) {
-                    // Header dengan background khusus
-                    previewHtml += `
-                        <th style="padding: 0.5rem; background: #2c3e50; color: white; border: 1px solid #ddd; font-weight: bold;">
-                            ${cell || ''}
-                        </th>
-                    `;
-                } else if (rowIndex === 8) {
-                    // Header tabel
-                    previewHtml += `
-                        <th style="padding: 0.5rem; background: #ecf0f1; color: var(--primary-color); border: 1px solid #ddd; font-weight: bold;">
-                            ${cell || ''}
-                        </th>
-                    `;
-                } else {
-                    // Data biasa
-                    const bgColor = rowIndex % 2 === 0 ? '#f8f9fa' : 'white';
-                    previewHtml += `
-                        <td style="padding: 0.5rem; background: ${bgColor}; border: 1px solid #ddd;">
-                            ${cell || ''}
-                        </td>
-                    `;
-                }
-            });
-            previewHtml += '</tr>';
-        });
-        
-        previewHtml += `
-                    </table>
-                </div>
-                <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: var(--border-radius-sm);">
-                    <strong>Total Jam Lembur:</strong> ${table.totalLembur.toFixed(2)} jam<br>
-                    <strong>Total Gaji Lembur:</strong> Rp ${table.totalGaji.toLocaleString('id-ID')}<br>
-                    <strong>Rate:</strong> Rp ${table.rate.toLocaleString('id-ID')}/jam
-                </div>
-            </div>
-        `;
-    });
-    
-    if (tables.length > 2) {
-        previewHtml += `
-            <div style="text-align: center; padding: 1rem; color: var(--gray-color);">
-                <i class="fas fa-info-circle"></i> Dan ${tables.length - 2} karyawan lainnya...
-            </div>
-        `;
-    }
-    
-    previewHtml += `
-            <div style="margin-top: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: var(--border-radius-sm);">
-                <h5><i class="fas fa-download"></i> File Excel akan berisi:</h5>
-                <ul style="list-style-type: none; padding-left: 0;">
-                    <li><i class="fas fa-check"></i> Worksheet terpisah untuk setiap karyawan</li>
-                    <li><i class="fas fa-check"></i> Worksheet "SUMMARY" untuk rekap total</li>
-                    <li><i class="fas fa-check"></i> Format tabel seperti contoh gambar</li>
-                    <li><i class="fas fa-check"></i> Perhitungan gaji otomatis berdasarkan kategori</li>
-                </ul>
-            </div>
-        </div>
-    `;
-    
-    // Tambahkan ke summary tab
-    const existingPreview = summaryTab.querySelector('.overtime-preview-section');
-    if (existingPreview) {
-        existingPreview.remove();
-    }
-    
-    summaryTab.insertAdjacentHTML('beforeend', previewHtml);
-}
-
-// Update fungsi displayResults untuk menampilkan preview
-function displayResults(data) {
-    updateMainStatistics(data);
-    displayOriginalTable(originalData);
-    displayProcessedTable(data);
-    displaySummaries(data);
-    previewOvertimeTable(data); // Tambahkan ini
 }
 
 // Fungsi untuk membuat worksheet summary
@@ -1644,14 +1528,13 @@ function simulateUploadProgress() {
 }
 
 // Process data (HITUNG LEMBUR SAJA)
-// Process data (HITUNG LEMBUR SAJA)
 function processData() {
     if (originalData.length === 0) {
         showNotification('Tidak ada data untuk diproses.', 'warning');
         return;
     }
     
-    currentWorkHours = parseFloat(document.getElementById('work-hours').value) || 8; // <-- SIMPAN KE VARIABEL GLOBAL
+    currentWorkHours = parseFloat(document.getElementById('work-hours').value) || 8;
     
     processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung Lembur...';
     processBtn.disabled = true;
@@ -1685,6 +1568,7 @@ function displayResults(data) {
     displayOriginalTable(originalData);
     displayProcessedTable(data);
     displaySummaries(data);
+    previewOvertimeTable(data);
 }
 
 // Update main statistics
@@ -1760,36 +1644,44 @@ function displayProcessedTable(data) {
 }
 
 // Display summaries
-// Display summaries - Update bagian financial summary
 function displaySummaries(data) {
     const employeeSummary = document.getElementById('employee-summary');
     const financialSummary = document.getElementById('financial-summary');
     
     if (!employeeSummary && !financialSummary) return;
     
-    // ... (kode sebelumnya tetap) ...
+    // Group by employee
+    const employeeGroups = {};
+    data.forEach(item => {
+        if (!employeeGroups[item.nama]) {
+            employeeGroups[item.nama] = [];
+        }
+        employeeGroups[item.nama].push(item);
+    });
     
-    // Financial summary dengan perhitungan gaji
-    if (financialSummary) {
-        financialSummary.innerHTML = `
-            <div>Konfigurasi Jam Kerja: <strong>${currentWorkHours} jam/hari</strong></div> <!-- TAMBAHKAN INI -->
-            <div>Total Entri Data: <strong>${data.length} hari</strong></div>
-            <div>Hari dengan Lembur: <strong>${hariDenganLembur} hari</strong></div>
-            <div>Total Jam Kerja: <strong>${formatHoursToDisplay(totalJam)}</strong></div>
-            <div>Total Jam Normal: <strong>${formatHoursToDisplay(totalNormal)}</strong></div>
-            <div style="color: ${totalLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
-                Total Jam Lembur: <strong>${formatHoursToDisplay(totalLemburDesimal)}</strong>
-            </div>
-            <div style="border-top: 2px solid #3498db; padding-top: 0.5rem; margin-top: 0.5rem;">
-                <strong>Perhitungan Gaji Lembur:</strong><br>
-                ${salaryHtml}
-                <div style="font-weight: bold; color: #2c3e50; margin-top: 0.5rem;">
-                    TOTAL GAJI LEMBUR: Rp ${Math.round(totalGajiAll).toLocaleString('id-ID')}
-                </div>
+    let employeeHtml = '';
+    Object.keys(employeeGroups).forEach(employee => {
+        const records = employeeGroups[employee];
+        const totalHari = records.length;
+        const totalJam = records.reduce((sum, item) => sum + item.durasi, 0);
+        const totalLemburDesimal = records.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
+        const hariLembur = records.filter(item => item.jamLemburDesimal > 0).length;
+        const totalNormal = records.reduce((sum, item) => sum + item.jamNormal, 0);
+        
+        employeeHtml += `
+            <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
+                <strong>${employee}</strong><br>
+                <small>
+                    Total Hari: ${totalHari} | 
+                    Total Jam: ${formatHoursToDisplay(totalJam)}<br>
+                    Jam Normal: ${formatHoursToDisplay(totalNormal)}<br>
+                    <span style="color: ${totalLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
+                        Jam Lembur: ${formatHoursToDisplay(totalLemburDesimal)} (${hariLembur} hari)
+                    </span>
+                </small>
             </div>
         `;
-    }
-}
+    });
     
     if (employeeSummary) employeeSummary.innerHTML = employeeHtml;
     
@@ -1833,6 +1725,7 @@ function displaySummaries(data) {
     
     if (financialSummary) {
         financialSummary.innerHTML = `
+            <div>Konfigurasi Jam Kerja: <strong>${currentWorkHours} jam/hari</strong></div>
             <div>Total Entri Data: <strong>${data.length} hari</strong></div>
             <div>Hari dengan Lembur: <strong>${hariDenganLembur} hari</strong></div>
             <div>Total Jam Kerja: <strong>${formatHoursToDisplay(totalJam)}</strong></div>
@@ -2016,7 +1909,7 @@ function resetConfig() {
     document.getElementById('work-hours').value = '8';
     currentWorkHours = 8;
     
-    showNotification('Konfigurasi telah direset.', 'info');
+    showNotification('Konfigurasi telah direset ke 8 jam kerja.', 'info');
 }
 
 // Download template
