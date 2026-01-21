@@ -837,16 +837,17 @@ function initializeApp() {
     document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
     
     // Event listener untuk tombol download gaji lembur
-    const downloadSalaryBtn = document.getElementById('download-salary');
-    if (downloadSalaryBtn) {
-        downloadSalaryBtn.addEventListener('click', () => {
-            if (processedData.length === 0) {
-                showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
-                return;
-            }
-            downloadOvertimeSalaryReport();
-        });
-    }
+   // Di dalam fungsi initializeApp, ganti bagian ini:
+const downloadSalaryBtn = document.getElementById('download-salary');
+if (downloadSalaryBtn) {
+    downloadSalaryBtn.addEventListener('click', () => {
+        if (processedData.length === 0) {
+            showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
+            return;
+        }
+        downloadOvertimeSalaryReport(); // Pastikan nama fungsi benar
+    });
+}
     
     // Tab functionality
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1324,6 +1325,87 @@ function generateReport(data, filename, sheetName = 'Data Lembur Harian') {
         console.error('Error generating report:', error);
         throw error;
     }
+}
+
+// ============================
+// FUNGSI DOWNLOAD LAPORAN GAJI LEMBUR PER KARYAWAN
+// ============================
+
+function downloadOvertimeSalaryReport() {
+    if (processedData.length === 0) {
+        showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
+        return;
+    }
+    
+    try {
+        const summary = calculateOvertimeSummary(processedData);
+        
+        if (summary.length === 0) {
+            showNotification('Tidak ada data lembur untuk diunduh.', 'info');
+            return;
+        }
+        
+        // Format data untuk Excel
+        const exportData = summary.map((item, index) => ({
+            'No': index + 1,
+            'Nama Karyawan': item.nama,
+            'Kategori': item.kategori,
+            'Rate Lembur (per jam)': `Rp ${item.rate.toLocaleString('id-ID')}`,
+            'Total Jam Lembur': item.totalLembur.toFixed(2),
+            'Total Jam Lembur (Format)': item.totalLemburFormatted,
+            'Total Gaji Lembur': `Rp ${Math.round(item.totalGaji).toLocaleString('id-ID')}`
+        }));
+        
+        // Tambahkan total di baris terakhir
+        const totalLembur = summary.reduce((sum, item) => sum + item.totalLembur, 0);
+        const totalGaji = summary.reduce((sum, item) => sum + item.totalGaji, 0);
+        
+        exportData.push({
+            'No': '',
+            'Nama Karyawan': 'TOTAL',
+            'Kategori': '',
+            'Rate Lembur (per jam)': '',
+            'Total Jam Lembur': totalLembur.toFixed(2),
+            'Total Jam Lembur (Format)': formatHoursToDisplay(totalLembur),
+            'Total Gaji Lembur': `Rp ${Math.round(totalGaji).toLocaleString('id-ID')}`
+        });
+        
+        // Generate Excel
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        
+        // Set column widths
+        const wscols = [
+            { wch: 5 },    // No
+            { wch: 20 },   // Nama Karyawan
+            { wch: 10 },   // Kategori
+            { wch: 18 },   // Rate Lembur
+            { wch: 15 },   // Total Jam Lembur
+            { wch: 20 },   // Total Jam Lembur (Format)
+            { wch: 20 }    // Total Gaji Lembur
+        ];
+        worksheet['!cols'] = wscols;
+        
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Gaji Lembur');
+        
+        // Nama file dengan tanggal
+        const now = new Date();
+        const dateStr = `${now.getDate().toString().padStart(2, '0')}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getFullYear()}`;
+        const filename = `Rekap_Gaji_Lembur_${dateStr}.xlsx`;
+        
+        XLSX.writeFile(workbook, filename);
+        
+        showNotification('Laporan gaji lembur berhasil diunduh!', 'success');
+        
+    } catch (error) {
+        console.error('Error generating overtime salary report:', error);
+        showNotification('Gagal mengunduh laporan gaji lembur.', 'error');
+    }
+}
+
+// Juga tambahkan fungsi downloadOverTimeSalaryReport (alias untuk kompatibilitas)
+function downloadOverTimeSalaryReport() {
+    return downloadOvertimeSalaryReport();
 }
 
 // Update sidebar stats
