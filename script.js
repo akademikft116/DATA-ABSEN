@@ -13,6 +13,10 @@ let currentWorkHours = 8;
 // KONFIGURASI KATEGORI DAN RATE LEMBUR
 // ============================
 
+const WORK_START_TIME = '07:00';    // Jam mulai kerja efektif
+const WORK_END_TIME = '16:00';      // Jam pulang normal
+const MIN_OVERTIME_MINUTES = 10;    // Minimal lembur yang dihitung (menit)
+
 const overtimeRates = {
     'TU': 12500,
     'STAFF': 10000,
@@ -170,6 +174,7 @@ function parseDateTime(datetimeStr) {
 }
 
 // Calculate hours between two time strings
+// Calculate hours between two time strings dengan aturan baru
 function calculateHours(timeIn, timeOut) {
     if (!timeIn || !timeOut) return 0;
     
@@ -191,9 +196,18 @@ function calculateHours(timeIn, timeOut) {
         
         if (!inTime || !outTime) return 0;
         
-        let totalMinutes = (outTime.hours * 60 + outTime.minutes) - 
-                          (inTime.hours * 60 + inTime.minutes);
+        // Konversi ke menit
+        const inMinutes = inTime.hours * 60 + inTime.minutes;
+        const outMinutes = outTime.hours * 60 + outTime.minutes;
         
+        // Aturan 1: Jam masuk efektif mulai 7:00
+        const workStartMinutes = 7 * 60; // 07:00 = 420 menit
+        const effectiveInMinutes = Math.max(inMinutes, workStartMinutes);
+        
+        // Hitung total menit kerja
+        let totalMinutes = outMinutes - effectiveInMinutes;
+        
+        // Jika pulang sebelum masuk (melewati tengah malam)
         if (totalMinutes < 0) {
             totalMinutes += 24 * 60;
         }
@@ -206,6 +220,89 @@ function calculateHours(timeIn, timeOut) {
     }
 }
 
+// ============================
+// FUNGSI PERHITUNGAN BARU
+// ============================
+
+// Fungsi untuk menghitung lembur dengan aturan baru
+function calculateOvertimeWithNewRules(jamKeluar) {
+    if (!jamKeluar) return 0;
+    
+    try {
+        const parseTime = (timeStr) => {
+            if (!timeStr) return null;
+            if (typeof timeStr === 'string') {
+                if (timeStr.includes(':')) {
+                    const [hours, minutes] = timeStr.split(':').map(Number);
+                    return { hours, minutes: minutes || 0 };
+                }
+            }
+            return null;
+        };
+        
+        const outTime = parseTime(jamKeluar);
+        if (!outTime) return 0;
+        
+        const outMinutes = outTime.hours * 60 + outTime.minutes;
+        const workEndMinutes = 16 * 60; // 16:00 = 960 menit
+        
+        // Jika pulang sebelum atau tepat jam 16:00, tidak ada lembur
+        if (outMinutes <= workEndMinutes) return 0;
+        
+        // Hitung menit lembur
+        let overtimeMinutes = outMinutes - workEndMinutes;
+        
+        // Aturan 3: Abaikan lembur kurang dari 10 menit
+        if (overtimeMinutes < MIN_OVERTIME_MINUTES) {
+            return 0;
+        }
+        
+        // Konversi ke jam (desimal)
+        const overtimeHours = Math.round((overtimeMinutes / 60) * 100) / 100;
+        
+        return overtimeHours;
+        
+    } catch (error) {
+        console.error('Error calculating overtime:', error);
+        return 0;
+    }
+}
+
+// Fungsi untuk mendapatkan jam masuk efektif
+function getEffectiveInTime(jamMasuk) {
+    if (!jamMasuk) return '-';
+    
+    try {
+        const parseTime = (timeStr) => {
+            if (!timeStr) return null;
+            if (typeof timeStr === 'string') {
+                if (timeStr.includes(':')) {
+                    const [hours, minutes] = timeStr.split(':').map(Number);
+                    return { hours, minutes: minutes || 0 };
+                }
+            }
+            return null;
+        };
+        
+        const inTime = parseTime(jamMasuk);
+        if (!inTime) return jamMasuk;
+        
+        const inMinutes = inTime.hours * 60 + inTime.minutes;
+        const workStartMinutes = 7 * 60; // 07:00
+        
+        // Jika masuk sebelum 7:00, gunakan 7:00
+        if (inMinutes < workStartMinutes) {
+            return '07:00';
+        }
+        
+        // Jika masuk setelah 7:00, gunakan jam masuk sebenarnya
+        return jamMasuk;
+        
+    } catch (error) {
+        console.error('Error getting effective in time:', error);
+        return jamMasuk;
+    }
+}
 // Helper functions untuk tabel Excel
 function getDayName(dateString) {
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -350,16 +447,16 @@ function pairInOutTimes(data) {
     return result;
 }
 
-// Calculate overtime per day - LEMBUR jika total jam > currentWorkHours
+// Calculate overtime per day - LEMBUR jika total jam > currentWorkHours DAN pulang setelah 16:00
 function calculateOvertimePerDay(data, workHours = 8) {
     const result = data.map(record => {
         const hoursWorked = record.durasi || calculateHours(record.jamMasuk, record.jamKeluar);
         
-        // Jam normal maksimal workHours (yang diatur pengguna)
-        const jamNormal = Math.min(hoursWorked, workHours);
+        // Hitung lembur dengan aturan baru (berdasarkan jam pulang)
+        const jamLemburDesimal = calculateOvertimeWithNewRules(record.jamKeluar);
         
-        // Jam lembur jika total jam > workHours
-        const jamLemburDesimal = Math.max(hoursWorked - workHours, 0);
+        // Jam normal: total jam dikurangi jam lembur, maksimal workHours
+        const jamNormal = Math.min(hoursWorked - jamLemburDesimal, workHours);
         
         // Format untuk display
         let jamLemburDisplay = "0 jam";
@@ -379,12 +476,26 @@ function calculateOvertimePerDay(data, workHours = 8) {
         
         const jamNormalDisplay = formatHoursToDisplay(jamNormal);
         const durasiDisplay = formatHoursToDisplay(hoursWorked);
-        const keterangan = jamLemburDesimal > 0 ? `Lembur ${jamLemburDisplay}` : 'Tidak lembur';
+        
+        // Tentukan jam masuk efektif
+        const effectiveInTime = getEffectiveInTime(record.jamMasuk);
+        
+        // Keterangan khusus
+        let keterangan = 'Tidak lembur';
+        if (jamLemburDesimal > 0) {
+            keterangan = `Lembur ${jamLemburDisplay}`;
+            if (effectiveInTime !== record.jamMasuk) {
+                keterangan += ` (masuk efektif: ${effectiveInTime})`;
+            }
+        } else if (effectiveInTime !== record.jamMasuk) {
+            keterangan = `Masuk efektif: ${effectiveInTime}`;
+        }
         
         return {
             nama: record.nama,
             tanggal: record.tanggal,
             jamMasuk: record.jamMasuk,
+            jamMasukEfektif: effectiveInTime,
             jamKeluar: record.jamKeluar,
             durasi: hoursWorked,
             durasiFormatted: durasiDisplay,
@@ -1613,6 +1724,7 @@ function displayOriginalTable(data) {
 }
 
 // Display processed table (DATA PER HARI)
+// Display processed table (DATA PER HARI)
 function displayProcessedTable(data) {
     const tbody = document.getElementById('processed-table-body');
     if (!tbody) {
@@ -1628,6 +1740,13 @@ function displayProcessedTable(data) {
             <td>${index + 1}</td>
             <td><strong>${item.nama}</strong></td>
             <td>${formatDate(item.tanggal)}</td>
+            <td>
+                ${item.jamMasuk}
+                ${item.jamMasuk !== item.jamMasukEfektif ? 
+                    `<br><small style="color: #666;">(efektif: ${item.jamMasukEfektif})</small>` : 
+                    ''}
+            </td>
+            <td>${item.jamKeluar}</td>
             <td>${item.durasiFormatted}</td>
             <td>${item.jamNormalFormatted}</td>
             <td style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
@@ -1642,7 +1761,7 @@ function displayProcessedTable(data) {
         tbody.appendChild(row);
     });
 }
-
+// Display summaries
 // Display summaries
 function displaySummaries(data) {
     const employeeSummary = document.getElementById('employee-summary');
@@ -1668,6 +1787,14 @@ function displaySummaries(data) {
         const hariLembur = records.filter(item => item.jamLemburDesimal > 0).length;
         const totalNormal = records.reduce((sum, item) => sum + item.jamNormal, 0);
         
+        // Hitung hari dengan masuk sebelum 7:00
+        const hariMasukSebelum7 = records.filter(item => {
+            const jamMasuk = item.jamMasuk;
+            if (!jamMasuk) return false;
+            const [hours] = jamMasuk.split(':').map(Number);
+            return hours < 7;
+        }).length;
+        
         employeeHtml += `
             <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
                 <strong>${employee}</strong><br>
@@ -1678,6 +1805,7 @@ function displaySummaries(data) {
                     <span style="color: ${totalLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
                         Jam Lembur: ${formatHoursToDisplay(totalLemburDesimal)} (${hariLembur} hari)
                     </span>
+                    ${hariMasukSebelum7 > 0 ? `<br>Masuk sebelum 7:00: ${hariMasukSebelum7} hari` : ''}
                 </small>
             </div>
         `;
@@ -1690,6 +1818,34 @@ function displaySummaries(data) {
     const totalLemburDesimal = data.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
     const totalNormal = data.reduce((sum, item) => sum + item.jamNormal, 0);
     const hariDenganLembur = data.filter(item => item.jamLemburDesimal > 0).length;
+    
+    // Hitung statistik tambahan
+    const hariMasukSebelum7 = data.filter(item => {
+        const jamMasuk = item.jamMasuk;
+        if (!jamMasuk) return false;
+        const [hours] = jamMasuk.split(':').map(Number);
+        return hours < 7;
+    }).length;
+    
+    const hariPulangSetelah16 = data.filter(item => {
+        const jamKeluar = item.jamKeluar;
+        if (!jamKeluar) return false;
+        const [hours] = jamKeluar.split(':').map(Number);
+        return hours > 16 || (hours === 16 && jamKeluar.split(':')[1] > 0);
+    }).length;
+    
+    const hariLemburDiabaikan = data.filter(item => {
+        const jamKeluar = item.jamKeluar;
+        if (!jamKeluar) return false;
+        
+        const [hours, minutes] = jamKeluar.split(':').map(Number);
+        const outMinutes = hours * 60 + (minutes || 0);
+        const workEndMinutes = 16 * 60;
+        
+        // Pulang setelah 16:00 tapi kurang dari 16:10
+        return outMinutes > workEndMinutes && 
+               (outMinutes - workEndMinutes) < MIN_OVERTIME_MINUTES;
+    }).length;
     
     // Hitung gaji berdasarkan kategori
     const summary = calculateOvertimeSummary(data);
@@ -1725,8 +1881,18 @@ function displaySummaries(data) {
     
     if (financialSummary) {
         financialSummary.innerHTML = `
+            <div><strong>Aturan Perhitungan:</strong></div>
+            <div style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
+                • Jam masuk efektif: 07:00<br>
+                • Jam pulang normal: 16:00<br>
+                • Minimal lembur: 10 menit
+            </div>
+            
             <div>Konfigurasi Jam Kerja: <strong>${currentWorkHours} jam/hari</strong></div>
             <div>Total Entri Data: <strong>${data.length} hari</strong></div>
+            <div>Masuk sebelum 07:00: <strong>${hariMasukSebelum7} hari</strong></div>
+            <div>Pulang setelah 16:00: <strong>${hariPulangSetelah16} hari</strong></div>
+            <div>Lembur diabaikan (<10 menit): <strong>${hariLemburDiabaikan} hari</strong></div>
             <div>Hari dengan Lembur: <strong>${hariDenganLembur} hari</strong></div>
             <div>Total Jam Kerja: <strong>${formatHoursToDisplay(totalJam)}</strong></div>
             <div>Total Jam Normal: <strong>${formatHoursToDisplay(totalNormal)}</strong></div>
