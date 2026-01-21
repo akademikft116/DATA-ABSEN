@@ -412,7 +412,7 @@ function processYourExcelFormat(rawData) {
                     waktu: time,
                     rawDatetime: waktu
                 });
-        }
+            }
         }
     }
     
@@ -561,11 +561,14 @@ function calculateOvertimeSummary(data) {
                 nama: employeeName,
                 totalLembur: 0,
                 kategori: employeeCategories[employeeName] || 'STAFF',
-                rate: overtimeRates[employeeCategories[employeeName]] || 10000
+                rate: overtimeRates[employeeCategories[employeeName]] || 10000,
+                dataHarian: [] // Tambahkan data harian
             };
         }
         
         summary[employeeName].totalLembur += overtimeHours;
+        // Simpan data harian untuk karyawan ini
+        summary[employeeName].dataHarian.push(item);
     });
     
     // Hitung total gaji
@@ -580,10 +583,11 @@ function calculateOvertimeSummary(data) {
 }
 
 // ============================
-// FUNGSI DOWNLOAD LAPORAN GAJI LEMBUR PER KARYAWAN
+// FUNGSI DOWNLOAD LAPORAN GAJI LEMBUR PER ORANG (INDIVIDU)
 // ============================
 
-function downloadOvertimeSalaryReport() {
+// Download laporan untuk SEMUA karyawan (rekap lengkap)
+function downloadOvertimeSalaryReportAll() {
     if (processedData.length === 0) {
         showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
         return;
@@ -597,7 +601,7 @@ function downloadOvertimeSalaryReport() {
             return;
         }
         
-        // Format data untuk Excel
+        // Format data untuk Excel - SEMUA karyawan
         const exportData = summary.map((item, index) => ({
             'No': index + 1,
             'Nama Karyawan': item.nama,
@@ -614,7 +618,7 @@ function downloadOvertimeSalaryReport() {
         
         exportData.push({
             'No': '',
-            'Nama Karyawan': 'TOTAL',
+            'Nama Karyawan': 'TOTAL SEMUA KARYAWAN',
             'Kategori': '',
             'Rate Lembur (per jam)': '',
             'Total Jam Lembur': totalLembur.toFixed(2),
@@ -638,16 +642,16 @@ function downloadOvertimeSalaryReport() {
         worksheet['!cols'] = wscols;
         
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Gaji Lembur');
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Gaji Lembur Semua');
         
         // Nama file dengan tanggal
         const now = new Date();
         const dateStr = `${now.getDate().toString().padStart(2, '0')}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getFullYear()}`;
-        const filename = `Rekap_Gaji_Lembur_${dateStr}.xlsx`;
+        const filename = `Rekap_Gaji_Lembur_Semua_Karyawan_${dateStr}.xlsx`;
         
         XLSX.writeFile(workbook, filename);
         
-        showNotification('Laporan gaji lembur berhasil diunduh!', 'success');
+        showNotification('Laporan gaji lembur semua karyawan berhasil diunduh!', 'success');
         
     } catch (error) {
         console.error('Error generating overtime salary report:', error);
@@ -655,9 +659,359 @@ function downloadOvertimeSalaryReport() {
     }
 }
 
+// Download laporan untuk SATU karyawan (individu)
+function downloadOvertimeSalaryReportPerPerson(employeeName) {
+    if (processedData.length === 0) {
+        showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
+        return;
+    }
+    
+    try {
+        // Filter data untuk karyawan tertentu
+        const employeeData = processedData.filter(item => item.nama === employeeName);
+        
+        if (employeeData.length === 0) {
+            showNotification(`Tidak ada data untuk karyawan: ${employeeName}`, 'warning');
+            return;
+        }
+        
+        // Hitung summary untuk karyawan ini
+        const summary = calculateOvertimeSummary(employeeData);
+        const employeeSummary = summary[0]; // Hanya satu karyawan
+        
+        if (!employeeSummary) {
+            showNotification(`Tidak dapat menghitung summary untuk: ${employeeName}`, 'error');
+            return;
+        }
+        
+        // Buat workbook dengan dua sheet: Summary dan Detail Harian
+        
+        // ========== SHEET 1: SUMMARY ==========
+        const summaryData = [{
+            'Nama Karyawan': employeeSummary.nama,
+            'Kategori': employeeSummary.kategori,
+            'Rate Lembur (per jam)': `Rp ${employeeSummary.rate.toLocaleString('id-ID')}`,
+            'Total Hari Kerja': employeeData.length,
+            'Total Jam Lembur': employeeSummary.totalLembur.toFixed(2),
+            'Total Jam Lembur (Format)': employeeSummary.totalLemburFormatted,
+            'Total Gaji Lembur': `Rp ${Math.round(employeeSummary.totalGaji).toLocaleString('id-ID')}`
+        }];
+        
+        const summarySheet = XLSX.utils.json_to_sheet(summaryData);
+        
+        // ========== SHEET 2: DETAIL HARIAN ==========
+        const detailData = employeeData.map((item, index) => ({
+            'No': index + 1,
+            'Hari': getDayNameFromDate(item.tanggal),
+            'Tanggal': formatDate(item.tanggal),
+            'Jam Masuk': item.jamMasuk,
+            'Jam Masuk Efektif': item.jamMasukEfektif,
+            'Jam Keluar': item.jamKeluar,
+            'Durasi Kerja': item.durasiFormatted,
+            'Jam Normal': item.jamNormalFormatted,
+            'Jam Lembur': item.jamLembur,
+            'Jam Lembur (Desimal)': item.jamLemburDesimal.toFixed(2),
+            'Keterangan': item.keterangan
+        }));
+        
+        // Tambahkan total di baris terakhir
+        const totalLembur = employeeData.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
+        const totalGaji = totalLembur * employeeSummary.rate;
+        
+        detailData.push({
+            'No': '',
+            'Hari': 'TOTAL',
+            'Tanggal': '',
+            'Jam Masuk': '',
+            'Jam Masuk Efektif': '',
+            'Jam Keluar': '',
+            'Durasi Kerja': '',
+            'Jam Normal': '',
+            'Jam Lembur': formatHoursToDisplay(totalLembur),
+            'Jam Lembur (Desimal)': totalLembur.toFixed(2),
+            'Keterangan': `Total Gaji: Rp ${Math.round(totalGaji).toLocaleString('id-ID')}`
+        });
+        
+        const detailSheet = XLSX.utils.json_to_sheet(detailData);
+        
+        // Set column widths untuk detail sheet
+        const wscolsDetail = [
+            { wch: 5 },    // No
+            { wch: 10 },   // Hari
+            { wch: 12 },   // Tanggal
+            { wch: 10 },   // Jam Masuk
+            { wch: 12 },   // Jam Masuk Efektif
+            { wch: 10 },   // Jam Keluar
+            { wch: 12 },   // Durasi Kerja
+            { wch: 12 },   // Jam Normal
+            { wch: 12 },   // Jam Lembur
+            { wch: 15 },   // Jam Lembur (Desimal)
+            { wch: 25 }    // Keterangan
+        ];
+        detailSheet['!cols'] = wscolsDetail;
+        
+        // ========== BUAT WORKBOOK ==========
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+        XLSX.utils.book_append_sheet(workbook, detailSheet, 'Detail Harian');
+        
+        // Nama file dengan tanggal dan nama karyawan
+        const now = new Date();
+        const dateStr = `${now.getDate().toString().padStart(2, '0')}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getFullYear()}`;
+        const safeName = employeeName.replace(/[^\w\s]/gi, '').replace(/\s+/g, '_');
+        const filename = `Laporan_Lembur_${safeName}_${dateStr}.xlsx`;
+        
+        XLSX.writeFile(workbook, filename);
+        
+        showNotification(`Laporan lembur untuk ${employeeName} berhasil diunduh!`, 'success');
+        
+    } catch (error) {
+        console.error('Error generating report for employee:', error);
+        showNotification(`Gagal mengunduh laporan untuk ${employeeName}.`, 'error');
+    }
+}
+
+// Fungsi untuk membuat dropdown download per orang
+function createPerPersonDownloadDropdown() {
+    if (processedData.length === 0) return;
+    
+    // Dapatkan daftar karyawan unik
+    const uniqueEmployees = [...new Set(processedData.map(item => item.nama))];
+    
+    // Cari container untuk dropdown
+    let dropdownContainer = document.getElementById('per-person-download-container');
+    
+    if (!dropdownContainer) {
+        // Buat container baru
+        dropdownContainer = document.createElement('div');
+        dropdownContainer.id = 'per-person-download-container';
+        dropdownContainer.style.cssText = `
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        `;
+        
+        // Cari tempat untuk menempatkan dropdown
+        const resultsHeader = document.querySelector('#results-section .section-header');
+        const downloadSection = document.querySelector('.download-buttons');
+        
+        if (downloadSection) {
+            downloadSection.parentNode.insertBefore(dropdownContainer, downloadSection.nextSibling);
+        } else if (resultsHeader) {
+            resultsHeader.parentNode.insertBefore(dropdownContainer, resultsHeader.nextSibling);
+        } else {
+            resultsSection.insertBefore(dropdownContainer, resultsSection.firstChild);
+        }
+    }
+    
+    // Isi dropdown container
+    dropdownContainer.innerHTML = `
+        <h4 style="margin-bottom: 10px; color: #2c3e50;">
+            <i class="fas fa-user-download"></i> Download Laporan Per Karyawan
+        </h4>
+        <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">
+            Pilih karyawan untuk mendownload laporan lembur individu:
+        </p>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+            ${uniqueEmployees.map(employee => `
+                <button class="btn-download-per-person" data-employee="${employee}" 
+                    style="background: #3498db; color: white; border: none; padding: 8px 15px; 
+                    border-radius: 5px; cursor: pointer; font-size: 0.9rem;">
+                    <i class="fas fa-download"></i> ${employee}
+                </button>
+            `).join('')}
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <button id="download-all-btn" class="btn-download-all" 
+                style="background: #27ae60; color: white; border: none; padding: 10px 20px; 
+                border-radius: 5px; cursor: pointer; font-weight: bold;">
+                <i class="fas fa-users"></i> Download Semua Karyawan
+            </button>
+            
+            <button id="download-zip-all-btn" class="btn-download-zip" 
+                style="background: #e67e22; color: white; border: none; padding: 10px 20px; 
+                border-radius: 5px; cursor: pointer; font-weight: bold;">
+                <i class="fas fa-file-archive"></i> Download ZIP Semua Laporan
+            </button>
+        </div>
+        
+        <p style="color: #666; margin-top: 15px; font-size: 0.85rem;">
+            <i class="fas fa-info-circle"></i> Setiap laporan individu berisi 2 sheet: 
+            <strong>Summary</strong> dan <strong>Detail Harian</strong>
+        </p>
+    `;
+    
+    // Tambahkan event listeners untuk tombol per orang
+    document.querySelectorAll('.btn-download-per-person').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const employeeName = this.getAttribute('data-employee');
+            downloadOvertimeSalaryReportPerPerson(employeeName);
+        });
+    });
+    
+    // Event listener untuk download semua
+    document.getElementById('download-all-btn').addEventListener('click', downloadAllPerPersonReports);
+    
+    // Event listener untuk download ZIP semua laporan
+    document.getElementById('download-zip-all-btn').addEventListener('click', downloadAllPerPersonReportsZip);
+}
+
+// Download semua laporan per orang (masing-masing file terpisah)
+function downloadAllPerPersonReports() {
+    if (processedData.length === 0) {
+        showNotification('Data belum diproses.', 'warning');
+        return;
+    }
+    
+    const uniqueEmployees = [...new Set(processedData.map(item => item.nama))];
+    
+    if (uniqueEmployees.length === 0) {
+        showNotification('Tidak ada data karyawan.', 'warning');
+        return;
+    }
+    
+    // Tampilkan konfirmasi
+    if (!confirm(`Anda akan mendownload ${uniqueEmployees.length} file laporan individu. Lanjutkan?`)) {
+        return;
+    }
+    
+    // Download satu per satu dengan delay
+    showNotification(`Mendownload ${uniqueEmployees.length} laporan individu...`, 'info');
+    
+    uniqueEmployees.forEach((employee, index) => {
+        setTimeout(() => {
+            downloadOvertimeSalaryReportPerPerson(employee);
+        }, index * 1000); // Delay 1 detik antara download
+    });
+}
+
+// Download semua laporan dalam satu ZIP (menggunakan JSZip)
+async function downloadAllPerPersonReportsZip() {
+    if (processedData.length === 0) {
+        showNotification('Data belum diproses.', 'warning');
+        return;
+    }
+    
+    // Cek apakah JSZip tersedia
+    if (typeof JSZip === 'undefined') {
+        showNotification('Fitur ZIP memerlukan library JSZip. Memuat library...', 'info');
+        await loadJSZipLibrary();
+    }
+    
+    const uniqueEmployees = [...new Set(processedData.map(item => item.nama))];
+    
+    if (uniqueEmployees.length === 0) {
+        showNotification('Tidak ada data karyawan.', 'warning');
+        return;
+    }
+    
+    showNotification(`Menyiapkan ZIP untuk ${uniqueEmployees.length} karyawan...`, 'info');
+    
+    try {
+        const zip = new JSZip();
+        const now = new Date();
+        const dateStr = `${now.getDate().toString().padStart(2, '0')}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getFullYear()}`;
+        
+        // Buat folder dalam ZIP
+        const folder = zip.folder(`Laporan_Lembur_${dateStr}`);
+        
+        // Untuk setiap karyawan, buat file Excel
+        uniqueEmployees.forEach(employee => {
+            try {
+                const employeeData = processedData.filter(item => item.nama === employee);
+                const summary = calculateOvertimeSummary(employeeData);
+                const employeeSummary = summary[0];
+                
+                if (employeeSummary) {
+                    // Buat workbook untuk karyawan ini
+                    const workbook = XLSX.utils.book_new();
+                    
+                    // Sheet Summary
+                    const summaryData = [{
+                        'Nama Karyawan': employeeSummary.nama,
+                        'Kategori': employeeSummary.kategori,
+                        'Rate Lembur': `Rp ${employeeSummary.rate.toLocaleString('id-ID')}/jam`,
+                        'Total Hari': employeeData.length,
+                        'Total Jam Lembur': employeeSummary.totalLembur.toFixed(2),
+                        'Total Gaji Lembur': `Rp ${Math.round(employeeSummary.totalGaji).toLocaleString('id-ID')}`
+                    }];
+                    const summarySheet = XLSX.utils.json_to_sheet(summaryData);
+                    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+                    
+                    // Sheet Detail
+                    const detailData = employeeData.map((item, index) => ({
+                        'No': index + 1,
+                        'Tanggal': formatDate(item.tanggal),
+                        'Hari': getDayNameFromDate(item.tanggal),
+                        'Jam Masuk': item.jamMasuk,
+                        'Jam Keluar': item.jamKeluar,
+                        'Lembur': item.jamLemburDesimal.toFixed(2) + ' jam',
+                        'Keterangan': item.keterangan
+                    }));
+                    const detailSheet = XLSX.utils.json_to_sheet(detailData);
+                    XLSX.utils.book_append_sheet(workbook, detailSheet, 'Detail');
+                    
+                    // Konversi workbook ke binary
+                    const excelBinary = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+                    
+                    // Tambahkan ke ZIP
+                    const safeName = employee.replace(/[^\w\s]/gi, '').replace(/\s+/g, '_');
+                    folder.file(`Laporan_${safeName}.xlsx`, excelBinary, { binary: true });
+                }
+            } catch (error) {
+                console.error(`Error processing ${employee}:`, error);
+            }
+        });
+        
+        // Generate ZIP file
+        const zipContent = await zip.generateAsync({ type: 'blob' });
+        
+        // Download ZIP
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(zipContent);
+        link.download = `Laporan_Lembur_Semua_Karyawan_${dateStr}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showNotification(`ZIP berhasil diunduh (${uniqueEmployees.length} file)!`, 'success');
+        
+    } catch (error) {
+        console.error('Error creating ZIP:', error);
+        showNotification('Gagal membuat file ZIP.', 'error');
+        
+        // Fallback: download satu per satu
+        setTimeout(() => {
+            if (confirm('Gagal membuat ZIP. Ingin mendownload file satu per satu?')) {
+                downloadAllPerPersonReports();
+            }
+        }, 500);
+    }
+}
+
+// Load JSZip library jika belum ada
+function loadJSZipLibrary() {
+    return new Promise((resolve, reject) => {
+        if (typeof JSZip !== 'undefined') {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
 // Fungsi alias untuk kompatibilitas
 function downloadOverTimeSalaryReport() {
-    return downloadOvertimeSalaryReport();
+    return downloadOvertimeSalaryReportAll();
 }
 
 // ============================
@@ -766,9 +1120,16 @@ function displaySummaries(data) {
             return hours < 7;
         }).length;
         
+        // Tambahkan tombol download per orang di summary
         employeeHtml += `
-            <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
-                <strong>${employee}</strong><br>
+            <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee; position: relative;">
+                <strong>${employee}</strong>
+                <button class="btn-download-employee-summary" data-employee="${employee}" 
+                    style="position: absolute; right: 0; top: 0; background: #3498db; color: white; 
+                    border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 0.8rem;">
+                    <i class="fas fa-download"></i>
+                </button>
+                <br>
                 <small>
                     Total Hari: ${totalHari} | 
                     Total Jam: ${formatHoursToDisplay(totalJam)}<br>
@@ -782,7 +1143,17 @@ function displaySummaries(data) {
         `;
     });
     
-    if (employeeSummary) employeeSummary.innerHTML = employeeHtml;
+    if (employeeSummary) {
+        employeeSummary.innerHTML = employeeHtml;
+        
+        // Tambahkan event listeners untuk tombol download di summary
+        document.querySelectorAll('.btn-download-employee-summary').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const employeeName = this.getAttribute('data-employee');
+                downloadOvertimeSalaryReportPerPerson(employeeName);
+            });
+        });
+    }
     
     // Financial summary dengan perhitungan gaji
     const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
@@ -933,7 +1304,7 @@ function initializeApp() {
     console.log('XLSX available:', typeof XLSX !== 'undefined');
     console.log('Chart.js available:', typeof Chart !== 'undefined');
     
-    // Inisialisasi tombol download gaji lembur
+    // Inisialisasi tombol download
     initializeDownloadButtons();
     
     // Tab functionality
@@ -985,152 +1356,61 @@ function initializeApp() {
 
 // Fungsi untuk menginisialisasi tombol download
 function initializeDownloadButtons() {
-    // Cari tombol dengan id 'download-salary'
-    let downloadSalaryBtn = document.getElementById('download-salary');
+    // Cari atau buat tombol download utama
+    let mainDownloadBtn = document.getElementById('download-salary');
     
-    console.log('Mencari tombol download-salary:', downloadSalaryBtn);
-    
-    if (downloadSalaryBtn) {
-        // Jika tombol ditemukan, tambahkan event listener
-        downloadSalaryBtn.addEventListener('click', downloadOvertimeSalaryReport);
-        console.log('Tombol download-salary ditemukan dan diinisialisasi');
+    if (mainDownloadBtn) {
+        mainDownloadBtn.addEventListener('click', downloadOvertimeSalaryReportAll);
+        console.log('Tombol download utama ditemukan dan diinisialisasi');
     } else {
-        // Jika tidak ditemukan, buat tombol secara otomatis
-        console.log('Tombol download-salary tidak ditemukan, membuat tombol...');
-        createDownloadButton();
+        // Buat tombol utama jika tidak ada
+        createMainDownloadButton();
     }
 }
 
-// Fungsi untuk membuat tombol download jika tidak ada
-function createDownloadButton() {
-    // Tunggu hingga DOM siap
-    setTimeout(() => {
-        // Cari tempat yang cocok untuk menempatkan tombol
-        const resultsSection = document.getElementById('results-section');
-        const downloadButtonsContainer = document.querySelector('.download-buttons') || 
-                                        document.querySelector('.button-group') ||
-                                        document.querySelector('.section-actions');
-        
-        let container;
-        
-        if (downloadButtonsContainer) {
-            container = downloadButtonsContainer;
-        } else if (resultsSection) {
-            // Cari atau buat container untuk tombol di results section
-            let btnContainer = resultsSection.querySelector('.download-container');
-            if (!btnContainer) {
-                btnContainer = document.createElement('div');
-                btnContainer.className = 'download-container';
-                btnContainer.style.cssText = `
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 10px;
-                    margin: 20px 0;
-                    justify-content: center;
-                `;
-                
-                const firstChild = resultsSection.firstChild;
-                if (firstChild) {
-                    resultsSection.insertBefore(btnContainer, firstChild);
-                } else {
-                    resultsSection.appendChild(btnContainer);
-                }
-            }
-            container = btnContainer;
-        } else {
-            // Buat floating button jika tidak ada container yang cocok
-            createFloatingDownloadButton();
-            return;
-        }
-        
-        // Buat tombol download gaji lembur
-        const button = document.createElement('button');
-        button.id = 'download-salary';
-        button.className = 'btn btn-primary';
-        button.innerHTML = `
-            <i class="fas fa-file-excel"></i> 
-            <span>Download Rekap Gaji Lembur Per Orang</span>
+// Buat tombol download utama
+function createMainDownloadButton() {
+    const resultsSection = document.getElementById('results-section');
+    if (!resultsSection) return;
+    
+    // Cari atau buat container untuk tombol
+    let buttonContainer = resultsSection.querySelector('.download-container');
+    if (!buttonContainer) {
+        buttonContainer = document.createElement('div');
+        buttonContainer.className = 'download-container';
+        buttonContainer.style.cssText = `
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
         `;
-        button.style.cssText = `
-            background: linear-gradient(135deg, #27ae60, #2ecc71);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
-            transition: all 0.3s ease;
-        `;
-        
-        // Hover effect
-        button.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-2px)';
-            this.style.boxShadow = '0 6px 16px rgba(39, 174, 96, 0.4)';
-        });
-        
-        button.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-            this.style.boxShadow = '0 4px 12px rgba(39, 174, 96, 0.3)';
-        });
-        
-        // Tambahkan event listener
-        button.addEventListener('click', downloadOvertimeSalaryReport);
-        
-        // Tambahkan ke container
-        container.appendChild(button);
-        
-        console.log('Tombol download gaji lembur berhasil dibuat');
-        
-    }, 1000); // Tunggu 1 detik untuk memastikan DOM siap
-}
-
-// Fungsi untuk membuat floating button
-function createFloatingDownloadButton() {
-    const button = document.createElement('button');
-    button.id = 'download-salary';
-    button.className = 'floating-download-btn';
-    button.innerHTML = `
-        <i class="fas fa-file-excel"></i> 
-        <span>Download Gaji Lembur</span>
+        resultsSection.insertBefore(buttonContainer, resultsSection.firstChild);
+    }
+    
+    // Buat tombol untuk semua karyawan
+    const allButton = document.createElement('button');
+    allButton.id = 'download-salary';
+    allButton.className = 'btn btn-primary';
+    allButton.innerHTML = `
+        <i class="fas fa-users"></i> Download Semua Karyawan
     `;
-    button.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: linear-gradient(135deg, #e74c3c, #c0392b);
+    allButton.style.cssText = `
+        background: linear-gradient(135deg, #27ae60, #2ecc71);
         color: white;
         border: none;
-        padding: 12px 20px;
-        border-radius: 50px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: bold;
         cursor: pointer;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 8px;
-        z-index: 1000;
-        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
     `;
     
-    // Hover effect untuk floating button
-    button.addEventListener('mouseenter', function() {
-        this.style.transform = 'scale(1.05)';
-        this.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
-    });
-    
-    button.addEventListener('mouseleave', function() {
-        this.style.transform = 'scale(1)';
-        this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-    });
-    
-    button.addEventListener('click', downloadOvertimeSalaryReport);
-    
-    document.body.appendChild(button);
-    
-    console.log('Floating button download gaji lembur berhasil dibuat');
+    allButton.addEventListener('click', downloadOvertimeSalaryReportAll);
+    buttonContainer.appendChild(allButton);
 }
 
 // Handle file selection
@@ -1259,8 +1539,8 @@ function processData() {
             resultsSection.style.display = 'block';
             resultsSection.scrollIntoView({ behavior: 'smooth' });
             
-            // Pastikan tombol download tersedia
-            ensureDownloadButtonAvailable();
+            // Buat dropdown download per orang
+            createPerPersonDownloadDropdown();
             
             showNotification(`Perhitungan lembur selesai! (Jam kerja: ${currentWorkHours} jam)`, 'success');
             
@@ -1272,22 +1552,6 @@ function processData() {
             processBtn.disabled = false;
         }
     }, 1500);
-}
-
-// Fungsi untuk memastikan tombol download tersedia
-function ensureDownloadButtonAvailable() {
-    // Cek apakah tombol sudah ada
-    let btn = document.getElementById('download-salary');
-    
-    if (!btn && processedData.length > 0) {
-        // Coba buat tombol lagi
-        createDownloadButton();
-        
-        // Tampilkan notifikasi
-        setTimeout(() => {
-            showNotification('Tombol download gaji lembur per orang sekarang tersedia!', 'info');
-        }, 500);
-    }
 }
 
 // Display results
