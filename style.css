@@ -285,7 +285,7 @@ body {
     min-height: calc(100vh - 140px);
 }
 
-/* Sidebar - DIUBAH */
+/* Sidebar */
 .sidebar {
     width: 280px;
     background: white;
@@ -293,7 +293,10 @@ body {
     border-right: 1px solid var(--light-color);
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    height: calc(100vh - 140px);
+    position: sticky;
+    top: 140px;
+    overflow-y: auto;
 }
 
 .sidebar-header {
@@ -313,6 +316,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    margin-bottom: 2rem;
 }
 
 .stat-card {
@@ -375,6 +379,7 @@ body {
     flex: 1;
     padding: 2rem;
     overflow-y: auto;
+    max-height: calc(100vh - 140px);
 }
 
 .page-header {
@@ -682,15 +687,6 @@ body {
     font-weight: 600;
     color: var(--primary-color);
     margin-bottom: 0.75rem;
-}
-
-.optional-tag {
-    background: var(--warning-color);
-    color: white;
-    font-size: 0.7rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-weight: normal;
 }
 
 .input-group {
@@ -1116,6 +1112,8 @@ body {
     
     .sidebar {
         width: 100%;
+        height: auto;
+        position: static;
         border-right: none;
         border-bottom: 1px solid var(--light-color);
         padding: 1rem;
@@ -1126,8 +1124,9 @@ body {
         justify-content: space-around;
     }
     
-    .system-info {
-        display: none; /* Sembunyikan petunjuk di mobile untuk hemat ruang */
+    .content {
+        max-height: none;
+        overflow-y: visible;
     }
     
     .data-visualization {
@@ -1194,18 +1193,6 @@ body {
         width: 100%;
         justify-content: center;
     }
-}
-
-/* Dalam style.css tambahkan */
-.download-option .option-content p {
-    color: var(--gray-color);
-    font-size: 0.85rem;
-    line-height: 1.4;
-}
-
-/* Warna khusus untuk ikon gaji lembur */
-.fa-money-bill-wave {
-    color: #27ae60 !important;
 }
 
 /* Styling untuk modal pilihan download */
