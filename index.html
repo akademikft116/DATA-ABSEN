@@ -34,7 +34,6 @@
         <header class="header">
             <div class="header-top">
                 <div class="university-brand">
-                    <!-- Ganti dengan logo Anda -->
                     <div class="logo">
                         <img src="logo.jpeg" alt="Logo Universitas Langlangbuana" class="logo-img">
                     </div>
@@ -65,7 +64,6 @@
             
             <nav class="header-nav">
                 <ul>
-                    <!-- Hanya sisakan Dashboard saja -->
                     <li class="active"><a href="#"><i class="fas fa-home"></i> Dashboard</a></li>
                 </ul>
             </nav>
@@ -73,7 +71,7 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Left Sidebar - DIUBAH -->
+            <!-- Left Sidebar -->
             <aside class="sidebar">
                 <div class="sidebar-header">
                     <h3><i class="fas fa-briefcase"></i> Informasi Sistem</h3>
@@ -96,27 +94,27 @@
                     </div>
                 </div>
 
-               <!-- Di dalam .system-info di sidebar -->
-<div class="system-info">
-    <h4><i class="fas fa-info-circle"></i> Petunjuk Singkat</h4>
-    <ol>
-        <li>Unggah file Excel data presensi</li>
-        <li>Atur jam kerja normal (default: 8 jam)</li>
-        <li>Klik "Hitung Lembur" untuk memproses</li>
-        <li>Download laporan sesuai kebutuhan</li>
-    </ol>
-    
-    <div style="margin-top: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;">
-        <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #2c3e50;">
-            <i class="fas fa-clock"></i> Aturan Lembur:
-        </h5>
-        <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-bottom: 0;">
-            <li>Jam masuk efektif: 07:00</li>
-            <li>Jam pulang normal: 16:00</li>
-            <li>Lembur ≥ 10 menit baru dihitung</li>
-        </ul>
-    </div>
-</div>
+                <div class="system-info">
+                    <h4><i class="fas fa-info-circle"></i> Petunjuk Singkat</h4>
+                    <ol>
+                        <li>Unggah file Excel data presensi</li>
+                        <li>Atur jam kerja normal (default: 8 jam)</li>
+                        <li>Klik "Hitung Lembur" untuk memproses</li>
+                        <li>Download laporan sesuai kebutuhan</li>
+                    </ol>
+                    
+                    <div style="margin-top: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;">
+                        <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #2c3e50;">
+                            <i class="fas fa-clock"></i> Aturan Lembur:
+                        </h5>
+                        <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-bottom: 0;">
+                            <li>Jam masuk efektif: 07:00</li>
+                            <li>Jam pulang normal: 16:00</li>
+                            <li>Lembur ≥ 10 menit baru dihitung</li>
+                        </ul>
+                    </div>
+                </div>
+            </aside>
 
             <!-- Content Area -->
             <div class="content">
@@ -191,7 +189,6 @@
                     </div>
                     <div class="card-body">
                         <div class="config-grid">
-                            <!-- HANYA TINGGAL JAM KERJA NORMAL -->
                             <div class="config-item">
                                 <label for="work-hours">
                                     <i class="fas fa-business-time"></i> Jam Kerja Normal
@@ -338,6 +335,8 @@
                                                 <th>No</th>
                                                 <th>Nama</th>
                                                 <th>Tanggal</th>
+                                                <th>Jam Masuk</th>
+                                                <th>Jam Keluar</th>
                                                 <th>Durasi</th>
                                                 <th>Jam Normal</th>
                                                 <th>Jam Lembur</th>
@@ -371,102 +370,103 @@
                         </div>
                     </div>
 
-                    <!-- Download Section - Tambahkan opsi baru -->
-<!-- Download Section -->
-<div class="card download-card">
-    <div class="card-header">
-        <h3><i class="fas fa-download"></i> Unduh Laporan</h3>
-        <p>Download hasil pengolahan data dalam format Excel</p>
-    </div>
-    <div class="card-body">
-        <div class="download-options">
-            <!-- Opsi 1 -->
-            <div class="download-option">
-                <div class="option-icon">
-                    <i class="fas fa-file-excel" style="color: #217346;"></i>
-                </div>
-                <div class="option-content">
-                    <h4>Data Presensi Asli</h4>
-                    <p>File Excel berisi data presensi yang diupload</p>
-                </div>
-                <button class="btn btn-download" id="download-original">
-                    <i class="fas fa-download"></i> Unduh (.xlsx)
-                </button>
-            </div>
+                    <!-- Download Section -->
+                    <div class="card download-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-download"></i> Unduh Laporan</h3>
+                            <p>Download hasil pengolahan data dalam format Excel</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="download-options">
+                                <!-- Opsi 1 -->
+                                <div class="download-option">
+                                    <div class="option-icon">
+                                        <i class="fas fa-file-excel" style="color: #217346;"></i>
+                                    </div>
+                                    <div class="option-content">
+                                        <h4>Data Presensi Asli</h4>
+                                        <p>File Excel berisi data presensi yang diupload</p>
+                                    </div>
+                                    <button class="btn btn-download" id="download-original">
+                                        <i class="fas fa-download"></i> Unduh (.xlsx)
+                                    </button>
+                                </div>
 
-            <!-- Opsi 2 -->
-            <div class="download-option">
-                <div class="option-icon">
-                    <i class="fas fa-file-invoice-dollar" style="color: #4A90E2;"></i>
-                </div>
-                <div class="option-content">
-                    <h4>Data Terhitung dengan Lembur</h4>
-                    <p>File Excel dengan perhitungan lembur lengkap</p>
-                </div>
-                <button class="btn btn-download" id="download-processed">
-                    <i class="fas fa-download"></i> Unduh (.xlsx)
-                </button>
-            </div>
+                                <!-- Opsi 2 -->
+                                <div class="download-option">
+                                    <div class="option-icon">
+                                        <i class="fas fa-file-invoice-dollar" style="color: #4A90E2;"></i>
+                                    </div>
+                                    <div class="option-content">
+                                        <h4>Data Terhitung dengan Lembur</h4>
+                                        <p>File Excel dengan perhitungan lembur lengkap</p>
+                                    </div>
+                                    <button class="btn btn-download" id="download-processed">
+                                        <i class="fas fa-download"></i> Unduh (.xlsx)
+                                    </button>
+                                </div>
 
-            <!-- Opsi 3 -->
-            <div class="download-option">
-                <div class="option-icon">
-                    <i class="fas fa-file-archive" style="color: #F5A623;"></i>
-                </div>
-                <div class="option-content">
-                    <h4>Paket Lengkap</h4>
-                    <p>Kedua file dalam satu paket ZIP</p>
-                </div>
-                <button class="btn btn-download" id="download-both">
-                    <i class="fas fa-file-archive"></i> Unduh (.zip)
-                </button>
-            </div>
+                                <!-- Opsi 3 -->
+                                <div class="download-option">
+                                    <div class="option-icon">
+                                        <i class="fas fa-file-archive" style="color: #F5A623;"></i>
+                                    </div>
+                                    <div class="option-content">
+                                        <h4>Paket Lengkap</h4>
+                                        <p>Kedua file dalam satu paket ZIP</p>
+                                    </div>
+                                    <button class="btn btn-download" id="download-both">
+                                        <i class="fas fa-file-archive"></i> Unduh (.zip)
+                                    </button>
+                                </div>
 
-            <!-- Opsi 4 -->
-            <div class="download-option">
-                <div class="option-icon">
-                    <i class="fas fa-money-bill-wave" style="color: #27ae60;"></i>
-                </div>
-                <div class="option-content">
-                    <h4>Rekap Gaji Lembur</h4>
-                    <p>Download dengan format tabel Excel per orang</p>
-                    <small style="color: #666;">
-                        <i class="fas fa-info-circle"></i> Pilih format tabel per karyawan
-                    </small>
-                </div>
-                <button class="btn btn-download" id="download-salary">
-                    <i class="fas fa-download"></i> Pilih Format
-                </button>
-            </div>
-        </div> <!-- Penutup .download-options -->
-    </div> <!-- Penutup .card-body -->
-</div> <!-- Penutup .download-card -->
-                    
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <!-- Tambahkan logo kecil di footer -->
-                    <div class="footer-logo">
-                        <img src="logo.jpeg" alt="Logo Universitas Langlangbuana" class="footer-logo-img">
+                                <!-- Opsi 4 -->
+                                <div class="download-option">
+                                    <div class="option-icon">
+                                        <i class="fas fa-money-bill-wave" style="color: #27ae60;"></i>
+                                    </div>
+                                    <div class="option-content">
+                                        <h4>Rekap Gaji Lembur</h4>
+                                        <p>Download dengan format tabel Excel per orang</p>
+                                        <small style="color: #666;">
+                                            <i class="fas fa-info-circle"></i> Pilih format tabel per karyawan
+                                        </small>
+                                    </div>
+                                    <button class="btn btn-download" id="download-salary">
+                                        <i class="fas fa-download"></i> Pilih Format
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <h4>Universitas Langlangbuana</h4>
-                    <p>Sistem Pengolahan Data Presensi</p>
                 </div>
-                <div class="footer-section">
-                    <h4>Kontak</h4>
-                    <p><i class="fas fa-envelope"></i> presensi@unla.ac.id</p>
-                    <p><i class="fas fa-phone"></i> (022) 1234567</p>
-                </div>
-                <div class="footer-section">
-                    <h4>Dikembangkan Oleh</h4>
-                    <p>M. Shidqi F</p>
-                </div>
+
+                <!-- Footer -->
+                <footer class="footer">
+                    <div class="footer-content">
+                        <div class="footer-section">
+                            <div class="footer-logo">
+                                <img src="logo.jpeg" alt="Logo Universitas Langlangbuana" class="footer-logo-img">
+                            </div>
+                            <h4>Universitas Langlangbuana</h4>
+                            <p>Sistem Pengolahan Data Presensi</p>
+                        </div>
+                        <div class="footer-section">
+                            <h4>Kontak</h4>
+                            <p><i class="fas fa-envelope"></i> presensi@unla.ac.id</p>
+                            <p><i class="fas fa-phone"></i> (022) 1234567</p>
+                        </div>
+                        <div class="footer-section">
+                            <h4>Dikembangkan Oleh</h4>
+                            <p>M. Shidqi F</p>
+                        </div>
+                    </div>
+                    <div class="footer-bottom">
+                        <p>&copy; 2025 Universitas Langlangbuana</p>
+                    </div>
+                </footer>
             </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 Universitas Langlangbuana</p>
-            </div>
-        </footer>
+        </main>
     </div>
 
     <!-- Modal Help -->
