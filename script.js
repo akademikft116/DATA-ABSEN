@@ -10,7 +10,7 @@ let salaryChart = null;
 let currentWorkHours = 8;
 
 // ============================
-// KONFIGURASI KATEGORI DAN RATE LEMBUR
+// KONFIGURASI ATURAN BARU
 // ============================
 
 const WORK_START_TIME = '07:00';    // Jam mulai kerja efektif
@@ -173,8 +173,7 @@ function parseDateTime(datetimeStr) {
     return { date: '', time: '' };
 }
 
-// Calculate hours between two time strings
-// Calculate hours between two time strings dengan aturan baru
+// Calculate hours between two time strings DENGAN ATURAN BARU
 function calculateHours(timeIn, timeOut) {
     if (!timeIn || !timeOut) return 0;
     
@@ -303,6 +302,7 @@ function getEffectiveInTime(jamMasuk) {
         return jamMasuk;
     }
 }
+
 // Helper functions untuk tabel Excel
 function getDayName(dateString) {
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -447,7 +447,7 @@ function pairInOutTimes(data) {
     return result;
 }
 
-// Calculate overtime per day - LEMBUR jika total jam > currentWorkHours DAN pulang setelah 16:00
+// Calculate overtime per day - DENGAN ATURAN BARU
 function calculateOvertimePerDay(data, workHours = 8) {
     const result = data.map(record => {
         const hoursWorked = record.durasi || calculateHours(record.jamMasuk, record.jamKeluar);
@@ -1724,7 +1724,6 @@ function displayOriginalTable(data) {
 }
 
 // Display processed table (DATA PER HARI)
-// Display processed table (DATA PER HARI)
 function displayProcessedTable(data) {
     const tbody = document.getElementById('processed-table-body');
     if (!tbody) {
@@ -1761,8 +1760,8 @@ function displayProcessedTable(data) {
         tbody.appendChild(row);
     });
 }
-// Display summaries
-// Display summaries
+
+// Display summaries DENGAN ATURAN BARU
 function displaySummaries(data) {
     const employeeSummary = document.getElementById('employee-summary');
     const financialSummary = document.getElementById('financial-summary');
