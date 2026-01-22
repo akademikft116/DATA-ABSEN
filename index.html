@@ -94,26 +94,35 @@
                     </div>
                 </div>
 
-                <div class="system-info">
-                    <h4><i class="fas fa-info-circle"></i> Petunjuk Singkat</h4>
-                    <ol>
-                        <li>Unggah file Excel data presensi</li>
-                        <li>Atur jam kerja normal (default: 8 jam)</li>
-                        <li>Klik "Hitung Lembur" untuk memproses</li>
-                        <li>Download laporan sesuai kebutuhan</li>
-                    </ol>
-                    
-                    <div style="margin-top: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;">
-                        <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #2c3e50;">
-                            <i class="fas fa-clock"></i> Aturan Lembur:
-                        </h5>
-                        <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-bottom: 0;">
-                            <li>Jam masuk efektif: 07:00</li>
-                            <li>Jam pulang normal: 16:00</li>
-                            <li>Lembur ≥ 10 menit baru dihitung</li>
-                        </ul>
-                    </div>
-                </div>
+               <!-- Di dalam sidebar, update bagian Aturan Lembur -->
+<div class="system-info">
+    <h4><i class="fas fa-info-circle"></i> Petunjuk Singkat</h4>
+    <ol>
+        <li>Unggah file Excel data presensi</li>
+        <li>Atur jam kerja normal (default: 8 jam)</li>
+        <li>Klik "Hitung Lembur" untuk memproses</li>
+        <li>Download laporan sesuai kebutuhan</li>
+    </ol>
+    
+    <div style="margin-top: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;">
+        <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #2c3e50;">
+            <i class="fas fa-calendar-day"></i> Aturan Khusus Jumat:
+        </h5>
+        <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-bottom: 0.5rem;">
+            <li>Jam masuk efektif: 07:00 (sama seperti hari lain)</li>
+            <li>Jam pulang normal: 15:00 (jam 3 sore)</li>
+            <li>Lembur ≥ 10 menit setelah jam 15:00</li>
+        </ul>
+        <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #2c3e50;">
+            <i class="fas fa-clock"></i> Aturan Hari Lain:
+        </h5>
+        <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-bottom: 0;">
+            <li>Jam masuk efektif: 07:00</li>
+            <li>Jam pulang normal: 16:00</li>
+            <li>Lembur ≥ 10 menit setelah jam 16:00</li>
+        </ul>
+    </div>
+</div>
             </aside>
 
             <!-- Content Area -->
