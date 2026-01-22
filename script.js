@@ -10,12 +10,22 @@ let salaryChart = null;
 let currentWorkHours = 8;
 
 // ============================
-// KONFIGURASI ATURAN BARU
+// KONFIGURASI ATURAN BARU - HARI JUMAT
 // ============================
 
-const WORK_START_TIME = '07:00';    // Jam mulai kerja efektif
-const WORK_END_TIME = '16:00';      // Jam pulang normal
-const MIN_OVERTIME_MINUTES = 10;    // Minimal lembur yang dihitung (menit)
+// Hari Jumat special rules
+const FRIDAY_RULES = {
+    workStartTime: '07:00',      // Jam masuk efektif (sama dengan hari lain)
+    workEndTime: '15:00',        // Jam pulang normal (Jumat pulang jam 3 sore)
+    minOvertimeMinutes: 10       // Minimal lembur yang dihitung
+};
+
+// Normal days rules
+const NORMAL_DAY_RULES = {
+    workStartTime: '07:00',
+    workEndTime: '16:00',
+    minOvertimeMinutes: 10
+};
 
 const overtimeRates = {
     'TU': 12500,
@@ -65,7 +75,7 @@ processBtn.addEventListener('click', processData);
 cancelUploadBtn.addEventListener('click', cancelUpload);
 
 // ============================
-// HELPER FUNCTIONS
+// HELPER FUNCTIONS - DENGAN ATURAN JUMAT
 // ============================
 
 // Format hours from decimal to hours:minutes
@@ -153,18 +163,26 @@ function parseDateTime(datetimeStr) {
     
     try {
         if (typeof datetimeStr === 'string') {
-            const parts = datetimeStr.split(' ');
-            if (parts.length >= 2) {
+            // Coba format "DD/MM/YYYY HH:MM"
+            if (datetimeStr.includes('/') && datetimeStr.includes(':')) {
+                const spaceIndex = datetimeStr.indexOf(' ');
+                if (spaceIndex > 0) {
+                    return {
+                        date: datetimeStr.substring(0, spaceIndex).trim(),
+                        time: datetimeStr.substring(spaceIndex + 1).trim()
+                    };
+                }
+            }
+            
+            // Coba format Excel date number
+            if (!isNaN(datetimeStr) && datetimeStr.toString().length > 5) {
+                const excelDate = parseFloat(datetimeStr);
+                const date = new Date((excelDate - 25569) * 86400 * 1000);
                 return {
-                    date: parts[0],
-                    time: parts[1]
+                    date: `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`,
+                    time: `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
                 };
             }
-        } else if (datetimeStr instanceof Date) {
-            return {
-                date: datetimeStr.toISOString().split('T')[0],
-                time: datetimeStr.toTimeString().split(' ')[0].substring(0, 5)
-            };
         }
     } catch (error) {
         console.error('Error parsing datetime:', error);
@@ -173,9 +191,47 @@ function parseDateTime(datetimeStr) {
     return { date: '', time: '' };
 }
 
-// Calculate hours between two time strings DENGAN ATURAN BARU
-function calculateHours(timeIn, timeOut) {
-    if (!timeIn || !timeOut) return 0;
+// ============================
+// FUNGSI UNTUK HARI JUMAT
+// ============================
+
+// Fungsi untuk mengecek apakah suatu tanggal adalah hari Jumat
+function isFriday(dateString) {
+    if (!dateString) return false;
+    
+    try {
+        // Parse tanggal dari format DD/MM/YYYY
+        const [day, month, year] = dateString.split('/');
+        const date = new Date(year, month - 1, day);
+        
+        // Cek apakah hari Jumat (5 = Jumat)
+        return date.getDay() === 5;
+    } catch (error) {
+        console.error('Error checking Friday:', error);
+        return false;
+    }
+}
+
+// Fungsi untuk mendapatkan nama hari dalam bahasa Indonesia
+function getDayName(dateString) {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    try {
+        const [day, month, year] = dateString.split('/');
+        const date = new Date(year, month - 1, day);
+        return days[date.getDay()];
+    } catch (error) {
+        return '';
+    }
+}
+
+// Fungsi untuk mendapatkan aturan berdasarkan hari
+function getDayRules(dateString) {
+    return isFriday(dateString) ? FRIDAY_RULES : NORMAL_DAY_RULES;
+}
+
+// Calculate hours between two time strings DENGAN ATURAN JUMAT
+function calculateHoursWithFridayRules(timeIn, timeOut, dateString) {
+    if (!timeIn || !timeOut || !dateString) return 0;
     
     try {
         const parseTime = (timeStr) => {
@@ -195,12 +251,18 @@ function calculateHours(timeIn, timeOut) {
         
         if (!inTime || !outTime) return 0;
         
-        // Konversi ke menit
+        // Dapatkan aturan berdasarkan hari
+        const rules = getDayRules(dateString);
+        
+        // Konversi jam mulai kerja efektif ke menit
+        const [startHour, startMinute] = rules.workStartTime.split(':').map(Number);
+        const workStartMinutes = startHour * 60 + startMinute;
+        
+        // Konversi input ke menit
         const inMinutes = inTime.hours * 60 + inTime.minutes;
         const outMinutes = outTime.hours * 60 + outTime.minutes;
         
-        // Aturan 1: Jam masuk efektif mulai 7:00
-        const workStartMinutes = 7 * 60; // 07:00 = 420 menit
+        // Aturan: Jam masuk efektif (minimum jam start)
         const effectiveInMinutes = Math.max(inMinutes, workStartMinutes);
         
         // Hitung total menit kerja
@@ -214,18 +276,14 @@ function calculateHours(timeIn, timeOut) {
         return Math.round((totalMinutes / 60) * 100) / 100;
         
     } catch (error) {
-        console.error('Error calculating hours:', error);
+        console.error('Error calculating hours with Friday rules:', error);
         return 0;
     }
 }
 
-// ============================
-// FUNGSI PERHITUNGAN BARU
-// ============================
-
-// Fungsi untuk menghitung lembur dengan aturan baru
-function calculateOvertimeWithNewRules(jamKeluar) {
-    if (!jamKeluar) return 0;
+// Fungsi untuk menghitung lembur dengan aturan baru termasuk Jumat
+function calculateOvertimeWithDayRules(jamKeluar, dateString) {
+    if (!jamKeluar || !dateString) return 0;
     
     try {
         const parseTime = (timeStr) => {
@@ -242,17 +300,22 @@ function calculateOvertimeWithNewRules(jamKeluar) {
         const outTime = parseTime(jamKeluar);
         if (!outTime) return 0;
         
-        const outMinutes = outTime.hours * 60 + outTime.minutes;
-        const workEndMinutes = 16 * 60; // 16:00 = 960 menit
+        // Dapatkan aturan berdasarkan hari
+        const rules = getDayRules(dateString);
         
-        // Jika pulang sebelum atau tepat jam 16:00, tidak ada lembur
+        const [endHour, endMinute] = rules.workEndTime.split(':').map(Number);
+        const workEndMinutes = endHour * 60 + endMinute;
+        
+        const outMinutes = outTime.hours * 60 + outTime.minutes;
+        
+        // Jika pulang sebelum atau tepat jam pulang normal, tidak ada lembur
         if (outMinutes <= workEndMinutes) return 0;
         
         // Hitung menit lembur
         let overtimeMinutes = outMinutes - workEndMinutes;
         
-        // Aturan 3: Abaikan lembur kurang dari 10 menit
-        if (overtimeMinutes < MIN_OVERTIME_MINUTES) {
+        // Aturan: Abaikan lembur kurang dari minimal yang ditentukan
+        if (overtimeMinutes < rules.minOvertimeMinutes) {
             return 0;
         }
         
@@ -262,14 +325,14 @@ function calculateOvertimeWithNewRules(jamKeluar) {
         return overtimeHours;
         
     } catch (error) {
-        console.error('Error calculating overtime:', error);
+        console.error('Error calculating overtime with day rules:', error);
         return 0;
     }
 }
 
-// Fungsi untuk mendapatkan jam masuk efektif
-function getEffectiveInTime(jamMasuk) {
-    if (!jamMasuk) return '-';
+// Fungsi untuk mendapatkan jam masuk efektif dengan aturan Jumat
+function getEffectiveInTimeWithDayRules(jamMasuk, dateString) {
+    if (!jamMasuk || !dateString) return jamMasuk;
     
     try {
         const parseTime = (timeStr) => {
@@ -286,21 +349,121 @@ function getEffectiveInTime(jamMasuk) {
         const inTime = parseTime(jamMasuk);
         if (!inTime) return jamMasuk;
         
-        const inMinutes = inTime.hours * 60 + inTime.minutes;
-        const workStartMinutes = 7 * 60; // 07:00
+        // Dapatkan aturan berdasarkan hari
+        const rules = getDayRules(dateString);
         
-        // Jika masuk sebelum 7:00, gunakan 7:00
+        const [startHour, startMinute] = rules.workStartTime.split(':').map(Number);
+        const workStartMinutes = startHour * 60 + startMinute;
+        const inMinutes = inTime.hours * 60 + inTime.minutes;
+        
+        // Jika masuk sebelum jam mulai efektif, gunakan jam mulai efektif
         if (inMinutes < workStartMinutes) {
-            return '07:00';
+            return rules.workStartTime;
         }
         
-        // Jika masuk setelah 7:00, gunakan jam masuk sebenarnya
+        // Jika masuk setelah jam mulai efektif, gunakan jam masuk sebenarnya
         return jamMasuk;
         
     } catch (error) {
         console.error('Error getting effective in time:', error);
         return jamMasuk;
     }
+}
+
+// Calculate hours between two time strings (untuk kompatibilitas)
+function calculateHours(timeIn, timeOut) {
+    return calculateHoursWithFridayRules(timeIn, timeOut, '01/01/2024');
+}
+
+// ============================
+// FUNGSI PERHITUNGAN BARU DENGAN ATURAN JUMAT
+// ============================
+
+// Calculate overtime per day - DENGAN ATURAN JUMAT
+function calculateOvertimePerDay(data, workHours = 8) {
+    const result = data.map(record => {
+        const hoursWorked = record.durasi || calculateHoursWithFridayRules(
+            record.jamMasuk, 
+            record.jamKeluar, 
+            record.tanggal
+        );
+        
+        // Hitung lembur dengan aturan baru (berdasarkan jam pulang dan hari)
+        const jamLemburDesimal = calculateOvertimeWithDayRules(record.jamKeluar, record.tanggal);
+        
+        // Jam normal: total jam dikurangi jam lembur, maksimal workHours
+        const jamNormal = Math.min(hoursWorked - jamLemburDesimal, workHours);
+        
+        // Format untuk display
+        let jamLemburDisplay = "0 jam";
+        if (jamLemburDesimal > 0) {
+            const totalMenitLembur = Math.round(jamLemburDesimal * 60);
+            const jamLemburJam = Math.floor(totalMenitLembur / 60);
+            const jamLemburMenit = totalMenitLembur % 60;
+            
+            if (jamLemburJam === 0) {
+                jamLemburDisplay = `${jamLemburMenit} menit`;
+            } else if (jamLemburMenit === 0) {
+                jamLemburDisplay = `${jamLemburJam} jam`;
+            } else {
+                jamLemburDisplay = `${jamLemburJam} jam ${jamLemburMenit} menit`;
+            }
+        }
+        
+        const jamNormalDisplay = formatHoursToDisplay(jamNormal);
+        const durasiDisplay = formatHoursToDisplay(hoursWorked);
+        
+        // Tentukan jam masuk efektif berdasarkan hari
+        const effectiveInTime = getEffectiveInTimeWithDayRules(record.jamMasuk, record.tanggal);
+        
+        // Cek apakah hari Jumat
+        const isFridayDay = isFriday(record.tanggal);
+        
+        // Keterangan khusus dengan info hari
+        let keterangan = 'Tidak lembur';
+        let dayInfo = isFridayDay ? ' (JUMAT)' : '';
+        
+        if (jamLemburDesimal > 0) {
+            keterangan = `Lembur ${jamLemburDisplay}${dayInfo}`;
+            if (effectiveInTime !== record.jamMasuk) {
+                keterangan += ` (masuk efektif: ${effectiveInTime})`;
+            }
+        } else if (effectiveInTime !== record.jamMasuk) {
+            keterangan = `Masuk efektif: ${effectiveInTime}${dayInfo}`;
+        } else if (isFridayDay) {
+            keterangan = `Hari Jumat - Pulang normal jam 15:00`;
+        }
+        
+        return {
+            nama: record.nama,
+            tanggal: record.tanggal,
+            jamMasuk: record.jamMasuk,
+            jamMasukEfektif: effectiveInTime,
+            jamKeluar: record.jamKeluar,
+            durasi: hoursWorked,
+            durasiFormatted: durasiDisplay,
+            jamNormal: jamNormal,
+            jamNormalFormatted: jamNormalDisplay,
+            jamLembur: jamLemburDisplay,
+            jamLemburDesimal: jamLemburDesimal,
+            keterangan: keterangan,
+            jamKerjaNormal: workHours,
+            isFriday: isFridayDay,
+            workEndTime: isFridayDay ? '15:00' : '16:00',
+            hari: getDayName(record.tanggal)
+        };
+    });
+    
+    result.sort((a, b) => {
+        if (a.nama === b.nama) {
+            const dateA = a.tanggal.split('/').reverse().join('-');
+            const dateB = b.tanggal.split('/').reverse().join('-');
+            return new Date(dateA) - new Date(dateB);
+        }
+        return a.nama.localeCompare(b.nama);
+    });
+    
+    return result;
 }
 
 // Helper functions untuk tabel Excel
@@ -421,7 +584,7 @@ function pairInOutTimes(data) {
         if (times.length >= 2) {
             const jamMasuk = times[0].time;
             const jamKeluar = times[times.length - 1].time;
-            const durasi = calculateHours(jamMasuk, jamKeluar);
+            const durasi = calculateHoursWithFridayRules(jamMasuk, jamKeluar, tanggal);
             
             result.push({
                 nama: nama,
@@ -442,79 +605,6 @@ function pairInOutTimes(data) {
                 keterangan: 'Hanya satu catatan'
             });
         }
-    });
-    
-    return result;
-}
-
-// Calculate overtime per day - DENGAN ATURAN BARU
-function calculateOvertimePerDay(data, workHours = 8) {
-    const result = data.map(record => {
-        const hoursWorked = record.durasi || calculateHours(record.jamMasuk, record.jamKeluar);
-        
-        // Hitung lembur dengan aturan baru (berdasarkan jam pulang)
-        const jamLemburDesimal = calculateOvertimeWithNewRules(record.jamKeluar);
-        
-        // Jam normal: total jam dikurangi jam lembur, maksimal workHours
-        const jamNormal = Math.min(hoursWorked - jamLemburDesimal, workHours);
-        
-        // Format untuk display
-        let jamLemburDisplay = "0 jam";
-        if (jamLemburDesimal > 0) {
-            const totalMenitLembur = Math.round(jamLemburDesimal * 60);
-            const jamLemburJam = Math.floor(totalMenitLembur / 60);
-            const jamLemburMenit = totalMenitLembur % 60;
-            
-            if (jamLemburJam === 0) {
-                jamLemburDisplay = `${jamLemburMenit} menit`;
-            } else if (jamLemburMenit === 0) {
-                jamLemburDisplay = `${jamLemburJam} jam`;
-            } else {
-                jamLemburDisplay = `${jamLemburJam} jam ${jamLemburMenit} menit`;
-            }
-        }
-        
-        const jamNormalDisplay = formatHoursToDisplay(jamNormal);
-        const durasiDisplay = formatHoursToDisplay(hoursWorked);
-        
-        // Tentukan jam masuk efektif
-        const effectiveInTime = getEffectiveInTime(record.jamMasuk);
-        
-        // Keterangan khusus
-        let keterangan = 'Tidak lembur';
-        if (jamLemburDesimal > 0) {
-            keterangan = `Lembur ${jamLemburDisplay}`;
-            if (effectiveInTime !== record.jamMasuk) {
-                keterangan += ` (masuk efektif: ${effectiveInTime})`;
-            }
-        } else if (effectiveInTime !== record.jamMasuk) {
-            keterangan = `Masuk efektif: ${effectiveInTime}`;
-        }
-        
-        return {
-            nama: record.nama,
-            tanggal: record.tanggal,
-            jamMasuk: record.jamMasuk,
-            jamMasukEfektif: effectiveInTime,
-            jamKeluar: record.jamKeluar,
-            durasi: hoursWorked,
-            durasiFormatted: durasiDisplay,
-            jamNormal: jamNormal,
-            jamNormalFormatted: jamNormalDisplay,
-            jamLembur: jamLemburDisplay,
-            jamLemburDesimal: jamLemburDesimal,
-            keterangan: keterangan,
-            jamKerjaNormal: workHours
-        };
-    });
-    
-    result.sort((a, b) => {
-        if (a.nama === b.nama) {
-            const dateA = a.tanggal.split('/').reverse().join('-');
-            const dateB = b.tanggal.split('/').reverse().join('-');
-            return new Date(dateA) - new Date(dateB);
-        }
-        return a.nama.localeCompare(b.nama);
     });
     
     return result;
@@ -646,7 +736,7 @@ function createOvertimeTablePerPerson(data) {
         const filteredRecords = records.filter(record => record.jamLemburDesimal > 0);
         
         filteredRecords.forEach((record, index) => {
-            const hari = getDayName(record.tanggal);
+            const hari = record.hari;
             const jamMasuk = record.jamMasuk || '-';
             const jamKeluar = record.jamKeluar || '-';
             const lemburJam = record.jamLemburDesimal.toFixed(2);
@@ -661,7 +751,7 @@ function createOvertimeTablePerPerson(data) {
                 jamKeluar,
                 currentWorkHours,
                 lemburJam,
-                '' // Kolom tanda tangan kosong
+                record.isFriday ? 'Jumat' : '' // Tambahkan catatan untuk Jumat
             ]);
         });
         
@@ -1468,7 +1558,7 @@ function downloadSimpleOvertimeReport(data) {
 }
 
 // ============================
-// MAIN APPLICATION FUNCTIONS
+// MAIN APPLICATION FUNCTIONS - DENGAN UPDATE JUMAT
 // ============================
 
 // Initialize application
@@ -1583,9 +1673,10 @@ function previewUploadedData(data) {
     
     for (let i = 0; i < previewCount; i++) {
         const record = data[i];
+        const isFridayDay = isFriday(record.tanggal);
         previewHtml += `
             <div style="margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #eee;">
-                <strong>${record.nama}</strong> - ${formatDate(record.tanggal)}<br>
+                <strong>${record.nama}</strong> - ${formatDate(record.tanggal)} ${isFridayDay ? '<span style="color: #9b59b6; font-weight: bold;">(JUMAT)</span>' : ''}<br>
                 Masuk: ${record.jamMasuk} | Pulang: ${record.jamKeluar || '-'} 
                 ${record.durasi ? `| Durasi: ${record.durasi.toFixed(2)} jam` : ''}
             </div>
@@ -1638,7 +1729,7 @@ function simulateUploadProgress() {
     }, 100);
 }
 
-// Process data (HITUNG LEMBUR SAJA)
+// Process data (HITUNG LEMBUR SAJA) - DENGAN ATURAN JUMAT
 function processData() {
     if (originalData.length === 0) {
         showNotification('Tidak ada data untuk diproses.', 'warning');
@@ -1652,7 +1743,7 @@ function processData() {
     
     setTimeout(() => {
         try {
-            // Hitung lembur per hari dengan jam kerja yang diatur
+            // Hitung lembur per hari dengan jam kerja yang diatur DAN ATURAN JUMAT
             processedData = calculateOvertimePerDay(originalData, currentWorkHours);
             
             displayResults(processedData);
@@ -1661,7 +1752,7 @@ function processData() {
             resultsSection.style.display = 'block';
             resultsSection.scrollIntoView({ behavior: 'smooth' });
             
-            showNotification(`Perhitungan lembur selesai! (Jam kerja: ${currentWorkHours} jam)`, 'success');
+            showNotification(`Perhitungan lembur selesai! (${currentWorkHours} jam kerja, termasuk aturan Jumat)`, 'success');
             
         } catch (error) {
             console.error('Error processing data:', error);
@@ -1673,7 +1764,7 @@ function processData() {
     }, 1500);
 }
 
-// Display results
+// Display results - DENGAN UPDATE JUMAT
 function displayResults(data) {
     updateMainStatistics(data);
     displayOriginalTable(originalData);
@@ -1702,7 +1793,7 @@ function updateMainStatistics(data) {
     if (totalGajiElem) totalGajiElem.textContent = formatHoursToDisplay(totalLembur) + ' lembur';
 }
 
-// Tampilkan data original
+// Tampilkan data original dengan info hari
 function displayOriginalTable(data) {
     const tbody = document.getElementById('original-table-body');
     if (!tbody) return;
@@ -1711,19 +1802,30 @@ function displayOriginalTable(data) {
     
     data.forEach((item, index) => {
         const row = document.createElement('tr');
+        const isFridayDay = isFriday(item.tanggal);
+        
         row.innerHTML = `
             <td>${index + 1}</td>
             <td><strong>${item.nama}</strong></td>
-            <td>${formatDate(item.tanggal)}</td>
+            <td>
+                ${formatDate(item.tanggal)}
+                <br><small style="color: ${isFridayDay ? '#9b59b6' : '#666'};">${getDayName(item.tanggal)} ${isFridayDay ? ' (JUMAT)' : ''}</small>
+            </td>
             <td>${item.jamMasuk}</td>
             <td>${item.jamKeluar || '-'}</td>
             <td>${item.durasi ? item.durasi.toFixed(2) + ' jam' : '-'}</td>
         `;
+        
+        // Tambahkan class khusus untuk hari Jumat
+        if (isFridayDay) {
+            row.classList.add('friday-row');
+        }
+        
         tbody.appendChild(row);
     });
 }
 
-// Display processed table (DATA PER HARI)
+// Display processed table (DATA PER HARI) - DENGAN INFO JUMAT
 function displayProcessedTable(data) {
     const tbody = document.getElementById('processed-table-body');
     if (!tbody) {
@@ -1735,10 +1837,14 @@ function displayProcessedTable(data) {
     
     data.forEach((item, index) => {
         const row = document.createElement('tr');
+        
         row.innerHTML = `
             <td>${index + 1}</td>
             <td><strong>${item.nama}</strong></td>
-            <td>${formatDate(item.tanggal)}</td>
+            <td>
+                ${formatDate(item.tanggal)}
+                ${item.isFriday ? '<br><small style="color: #9b59b6; font-weight: bold;">(JUMAT)</small>' : ''}
+            </td>
             <td>
                 ${item.jamMasuk}
                 ${item.jamMasuk !== item.jamMasukEfektif ? 
@@ -1750,6 +1856,9 @@ function displayProcessedTable(data) {
             <td>${item.jamNormalFormatted}</td>
             <td style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
                 ${item.jamLembur}
+                ${item.isFriday && item.jamLemburDesimal > 0 ? 
+                    '<br><small style="color: #9b59b6;">(pulang > 15:00)</small>' : 
+                    ''}
             </td>
             <td>
                 <span style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-size: 0.85rem;">
@@ -1757,11 +1866,17 @@ function displayProcessedTable(data) {
                 </span>
             </td>
         `;
+        
+        // Tambahkan class khusus untuk hari Jumat
+        if (item.isFriday) {
+            row.classList.add('friday-row');
+        }
+        
         tbody.appendChild(row);
     });
 }
 
-// Display summaries DENGAN ATURAN BARU
+// Display summaries DENGAN ATURAN JUMAT
 function displaySummaries(data) {
     const employeeSummary = document.getElementById('employee-summary');
     const financialSummary = document.getElementById('financial-summary');
@@ -1794,16 +1909,21 @@ function displaySummaries(data) {
             return hours < 7;
         }).length;
         
+        // Hitung hari Jumat
+        const hariJumat = records.filter(item => item.isFriday).length;
+        const hariJumatDenganLembur = records.filter(item => item.isFriday && item.jamLemburDesimal > 0).length;
+        
         employeeHtml += `
             <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
                 <strong>${employee}</strong><br>
                 <small>
-                    Total Hari: ${totalHari} | 
+                    Total Hari: ${totalHari} ${hariJumat > 0 ? `(${hariJumat} Jumat)` : ''}<br>
                     Total Jam: ${formatHoursToDisplay(totalJam)}<br>
                     Jam Normal: ${formatHoursToDisplay(totalNormal)}<br>
                     <span style="color: ${totalLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
                         Jam Lembur: ${formatHoursToDisplay(totalLemburDesimal)} (${hariLembur} hari)
                     </span>
+                    ${hariJumatDenganLembur > 0 ? `<br>Lembur Jumat: ${hariJumatDenganLembur} hari` : ''}
                     ${hariMasukSebelum7 > 0 ? `<br>Masuk sebelum 7:00: ${hariMasukSebelum7} hari` : ''}
                 </small>
             </div>
@@ -1812,13 +1932,23 @@ function displaySummaries(data) {
     
     if (employeeSummary) employeeSummary.innerHTML = employeeHtml;
     
-    // Financial summary dengan perhitungan gaji
+    // Financial summary dengan perhitungan gaji DAN INFO JUMAT
     const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
     const totalLemburDesimal = data.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
     const totalNormal = data.reduce((sum, item) => sum + item.jamNormal, 0);
     const hariDenganLembur = data.filter(item => item.jamLemburDesimal > 0).length;
     
-    // Hitung statistik tambahan
+    // Hitung statistik tambahan khusus Jumat
+    const hariJumat = data.filter(item => item.isFriday).length;
+    const hariJumatDenganLembur = data.filter(item => item.isFriday && item.jamLemburDesimal > 0).length;
+    const hariJumatPulangSebelum3 = data.filter(item => {
+        if (!item.isFriday || !item.jamKeluar) return false;
+        const [hours, minutes] = item.jamKeluar.split(':').map(Number);
+        const outMinutes = hours * 60 + (minutes || 0);
+        return outMinutes <= 15 * 60; // 15:00 = 900 menit
+    }).length;
+    
+    // Hitung statistik hari lain
     const hariMasukSebelum7 = data.filter(item => {
         const jamMasuk = item.jamMasuk;
         if (!jamMasuk) return false;
@@ -1826,11 +1956,18 @@ function displaySummaries(data) {
         return hours < 7;
     }).length;
     
-    const hariPulangSetelah16 = data.filter(item => {
+    // Hitung hari pulang setelah jam normal (berdasarkan hari)
+    const hariPulangSetelahNormal = data.filter(item => {
         const jamKeluar = item.jamKeluar;
         if (!jamKeluar) return false;
-        const [hours] = jamKeluar.split(':').map(Number);
-        return hours > 16 || (hours === 16 && jamKeluar.split(':')[1] > 0);
+        
+        const [hours, minutes] = jamKeluar.split(':').map(Number);
+        const outMinutes = hours * 60 + (minutes || 0);
+        
+        // Tentukan jam pulang normal berdasarkan hari
+        const workEndMinutes = item.isFriday ? 15 * 60 : 16 * 60;
+        
+        return outMinutes > workEndMinutes;
     }).length;
     
     const hariLemburDiabaikan = data.filter(item => {
@@ -1839,11 +1976,13 @@ function displaySummaries(data) {
         
         const [hours, minutes] = jamKeluar.split(':').map(Number);
         const outMinutes = hours * 60 + (minutes || 0);
-        const workEndMinutes = 16 * 60;
         
-        // Pulang setelah 16:00 tapi kurang dari 16:10
+        // Tentukan jam pulang normal berdasarkan hari
+        const workEndMinutes = item.isFriday ? 15 * 60 : 16 * 60;
+        
+        // Pulang setelah jam normal tapi kurang dari 10 menit
         return outMinutes > workEndMinutes && 
-               (outMinutes - workEndMinutes) < MIN_OVERTIME_MINUTES;
+               (outMinutes - workEndMinutes) < 10;
     }).length;
     
     // Hitung gaji berdasarkan kategori
@@ -1882,15 +2021,20 @@ function displaySummaries(data) {
         financialSummary.innerHTML = `
             <div><strong>Aturan Perhitungan:</strong></div>
             <div style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
-                • Jam masuk efektif: 07:00<br>
-                • Jam pulang normal: 16:00<br>
+                • Jam masuk efektif: 07:00 (semua hari)<br>
+                • Jam pulang normal: <br>
+                &nbsp;&nbsp;&nbsp;- Senin-Kamis: 16:00<br>
+                &nbsp;&nbsp;&nbsp;- Jumat: 15:00<br>
                 • Minimal lembur: 10 menit
             </div>
             
             <div>Konfigurasi Jam Kerja: <strong>${currentWorkHours} jam/hari</strong></div>
             <div>Total Entri Data: <strong>${data.length} hari</strong></div>
+            <div>Hari Jumat: <strong>${hariJumat} hari</strong></div>
+            <div>Jumat pulang ≤ 15:00: <strong>${hariJumatPulangSebelum3} hari</strong></div>
+            <div>Jumat dengan lembur: <strong>${hariJumatDenganLembur} hari</strong></div>
             <div>Masuk sebelum 07:00: <strong>${hariMasukSebelum7} hari</strong></div>
-            <div>Pulang setelah 16:00: <strong>${hariPulangSetelah16} hari</strong></div>
+            <div>Pulang setelah jam normal: <strong>${hariPulangSetelahNormal} hari</strong></div>
             <div>Lembur diabaikan (<10 menit): <strong>${hariLemburDiabaikan} hari</strong></div>
             <div>Hari dengan Lembur: <strong>${hariDenganLembur} hari</strong></div>
             <div>Total Jam Kerja: <strong>${formatHoursToDisplay(totalJam)}</strong></div>
@@ -1919,15 +2063,19 @@ function createCharts(data) {
     const employeeGroups = {};
     data.forEach(item => {
         if (!employeeGroups[item.nama]) {
-            employeeGroups[item.nama] = { normal: 0, lembur: 0 };
+            employeeGroups[item.nama] = { normal: 0, lembur: 0, jumat: 0 };
         }
         employeeGroups[item.nama].normal += item.jamNormal;
         employeeGroups[item.nama].lembur += item.jamLemburDesimal;
+        if (item.isFriday && item.jamLemburDesimal > 0) {
+            employeeGroups[item.nama].jumat += item.jamLemburDesimal;
+        }
     });
     
     const employeeNames = Object.keys(employeeGroups).slice(0, 10);
     const regularHours = employeeNames.map(name => employeeGroups[name].normal);
     const overtimeHours = employeeNames.map(name => employeeGroups[name].lembur);
+    const fridayOvertime = employeeNames.map(name => employeeGroups[name].jumat);
     
     // Chart Jam Kerja
     const hoursCtx = document.getElementById('hoursChart').getContext('2d');
@@ -1944,10 +2092,17 @@ function createCharts(data) {
                     borderWidth: 1
                 },
                 {
-                    label: 'Jam Lembur',
-                    data: overtimeHours,
+                    label: 'Jam Lembur (Hari Biasa)',
+                    data: overtimeHours.map((hour, idx) => hour - fridayOvertime[idx]),
                     backgroundColor: 'rgba(231, 76, 60, 0.7)',
                     borderColor: 'rgba(231, 76, 60, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Jam Lembur (Jumat)',
+                    data: fridayOvertime,
+                    backgroundColor: 'rgba(155, 89, 182, 0.7)',
+                    borderColor: 'rgba(155, 89, 182, 1)',
                     borderWidth: 1
                 }
             ]
@@ -1988,21 +2143,25 @@ function createCharts(data) {
     const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
     const totalNormal = data.reduce((sum, item) => sum + item.jamNormal, 0);
     const totalLembur = data.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
+    const totalLemburJumat = data.reduce((sum, item) => sum + (item.isFriday ? item.jamLemburDesimal : 0), 0);
+    const totalLemburBiasa = totalLembur - totalLemburJumat;
     
     const salaryCtx = document.getElementById('salaryChart').getContext('2d');
     salaryChart = new Chart(salaryCtx, {
         type: 'doughnut',
         data: {
-            labels: ['Jam Normal', 'Jam Lembur'],
+            labels: ['Jam Normal', 'Lembur Hari Biasa', 'Lembur Jumat'],
             datasets: [{
-                data: [totalNormal, totalLembur],
+                data: [totalNormal, totalLemburBiasa, totalLemburJumat],
                 backgroundColor: [
                     'rgba(52, 152, 219, 0.8)',
-                    'rgba(231, 76, 60, 0.8)'
+                    'rgba(231, 76, 60, 0.8)',
+                    'rgba(155, 89, 182, 0.8)'
                 ],
                 borderColor: [
                     'rgba(52, 152, 219, 1)',
-                    'rgba(231, 76, 60, 1)'
+                    'rgba(231, 76, 60, 1)',
+                    'rgba(155, 89, 182, 1)'
                 ],
                 borderWidth: 1
             }]
@@ -2082,21 +2241,21 @@ function downloadTemplate() {
     const templateData = [
         {
             'Nama': 'Windy',
-            'Tanggal': '01/11/2025',
-            'Jam Masuk': '09:43',
-            'Jam Keluar': '16:36'
+            'Tanggal': '01/11/2025', // Jumat
+            'Jam Masuk': '06:30',
+            'Jam Keluar': '15:30' // Lembur 30 menit
         },
         {
             'Nama': 'Windy',
-            'Tanggal': '02/11/2025',
+            'Tanggal': '02/11/2025', // Sabtu
             'Jam Masuk': '08:30',
             'Jam Keluar': '17:30'
         },
         {
-            'Nama': 'Bu Ali',
-            'Tanggal': '01/11/2025',
-            'Jam Masuk': '08:00',
-            'Jam Keluar': '17:00'
+            'Nama': 'Bu Ati',
+            'Tanggal': '01/11/2025', // Jumat
+            'Jam Masuk': '07:00',
+            'Jam Keluar': '16:00' // Lembur 1 jam
         }
     ];
     
@@ -2136,6 +2295,7 @@ function prepareExportData(data) {
             'No': index + 1,
             'Nama Karyawan': item.nama,
             'Tanggal': formatDate(item.tanggal),
+            'Hari': item.hari,
             'Jam Masuk': item.jamMasuk,
             'Jam Keluar': item.jamKeluar,
             'Durasi Kerja': item.durasiFormatted,
@@ -2143,13 +2303,15 @@ function prepareExportData(data) {
             'Jam Lembur': item.jamLembur,
             'Durasi (Desimal)': item.durasi.toFixed(2),
             'Lembur (Desimal)': item.jamLemburDesimal.toFixed(2),
-            'Keterangan': item.keterangan
+            'Keterangan': item.keterangan,
+            'Catatan Khusus': item.isFriday ? 'HARI JUMAT - Pulang normal jam 15:00' : ''
         }));
     } else {
         return data.map((item, index) => ({
             'No': index + 1,
             'Nama': item.nama,
             'Tanggal': formatDate(item.tanggal),
+            'Hari': getDayName(item.tanggal),
             'Jam Masuk': item.jamMasuk,
             'Jam Keluar': item.jamKeluar,
             'Durasi': item.durasi ? item.durasiFormatted : '',
@@ -2352,3 +2514,83 @@ if (!document.querySelector('#download-options-styles')) {
     `;
     document.head.appendChild(style);
 }
+
+// Add CSS untuk styling hari Jumat
+if (!document.querySelector('#friday-styles')) {
+    const style = document.createElement('style');
+    style.id = 'friday-styles';
+    style.textContent = `
+        /* Styling untuk hari Jumat */
+        .friday-badge {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+        
+        /* Highlight row untuk hari Jumat */
+        .data-table tbody tr.friday-row {
+            background: rgba(155, 89, 182, 0.05);
+            border-left: 3px solid #9b59b6;
+        }
+        
+        .data-table tbody tr.friday-row:hover {
+            background: rgba(155, 89, 182, 0.1);
+        }
+        
+        /* Styling untuk info Jumat di summary */
+        .friday-info {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+            margin: 1rem 0;
+        }
+        
+        .friday-info h5 {
+            color: white;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Fungsi untuk testing aturan Jumat
+function testFridayRules() {
+    const testCases = [
+        // Jumat, masuk sebelum 7, pulang 15:00 (tidak lembur)
+        { tanggal: '15/11/2024', jamMasuk: '06:30', jamKeluar: '15:00' },
+        // Jumat, masuk 7, pulang 15:10 (lembur 10 menit)
+        { tanggal: '15/11/2024', jamMasuk: '07:00', jamKeluar: '15:10' },
+        // Jumat, masuk 7, pulang 16:00 (lembur 1 jam)
+        { tanggal: '15/11/2024', jamMasuk: '07:00', jamKeluar: '16:00' },
+        // Senin, masuk 7, pulang 15:00 (tidak lembur, pulang normal)
+        { tanggal: '11/11/2024', jamMasuk: '07:00', jamKeluar: '15:00' },
+        // Senin, masuk 7, pulang 16:10 (lembur 10 menit)
+        { tanggal: '11/11/2024', jamMasuk: '07:00', jamKeluar: '16:10' }
+    ];
+    
+    console.log('=== TESTING FRIDAY RULES ===');
+    testCases.forEach((test, index) => {
+        const isFridayDay = isFriday(test.tanggal);
+        const effectiveIn = getEffectiveInTimeWithDayRules(test.jamMasuk, test.tanggal);
+        const overtime = calculateOvertimeWithDayRules(test.jamKeluar, test.tanggal);
+        
+        console.log(`Test ${index + 1}:`);
+        console.log(`Tanggal: ${test.tanggal} (${getDayName(test.tanggal)}) ${isFridayDay ? '(JUMAT)' : ''}`);
+        console.log(`Jam Masuk: ${test.jamMasuk} -> Efektif: ${effectiveIn}`);
+        console.log(`Jam Keluar: ${test.jamKeluar}`);
+        console.log(`Lembur: ${overtime} jam`);
+        console.log('---');
+    });
+}
+
+// Panggil fungsi testing saat development (opsional)
+// testFridayRules();
