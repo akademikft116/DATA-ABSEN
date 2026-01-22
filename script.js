@@ -99,8 +99,13 @@ function formatHoursToHMS(hours) {
 }
 
 // Format jam untuk display (format baru)
-function formatHoursToDisplay(hours) {
+function formatHoursToDisplay(hours, rounded = false) {
     if (!hours || hours <= 0) return "0 jam";
+    
+    if (rounded) {
+        const roundedHours = roundOvertimeHours(hours);
+        return `${roundedHours} jam`;
+    }
     
     const totalMinutes = Math.round(hours * 60);
     const h = Math.floor(totalMinutes / 60);
@@ -111,6 +116,24 @@ function formatHoursToDisplay(hours) {
     } else {
         return `${h} jam ${m} menit`;
     }
+}
+
+// ============================
+// FUNGSI PEMBULATAN BARU
+// ============================
+
+// Fungsi untuk membulatkan jam lembur (7.18 -> 7, 7.67 -> 8)
+function roundOvertimeHours(hours) {
+    if (!hours || hours <= 0) return 0;
+    
+    // Pembulatan standar: 0.5 ke atas dibulatkan ke atas
+    return Math.round(hours);
+}
+
+// Fungsi untuk membulatkan dan format jam lembur
+function roundAndFormatHours(hours) {
+    const rounded = roundOvertimeHours(hours);
+    return `${rounded} jam`;
 }
 
 // Format date from DD/MM/YYYY to readable format
@@ -648,7 +671,7 @@ function pairInOutTimes(data) {
     return result;
 }
 
-// Hitung total jam lembur per karyawan
+// Hitung total jam lembur per karyawan DENGAN PEMBULATAN
 function calculateOvertimeSummary(data) {
     const summary = {};
     
@@ -660,6 +683,8 @@ function calculateOvertimeSummary(data) {
             summary[employeeName] = {
                 nama: employeeName,
                 totalLembur: 0,
+                totalLemburDesimal: 0, // Tambah field desimal
+                totalLemburBulat: 0,   // Tambah field bulat
                 kategori: employeeCategories[employeeName] || 'STAFF',
                 rate: overtimeRates[employeeCategories[employeeName]] || 10000,
                 fridayOvertime: 0,
@@ -667,7 +692,7 @@ function calculateOvertimeSummary(data) {
             };
         }
         
-        summary[employeeName].totalLembur += overtimeHours;
+        summary[employeeName].totalLemburDesimal += overtimeHours;
         
         if (item.isFriday) {
             summary[employeeName].fridayOvertime += overtimeHours;
@@ -676,18 +701,35 @@ function calculateOvertimeSummary(data) {
         }
     });
     
-    // Hitung total gaji
+    // Hitung total dengan pembulatan
     Object.keys(summary).forEach(employee => {
         const record = summary[employee];
-        record.totalGaji = record.totalLembur * record.rate;
-        record.fridayGaji = record.fridayOvertime * record.rate;
-        record.otherDaysGaji = record.otherDaysOvertime * record.rate;
+        
+        // Hitung versi bulat
+        record.totalLemburBulat = roundOvertimeHours(record.totalLemburDesimal);
+        record.fridayLemburBulat = roundOvertimeHours(record.fridayOvertime);
+        record.otherDaysLemburBulat = roundOvertimeHours(record.otherDaysOvertime);
+        
+        // Versi lama (desimal) untuk kompatibilitas
+        record.totalLembur = record.totalLemburDesimal;
+        
+        // Hitung gaji dengan versi BULAT
+        record.totalGaji = record.totalLemburBulat * record.rate;
+        record.fridayGaji = record.fridayLemburBulat * record.rate;
+        record.otherDaysGaji = record.otherDaysLemburBulat * record.rate;
+        
+        // Format untuk display
         record.totalGajiFormatted = formatCurrency(record.totalGaji);
         record.fridayGajiFormatted = formatCurrency(record.fridayGaji);
         record.otherDaysGajiFormatted = formatCurrency(record.otherDaysGaji);
-        record.totalLemburFormatted = formatHoursToDisplay(record.totalLembur);
-        record.fridayLemburFormatted = formatHoursToDisplay(record.fridayOvertime);
-        record.otherDaysLemburFormatted = formatHoursToDisplay(record.otherDaysOvertime);
+        
+        // Format jam dengan pembulatan
+        record.totalLemburFormatted = `${record.totalLemburBulat} jam (${record.totalLemburDesimal.toFixed(2)})`;
+        record.fridayLemburFormatted = `${record.fridayLemburBulat} jam (${record.fridayOvertime.toFixed(2)})`;
+        record.otherDaysLemburFormatted = `${record.otherDaysLemburBulat} jam (${record.otherDaysOvertime.toFixed(2)})`;
+        
+        // Info detail
+        record.infoDetail = `${record.totalLemburDesimal.toFixed(2)} jam → ${record.totalLemburBulat} jam (dibulatkan)`;
     });
     
     return Object.values(summary);
@@ -985,9 +1027,10 @@ function generateFridayOnlyExcel(fridayData) {
                 return new Date(dateA) - new Date(dateB);
             });
             
-            // Hitung total
+            // Hitung total dengan pembulatan
             const totalLembur = records.reduce((sum, item) => sum + (item.jamLemburDesimal || 0), 0);
-            const totalGaji = totalLembur * rate;
+            const totalLemburBulat = roundOvertimeHours(totalLembur);
+            const totalGaji = totalLemburBulat * rate;
             
             // Buat data worksheet
             const wsData = [];
@@ -995,19 +1038,22 @@ function generateFridayOnlyExcel(fridayData) {
             // Header
             wsData.push([`LEMBUR KARYAWAN - ${employeeName.toUpperCase()} (HARI JUMAT)`]);
             wsData.push(['Pulang Normal: 15:00 | Lembur ≥ 10 menit setelah 15:00']);
+            wsData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
             wsData.push([]);
             
             // Header tabel
-            wsData.push(['Tanggal', 'Jam Masuk', 'Jam Keluar', 'Jam Normal', 'Jam Lembur', 'Keterangan']);
+            wsData.push(['Tanggal', 'Jam Masuk', 'Jam Keluar', 'Jam Normal', 'Jam Lembur (Desimal)', 'Jam Lembur (Bulat)', 'Keterangan']);
             
             // Data
             records.forEach(record => {
+                const jamLemburBulat = roundOvertimeHours(record.jamLemburDesimal);
                 wsData.push([
                     formatExcelDate(record.tanggal),
                     record.jamMasuk,
                     record.jamKeluar,
                     `${record.jamNormal.toFixed(2)} jam`,
                     record.jamLemburDesimal > 0 ? `${record.jamLemburDesimal.toFixed(2)} jam` : '0 jam',
+                    jamLemburBulat > 0 ? `${jamLemburBulat} jam` : '0 jam',
                     record.keterangan
                 ]);
             });
@@ -1016,6 +1062,7 @@ function generateFridayOnlyExcel(fridayData) {
             wsData.push([]);
             wsData.push(['TOTAL JUMAT:', '', '', '', 
                 `${totalLembur.toFixed(2)} jam`, 
+                `${totalLemburBulat} jam (dibulatkan)`, 
                 `Rp ${Math.round(totalGaji).toLocaleString('id-ID')}`]);
             
             // Buat worksheet
@@ -1027,7 +1074,8 @@ function generateFridayOnlyExcel(fridayData) {
                 { wch: 12 }, // Jam Masuk
                 { wch: 12 }, // Jam Keluar
                 { wch: 12 }, // Jam Normal
-                { wch: 12 }, // Jam Lembur
+                { wch: 18 }, // Jam Lembur (Desimal)
+                { wch: 18 }, // Jam Lembur (Bulat)
                 { wch: 30 }  // Keterangan
             ];
             
@@ -1045,8 +1093,9 @@ function generateFridayOnlyExcel(fridayData) {
             { wch: 5 },  // No
             { wch: 25 }, // Nama Karyawan
             { wch: 15 }, // Kategori
-            { wch: 15 }, // Total Jam Lembur
-            { wch: 20 }, // Total Gaji Lembur
+            { wch: 20 }, // Total Jam Lembur (Desimal)
+            { wch: 20 }, // Total Jam Lembur (Bulat)
+            { wch: 25 }, // Total Gaji Lembur
             { wch: 15 }  // Rate
         ];
         
@@ -1093,9 +1142,10 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
                 return new Date(dateA) - new Date(dateB);
             });
             
-            // Hitung total
+            // Hitung total dengan pembulatan
             const totalLembur = records.reduce((sum, item) => sum + (item.jamLemburDesimal || 0), 0);
-            const totalGaji = totalLembur * rate;
+            const totalLemburBulat = roundOvertimeHours(totalLembur);
+            const totalGaji = totalLemburBulat * rate;
             
             // Buat data worksheet
             const wsData = [];
@@ -1103,13 +1153,15 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
             // Header
             wsData.push([`LEMBUR KARYAWAN - ${employeeName.toUpperCase()} (SENIN-KAMIS)`]);
             wsData.push(['Pulang Normal: 16:00 | Lembur ≥ 10 menit setelah 16:00']);
+            wsData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
             wsData.push([]);
             
             // Header tabel
-            wsData.push(['Tanggal', 'Hari', 'Jam Masuk', 'Jam Keluar', 'Jam Normal', 'Jam Lembur', 'Keterangan']);
+            wsData.push(['Tanggal', 'Hari', 'Jam Masuk', 'Jam Keluar', 'Jam Normal', 'Jam Lembur (Desimal)', 'Jam Lembur (Bulat)', 'Keterangan']);
             
             // Data
             records.forEach(record => {
+                const jamLemburBulat = roundOvertimeHours(record.jamLemburDesimal);
                 wsData.push([
                     formatExcelDate(record.tanggal),
                     record.hari,
@@ -1117,6 +1169,7 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
                     record.jamKeluar,
                     `${record.jamNormal.toFixed(2)} jam`,
                     record.jamLemburDesimal > 0 ? `${record.jamLemburDesimal.toFixed(2)} jam` : '0 jam',
+                    jamLemburBulat > 0 ? `${jamLemburBulat} jam` : '0 jam',
                     record.keterangan
                 ]);
             });
@@ -1125,6 +1178,7 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
             wsData.push([]);
             wsData.push(['TOTAL SENIN-KAMIS:', '', '', '', '', 
                 `${totalLembur.toFixed(2)} jam`, 
+                `${totalLemburBulat} jam (dibulatkan)`,
                 `Rp ${Math.round(totalGaji).toLocaleString('id-ID')}`]);
             
             // Buat worksheet
@@ -1137,7 +1191,8 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
                 { wch: 12 }, // Jam Masuk
                 { wch: 12 }, // Jam Keluar
                 { wch: 12 }, // Jam Normal
-                { wch: 12 }, // Jam Lembur
+                { wch: 18 }, // Jam Lembur (Desimal)
+                { wch: 18 }, // Jam Lembur (Bulat)
                 { wch: 30 }  // Keterangan
             ];
             
@@ -1155,8 +1210,9 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
             { wch: 5 },  // No
             { wch: 25 }, // Nama Karyawan
             { wch: 15 }, // Kategori
-            { wch: 15 }, // Total Jam Lembur
-            { wch: 20 }, // Total Gaji Lembur
+            { wch: 20 }, // Total Jam Lembur (Desimal)
+            { wch: 20 }, // Total Jam Lembur (Bulat)
+            { wch: 25 }, // Total Gaji Lembur
             { wch: 15 }  // Rate
         ];
         
@@ -1192,8 +1248,9 @@ function generateAllInOneExcel(allData) {
                 { wch: 5 },  // No
                 { wch: 25 }, // Nama Karyawan
                 { wch: 15 }, // Kategori
-                { wch: 15 }, // Total Jam Lembur
-                { wch: 20 }, // Total Gaji Lembur
+                { wch: 20 }, // Total Jam Lembur (Desimal)
+                { wch: 20 }, // Total Jam Lembur (Bulat)
+                { wch: 25 }, // Total Gaji Lembur
                 { wch: 15 }  // Rate
             ];
             XLSX.utils.book_append_sheet(workbook, fridayWs, 'JUMAT SUMMARY');
@@ -1207,8 +1264,9 @@ function generateAllInOneExcel(allData) {
                 { wch: 5 },  // No
                 { wch: 25 }, // Nama Karyawan
                 { wch: 15 }, // Kategori
-                { wch: 15 }, // Total Jam Lembur
-                { wch: 20 }, // Total Gaji Lembur
+                { wch: 20 }, // Total Jam Lembur (Desimal)
+                { wch: 20 }, // Total Jam Lembur (Bulat)
+                { wch: 25 }, // Total Gaji Lembur
                 { wch: 15 }  // Rate
             ];
             XLSX.utils.book_append_sheet(workbook, otherDaysWs, 'SENIN-KAMIS SUMMARY');
@@ -1221,10 +1279,11 @@ function generateAllInOneExcel(allData) {
             { wch: 5 },  // No
             { wch: 25 }, // Nama Karyawan
             { wch: 15 }, // Kategori
-            { wch: 15 }, // Total Jam Lembur
+            { wch: 20 }, // Total Jam (Desimal)
+            { wch: 15 }, // Jam (Bulat)
             { wch: 15 }, // Lembur Jumat
             { wch: 15 }, // Lembur Biasa
-            { wch: 20 }, // Total Gaji
+            { wch: 25 }, // Total Gaji
             { wch: 15 }  // Rate
         ];
         XLSX.utils.book_append_sheet(workbook, totalWs, 'TOTAL SUMMARY');
@@ -1241,8 +1300,8 @@ function generateAllInOneExcel(allData) {
             { wch: 12 },  // Jam Keluar
             { wch: 15 },  // Durasi Kerja
             { wch: 12 },  // Jam Normal
-            { wch: 12 },  // Jam Lembur
-            { wch: 15 },  // Lembur (Desimal)
+            { wch: 18 },  // Jam Lembur (Desimal)
+            { wch: 18 },  // Jam Lembur (Bulat)
             { wch: 30 }   // Keterangan
         ];
         XLSX.utils.book_append_sheet(workbook, detailWs, 'DETAIL DATA');
@@ -1269,33 +1328,41 @@ function generateFridaySummary(fridayData) {
     // Header
     summaryData.push(['REKAPITULASI LEMBUR KARYAWAN - HARI JUMAT']);
     summaryData.push(['Pulang Normal: 15:00 | Lembur ≥ 10 menit setelah 15:00']);
+    summaryData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
     summaryData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
     summaryData.push([]);
-    summaryData.push(['No', 'Nama Karyawan', 'Kategori', 'Total Jam Lembur', 'Total Gaji Lembur', 'Rate']);
+    summaryData.push(['No', 'Nama Karyawan', 'Kategori', 'Total Jam Lembur (Desimal)', 'Total Jam Lembur (Bulat)', 'Total Gaji Lembur', 'Rate']);
     
     // Data per karyawan
     let totalJamAll = 0;
+    let totalJamAllBulat = 0;
     let totalGajiAll = 0;
     
     summary.forEach((item, index) => {
         if (item.fridayOvertime > 0) {
+            const jamBulat = roundOvertimeHours(item.fridayOvertime);
+            const gaji = jamBulat * item.rate;
+            
             summaryData.push([
                 index + 1,
                 item.nama,
                 item.kategori,
-                item.fridayLemburFormatted,
-                item.fridayGajiFormatted,
+                item.fridayOvertime.toFixed(2) + ' jam',
+                jamBulat + ' jam',
+                formatCurrency(gaji),
                 `Rp ${item.rate.toLocaleString('id-ID')}/jam`
             ]);
             
             totalJamAll += item.fridayOvertime;
-            totalGajiAll += item.fridayGaji;
+            totalJamAllBulat += jamBulat;
+            totalGajiAll += gaji;
         }
     });
     
     summaryData.push([]);
     summaryData.push(['TOTAL JUMAT', '', '', 
-        formatHoursToDisplay(totalJamAll), 
+        `${totalJamAll.toFixed(2)} jam`, 
+        `${totalJamAllBulat} jam (dibulatkan)`, 
         formatCurrency(totalGajiAll), '']);
     
     return summaryData;
@@ -1310,33 +1377,41 @@ function generateOtherDaysSummary(otherDaysData) {
     // Header
     summaryData.push(['REKAPITULASI LEMBUR KARYAWAN - SENIN s/d KAMIS']);
     summaryData.push(['Pulang Normal: 16:00 | Lembur ≥ 10 menit setelah 16:00']);
+    summaryData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
     summaryData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
     summaryData.push([]);
-    summaryData.push(['No', 'Nama Karyawan', 'Kategori', 'Total Jam Lembur', 'Total Gaji Lembur', 'Rate']);
+    summaryData.push(['No', 'Nama Karyawan', 'Kategori', 'Total Jam Lembur (Desimal)', 'Total Jam Lembur (Bulat)', 'Total Gaji Lembur', 'Rate']);
     
     // Data per karyawan
     let totalJamAll = 0;
+    let totalJamAllBulat = 0;
     let totalGajiAll = 0;
     
     summary.forEach((item, index) => {
         if (item.otherDaysOvertime > 0) {
+            const jamBulat = roundOvertimeHours(item.otherDaysOvertime);
+            const gaji = jamBulat * item.rate;
+            
             summaryData.push([
                 index + 1,
                 item.nama,
                 item.kategori,
-                item.otherDaysLemburFormatted,
-                item.otherDaysGajiFormatted,
+                item.otherDaysOvertime.toFixed(2) + ' jam',
+                jamBulat + ' jam',
+                formatCurrency(gaji),
                 `Rp ${item.rate.toLocaleString('id-ID')}/jam`
             ]);
             
             totalJamAll += item.otherDaysOvertime;
-            totalGajiAll += item.otherDaysGaji;
+            totalJamAllBulat += jamBulat;
+            totalGajiAll += gaji;
         }
     });
     
     summaryData.push([]);
     summaryData.push(['TOTAL SENIN-KAMIS', '', '', 
-        formatHoursToDisplay(totalJamAll), 
+        `${totalJamAll.toFixed(2)} jam`, 
+        `${totalJamAllBulat} jam (dibulatkan)`, 
         formatCurrency(totalGajiAll), '']);
     
     return summaryData;
@@ -1351,41 +1426,51 @@ function generateTotalSummary(allData) {
     // Header
     summaryData.push(['REKAPITULASI TOTAL LEMBUR KARYAWAN']);
     summaryData.push(['Jumat: Pulang 15:00 | Senin-Kamis: Pulang 16:00']);
+    summaryData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
     summaryData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
     summaryData.push([]);
-    summaryData.push(['No', 'Nama Karyawan', 'Kategori', 'Total Jam', 'Jumat', 'Biasa', 'Total Gaji', 'Rate']);
+    summaryData.push(['No', 'Nama Karyawan', 'Kategori', 'Total Jam (Desimal)', 'Jam (Bulat)', 'Jumat', 'Biasa', 'Total Gaji', 'Rate']);
     
     // Data per karyawan
     let totalJamAll = 0;
+    let totalJamAllBulat = 0;
     let totalJumatAll = 0;
     let totalBiasaAll = 0;
     let totalGajiAll = 0;
     
     summary.forEach((item, index) => {
-        if (item.totalLembur > 0) {
+        if (item.totalLemburDesimal > 0) {
+            const totalBulat = roundOvertimeHours(item.totalLemburDesimal);
+            const fridayBulat = roundOvertimeHours(item.fridayOvertime);
+            const otherDaysBulat = roundOvertimeHours(item.otherDaysOvertime);
+            const totalGaji = totalBulat * item.rate;
+            
             summaryData.push([
                 index + 1,
                 item.nama,
                 item.kategori,
-                item.totalLemburFormatted,
-                item.fridayLemburFormatted,
-                item.otherDaysLemburFormatted,
-                item.totalGajiFormatted,
+                item.totalLemburDesimal.toFixed(2) + ' jam',
+                totalBulat + ' jam',
+                fridayBulat + ' jam',
+                otherDaysBulat + ' jam',
+                formatCurrency(totalGaji),
                 `Rp ${item.rate.toLocaleString('id-ID')}/jam`
             ]);
             
-            totalJamAll += item.totalLembur;
-            totalJumatAll += item.fridayOvertime;
-            totalBiasaAll += item.otherDaysOvertime;
-            totalGajiAll += item.totalGaji;
+            totalJamAll += item.totalLemburDesimal;
+            totalJamAllBulat += totalBulat;
+            totalJumatAll += fridayBulat;
+            totalBiasaAll += otherDaysBulat;
+            totalGajiAll += totalGaji;
         }
     });
     
     summaryData.push([]);
     summaryData.push(['TOTAL KESELURUHAN', '', '', 
-        formatHoursToDisplay(totalJamAll),
-        formatHoursToDisplay(totalJumatAll),
-        formatHoursToDisplay(totalBiasaAll),
+        `${totalJamAll.toFixed(2)} jam`,
+        `${totalJamAllBulat} jam (dibulatkan)`,
+        `${totalJumatAll} jam`,
+        `${totalBiasaAll} jam`,
         formatCurrency(totalGajiAll), '']);
     
     return summaryData;
@@ -1423,9 +1508,10 @@ function createOvertimeTablePerPerson(data) {
             return new Date(dateA) - new Date(dateB);
         });
         
-        // Hitung total per orang
-        const totalLembur = records.reduce((sum, item) => sum + (item.jamLemburDesimal || 0), 0);
-        const totalGaji = totalLembur * rate;
+        // Hitung total per orang DENGAN PEMBULATAN
+        const totalLemburDesimal = records.reduce((sum, item) => sum + (item.jamLemburDesimal || 0), 0);
+        const totalLemburBulat = roundOvertimeHours(totalLemburDesimal);
+        const totalGaji = totalLemburBulat * rate;
         
         // Buat data untuk tabel per orang - format seperti gambar
         const tableData = [];
@@ -1477,21 +1563,21 @@ function createOvertimeTablePerPerson(data) {
             'IN',
             'OUT',
             `JAM KERJA (${currentWorkHours} jam)`,
-            'TOTAL',
+            'TOTAL (Bulat)',
             'TANDA TANGAN'
         ]);
         
         // Data per hari
-        let cumulativeTotal = 0;
+        let cumulativeTotalBulat = 0;
         const filteredRecords = records.filter(record => record.jamLemburDesimal > 0);
         
         filteredRecords.forEach((record, index) => {
             const hari = record.hari;
             const jamMasuk = record.jamMasuk || '-';
             const jamKeluar = record.jamKeluar || '-';
-            const lemburJam = record.jamLemburDesimal.toFixed(2);
+            const lemburJamBulat = roundOvertimeHours(record.jamLemburDesimal);
             
-            cumulativeTotal += parseFloat(lemburJam);
+            cumulativeTotalBulat += lemburJamBulat;
             
             tableData.push([
                 employeeName,
@@ -1500,7 +1586,7 @@ function createOvertimeTablePerPerson(data) {
                 jamMasuk,
                 jamKeluar,
                 currentWorkHours,
-                lemburJam,
+                lemburJamBulat,
                 record.isFriday ? 'Jumat' : '' // Tambahkan catatan untuk Jumat
             ]);
         });
@@ -1513,7 +1599,7 @@ function createOvertimeTablePerPerson(data) {
             ]);
         }
         
-        // Baris total (sesuai format gambar)
+        // Baris total (sesuai format gambar) - MENGGUNAKAN YANG SUDAH DIBULATKAN
         tableData.push([
             '', // Name kosong
             '', // Hari kosong
@@ -1521,20 +1607,19 @@ function createOvertimeTablePerPerson(data) {
             '', // IN kosong
             '', // OUT kosong
             '', // JAM KERJA kosong
-            cumulativeTotal.toFixed(2), // Total jam lembur
+            cumulativeTotalBulat, // Total jam lembur yang sudah dibulatkan
             '' // Tanda tangan kosong
         ]);
         
         // Baris jumlah jam lembur (dibulatkan)
         tableData.push([
             '', '', '', '', '', 
-            Math.round(cumulativeTotal), // Jam lembur dibulatkan
+            cumulativeTotalBulat, // Jam lembur yang sudah dibulatkan
             '', ''
         ]);
         
-        // Baris gaji lembur
-        const roundedHours = Math.round(cumulativeTotal);
-        const totalGajiRounded = roundedHours * rate;
+        // Baris gaji lembur - MENGGUNAKAN JAM YANG SUDAH DIBULATKAN
+        const totalGajiRounded = cumulativeTotalBulat * rate;
         
         tableData.push([
             '', '', '', '', '',
@@ -1554,7 +1639,8 @@ function createOvertimeTablePerPerson(data) {
             category: category,
             rate: rate,
             data: tableData,
-            totalLembur: cumulativeTotal,
+            totalLemburDesimal: totalLemburDesimal,
+            totalLemburBulat: cumulativeTotalBulat,
             totalGaji: totalGajiRounded
         });
     });
@@ -1773,6 +1859,7 @@ function displayProcessedTable(data) {
     
     data.forEach((item, index) => {
         const row = document.createElement('tr');
+        const jamLemburBulat = roundOvertimeHours(item.jamLemburDesimal);
         
         row.innerHTML = `
             <td>${index + 1}</td>
@@ -1791,14 +1878,18 @@ function displayProcessedTable(data) {
             <td>${item.durasiFormatted}</td>
             <td>${item.jamNormalFormatted}</td>
             <td style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
-                ${item.jamLembur}
+                ${jamLemburBulat > 0 ? jamLemburBulat + ' jam' : item.jamLembur}
                 ${item.isFriday && item.jamLemburDesimal > 0 ? 
                     '<br><small style="color: #9b59b6;">(pulang > 15:00)</small>' : 
+                    ''}
+                ${item.jamLemburDesimal > 0 ? 
+                    `<br><small style="color: #666; font-size: 0.8rem;">(${item.jamLemburDesimal.toFixed(2)} jam desimal)</small>` : 
                     ''}
             </td>
             <td>
                 <span style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-size: 0.85rem;">
                     ${item.keterangan}
+                    ${item.jamLemburDesimal > 0 ? '<br><small style="color: #666;">(dibulatkan: ' + jamLemburBulat + ' jam)</small>' : ''}
                 </span>
             </td>
         `;
@@ -2078,6 +2169,25 @@ function initializeApp() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
     
+    // Tambahkan info pembulatan ke sidebar
+    const systemInfo = document.querySelector('.system-info');
+    if (systemInfo) {
+        const infoHtml = `
+            <div style="margin-top: 1rem; padding: 0.75rem; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+                <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #856404;">
+                    <i class="fas fa-calculator"></i> Aturan Pembulatan Lembur:
+                </h5>
+                <ul style="font-size: 0.8rem; color: #856404; padding-left: 1.2rem; margin-bottom: 0;">
+                    <li>Contoh: 7,18 jam → dibulatkan menjadi 7 jam</li>
+                    <li>Contoh: 7,67 jam → dibulatkan menjadi 8 jam</li>
+                    <li>Pembulatan standar (0.5 ke atas)</li>
+                    <li>Gaji dihitung berdasarkan jam yang telah dibulatkan</li>
+                </ul>
+            </div>
+        `;
+        systemInfo.insertAdjacentHTML('beforeend', infoHtml);
+    }
+    
     // Event listener untuk tombol download gaji lembur
     const downloadSalaryBtn = document.getElementById('download-salary');
     if (downloadSalaryBtn) {
@@ -2257,7 +2367,7 @@ function simulateUploadProgress() {
     }, 100);
 }
 
-// Process data (HITUNG LEMBUR SAJA) - DENGAN ATURAN JUMAT
+// Process data (HITUNG LEMBUR SAJA) - DENGAN ATURAN JUMAT DAN PEMBULATAN
 function processData() {
     if (originalData.length === 0) {
         showNotification('Tidak ada data untuk diproses.', 'warning');
@@ -2280,7 +2390,7 @@ function processData() {
             resultsSection.style.display = 'block';
             resultsSection.scrollIntoView({ behavior: 'smooth' });
             
-            showNotification(`Perhitungan lembur selesai! (${currentWorkHours} jam kerja, termasuk aturan Jumat)`, 'success');
+            showNotification(`Perhitungan lembur selesai! Jam lembur telah dibulatkan (${currentWorkHours} jam kerja, termasuk aturan Jumat)`, 'success');
             
         } catch (error) {
             console.error('Error processing data:', error);
@@ -2292,7 +2402,7 @@ function processData() {
     }, 1500);
 }
 
-// Display results - DENGAN UPDATE JUMAT
+// Display results - DENGAN UPDATE JUMAT DAN PEMBULATAN
 function displayResults(data) {
     updateMainStatistics(data);
     displayOriginalTable(originalData);
@@ -2311,7 +2421,8 @@ function updateMainStatistics(data) {
     const totalKaryawan = new Set(data.map(item => item.nama)).size;
     const totalHari = data.length;
     const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
-    const totalLembur = data.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
+    const totalLemburDesimal = data.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
+    const totalLemburBulat = roundOvertimeHours(totalLemburDesimal);
     
     // Hitung statistik terpisah
     const separated = calculateOvertimeByDayType(data);
@@ -2319,6 +2430,8 @@ function updateMainStatistics(data) {
     const hariLain = separated.otherDays.totalDays;
     const lemburJumat = separated.friday.totalOvertime;
     const lemburLain = separated.otherDays.totalOvertime;
+    const lemburJumatBulat = roundOvertimeHours(lemburJumat);
+    const lemburLainBulat = roundOvertimeHours(lemburLain);
     
     const totalKaryawanElem = document.getElementById('total-karyawan');
     const totalHariElem = document.getElementById('total-hari');
@@ -2327,15 +2440,15 @@ function updateMainStatistics(data) {
     
     if (totalKaryawanElem) totalKaryawanElem.textContent = totalKaryawan;
     if (totalHariElem) totalHariElem.textContent = totalHari;
-    if (totalLemburElem) totalLemburElem.textContent = formatHoursToDisplay(totalLembur);
+    if (totalLemburElem) totalLemburElem.textContent = formatHoursToDisplay(totalLemburDesimal) + ` (${totalLemburBulat} jam dibulatkan)`;
     
     // Update total gaji dengan info terpisah
     if (totalGajiElem) {
         totalGajiElem.innerHTML = `
-            ${formatHoursToDisplay(totalLembur)} lembur<br>
+            ${totalLemburBulat} jam lembur (dibulatkan)<br>
             <small style="font-size: 0.8rem;">
-                Jumat: ${formatHoursToDisplay(lemburJumat)} (${hariJumat} hari)<br>
-                Senin-Kamis: ${formatHoursToDisplay(lemburLain)} (${hariLain} hari)
+                Jumat: ${lemburJumatBulat} jam (${hariJumat} hari)<br>
+                Senin-Kamis: ${lemburLainBulat} jam (${hariLain} hari)
             </small>
         `;
     }
@@ -2373,7 +2486,7 @@ function displayOriginalTable(data) {
     });
 }
 
-// Display summaries DENGAN ATURAN JUMAT
+// Display summaries DENGAN ATURAN JUMAT DAN PEMBULATAN
 function displaySummaries(data) {
     const employeeSummary = document.getElementById('employee-summary');
     const financialSummary = document.getElementById('financial-summary');
@@ -2386,7 +2499,7 @@ function displaySummaries(data) {
     
     let employeeHtml = '';
     summary.forEach(item => {
-        if (item.totalLembur > 0) {
+        if (item.totalLemburDesimal > 0) {
             employeeHtml += `
                 <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
                     <strong>${item.nama} (${item.kategori})</strong><br>
@@ -2403,9 +2516,10 @@ function displaySummaries(data) {
     
     if (employeeSummary) employeeSummary.innerHTML = employeeHtml;
     
-    // Financial summary dengan perhitungan gaji DAN INFO JUMAT
+    // Financial summary dengan perhitungan gaji DAN INFO JUMAT DAN PEMBULATAN
     const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
     const totalLemburDesimal = data.reduce((sum, item) => sum + item.jamLemburDesimal, 0);
+    const totalLemburBulat = roundOvertimeHours(totalLemburDesimal);
     const totalNormal = data.reduce((sum, item) => sum + item.jamNormal, 0);
     const hariDenganLembur = data.filter(item => item.jamLemburDesimal > 0).length;
     
@@ -2456,7 +2570,7 @@ function displaySummaries(data) {
                (outMinutes - workEndMinutes) < 10;
     }).length;
     
-    // Hitung gaji berdasarkan kategori
+    // Hitung gaji berdasarkan kategori DENGAN PEMBULATAN
     let salaryHtml = '';
     
     const byCategory = {
@@ -2468,7 +2582,7 @@ function displaySummaries(data) {
     summary.forEach(item => {
         const category = item.kategori;
         if (byCategory[category]) {
-            byCategory[category].totalJam += item.totalLembur;
+            byCategory[category].totalJam += item.totalLemburDesimal;
             byCategory[category].totalGaji += item.totalGaji;
             byCategory[category].fridayJam += item.fridayOvertime;
             byCategory[category].fridayGaji += item.fridayGaji;
@@ -2483,16 +2597,23 @@ function displaySummaries(data) {
             const otherDaysJam = byCategory[category].totalJam - byCategory[category].fridayJam;
             const otherDaysGaji = byCategory[category].totalGaji - byCategory[category].fridayGaji;
             
+            // Versi dibulatkan
+            const totalJamBulat = roundOvertimeHours(byCategory[category].totalJam);
+            const fridayJamBulat = roundOvertimeHours(byCategory[category].fridayJam);
+            const otherDaysJamBulat = roundOvertimeHours(otherDaysJam);
+            
             salaryHtml += `
                 <div style="margin: 0.5rem 0; padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
                     <strong>${category}:</strong><br>
-                    • Jumat: ${formatHoursToDisplay(byCategory[category].fridayJam)} = Rp ${Math.round(byCategory[category].fridayGaji).toLocaleString('id-ID')}<br>
-                    • Senin-Kamis: ${formatHoursToDisplay(otherDaysJam)} = Rp ${Math.round(otherDaysGaji).toLocaleString('id-ID')}<br>
-                    <strong>Total: Rp ${Math.round(byCategory[category].totalGaji).toLocaleString('id-ID')}</strong>
+                    • Jumat: ${fridayJamBulat} jam (${byCategory[category].fridayJam.toFixed(2)}) = Rp ${Math.round(fridayJamBulat * overtimeRates[category]).toLocaleString('id-ID')}<br>
+                    • Senin-Kamis: ${otherDaysJamBulat} jam (${otherDaysJam.toFixed(2)}) = Rp ${Math.round(otherDaysJamBulat * overtimeRates[category]).toLocaleString('id-ID')}<br>
+                    <strong>Total: ${totalJamBulat} jam = Rp ${Math.round(totalJamBulat * overtimeRates[category]).toLocaleString('id-ID')}</strong>
                 </div>
             `;
-            totalGajiAll += byCategory[category].totalGaji;
-            totalGajiJumat += byCategory[category].fridayGaji;
+            
+            // Gunakan versi dibulatkan untuk perhitungan total
+            totalGajiAll += totalJamBulat * overtimeRates[category];
+            totalGajiJumat += fridayJamBulat * overtimeRates[category];
         }
     });
     
@@ -2504,7 +2625,8 @@ function displaySummaries(data) {
                 • Jam pulang normal: <br>
                 &nbsp;&nbsp;&nbsp;- Senin-Kamis: 16:00<br>
                 &nbsp;&nbsp;&nbsp;- Jumat: 15:00<br>
-                • Minimal lembur: 10 menit
+                • Minimal lembur: 10 menit<br>
+                • <strong style="color: #e74c3c;">Pembulatan: 0.5 ke atas → 1, di bawah 0.5 → 0</strong>
             </div>
             
             <div style="display: flex; justify-content: space-between;">
@@ -2532,11 +2654,12 @@ function displaySummaries(data) {
                 <div>Total Jam Kerja: <strong>${formatHoursToDisplay(totalJam)}</strong></div>
                 <div>Total Jam Normal: <strong>${formatHoursToDisplay(totalNormal)}</strong></div>
                 <div style="color: ${totalLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
-                    Total Jam Lembur: <strong>${formatHoursToDisplay(totalLemburDesimal)}</strong>
+                    Total Jam Lembur: <strong>${formatHoursToDisplay(totalLemburDesimal)}</strong><br>
+                    <small>Setelah dibulatkan: <strong>${roundAndFormatHours(totalLemburDesimal)}</strong></small>
                 </div>
             </div>
             <div style="border-top: 2px solid #3498db; padding-top: 0.5rem; margin-top: 0.5rem;">
-                <strong>Perhitungan Gaji Lembur:</strong><br>
+                <strong>Perhitungan Gaji Lembur (dengan pembulatan):</strong><br>
                 ${salaryHtml}
                 <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
                     <div style="font-weight: bold; color: #9b59b6;">
@@ -2545,6 +2668,9 @@ function displaySummaries(data) {
                     <div style="font-weight: bold; color: #2c3e50;">
                         TOTAL GAJI LEMBUR: Rp ${Math.round(totalGajiAll).toLocaleString('id-ID')}
                     </div>
+                </div>
+                <div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                    <i class="fas fa-info-circle"></i> Gaji dihitung berdasarkan jam lembur yang telah dibulatkan
                 </div>
             </div>
         `;
@@ -2611,7 +2737,7 @@ function createCharts(data) {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Distribusi Jam Kerja per Karyawan'
+                    text: 'Distribusi Jam Kerja per Karyawan (Desimal)'
                 }
             },
             scales: {
@@ -2670,7 +2796,7 @@ function createCharts(data) {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Komposisi Jam Kerja'
+                    text: 'Komposisi Jam Kerja (Desimal)'
                 },
                 legend: {
                     position: 'bottom'
@@ -2793,7 +2919,7 @@ function generateReport(data, filename, sheetName = 'Data Lembur Harian') {
 function prepareExportData(data) {
     if (data.length === 0) return [];
     
-    const hasOvertimeData = data[0].jamLembur !== undefined;
+    const hasOvertimeData = data[0].jamLemburDesimal !== undefined;
     
     if (hasOvertimeData) {
         return data.map((item, index) => ({
@@ -2805,9 +2931,8 @@ function prepareExportData(data) {
             'Jam Keluar': item.jamKeluar,
             'Durasi Kerja': item.durasiFormatted,
             'Jam Normal': item.jamNormalFormatted,
-            'Jam Lembur': item.jamLembur,
-            'Durasi (Desimal)': item.durasi.toFixed(2),
-            'Lembur (Desimal)': item.jamLemburDesimal.toFixed(2),
+            'Jam Lembur (Desimal)': item.jamLemburDesimal.toFixed(2) + ' jam',
+            'Jam Lembur (Bulat)': roundOvertimeHours(item.jamLemburDesimal) + ' jam',
             'Keterangan': item.keterangan,
             'Catatan Khusus': item.isFriday ? 'HARI JUMAT - Pulang normal jam 15:00' : ''
         }));
