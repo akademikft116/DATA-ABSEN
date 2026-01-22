@@ -1563,6 +1563,512 @@ function createOvertimeTablePerPerson(data) {
 }
 
 // ============================
+// FUNGSI UNTUK TOMBOL SCROLL KE BAWAH
+// ============================
+
+// Fungsi untuk membuat tombol scroll ke bawah
+function createScrollToBottomButton() {
+    // Cek apakah tombol sudah ada
+    if (document.getElementById('scroll-to-bottom-btn')) {
+        return;
+    }
+    
+    // Buat tombol
+    const button = document.createElement('button');
+    button.id = 'scroll-to-bottom-btn';
+    button.className = 'scroll-to-bottom-btn';
+    button.innerHTML = '<i class="fas fa-arrow-down"></i> Ke Bawah Tabel';
+    button.title = 'Scroll ke akhir tabel';
+    
+    // Tambahkan ke body
+    document.body.appendChild(button);
+    
+    // Event listener untuk tombol
+    button.addEventListener('click', scrollToBottomOfTable);
+}
+
+// Fungsi untuk scroll ke bawah tabel
+function scrollToBottomOfTable() {
+    const tableContainer = document.querySelector('.table-responsive');
+    const processedTab = document.getElementById('processed-tab');
+    
+    if (tableContainer && processedTab && processedTab.classList.contains('active')) {
+        // Scroll ke bawah container tabel
+        tableContainer.scrollTo({
+            top: tableContainer.scrollHeight,
+            behavior: 'smooth'
+        });
+        
+        // Atau scroll ke elemen terakhir dalam tabel
+        const lastRow = tableContainer.querySelector('tr:last-child');
+        if (lastRow) {
+            lastRow.scrollIntoView({
+                behavior: 'smooth',
+                block: 'end'
+            });
+        }
+        
+        showNotification('Scroll ke bawah tabel...', 'info');
+    } else {
+        // Jika tidak ada tabel, scroll ke bagian results
+        const resultsSection = document.getElementById('results-section');
+        if (resultsSection) {
+            resultsSection.scrollIntoView({
+                behavior: 'smooth',
+                block: 'end'
+            });
+        }
+    }
+}
+
+// Fungsi untuk scroll ke atas tabel
+function scrollToTopOfTable() {
+    const tableContainer = document.querySelector('.table-responsive');
+    if (tableContainer) {
+        tableContainer.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+        
+        // Atau scroll ke header tabel
+        const firstRow = tableContainer.querySelector('tr:first-child');
+        if (firstRow) {
+            firstRow.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+        
+        showNotification('Scroll ke atas tabel...', 'info');
+    }
+}
+
+// Fungsi untuk menambahkan tombol scroll di dalam tabel
+function addTableScrollButtons() {
+    // Hapus tombol lama jika ada
+    const oldButtons = document.querySelectorAll('.table-scroll-buttons');
+    oldButtons.forEach(btn => btn.remove());
+    
+    // Cari container tabel
+    const tableContainers = document.querySelectorAll('.table-responsive');
+    
+    tableContainers.forEach((container, index) => {
+        // Buat tombol container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'table-scroll-buttons';
+        
+        // Tombol ke bawah
+        const bottomBtn = document.createElement('button');
+        bottomBtn.className = 'table-scroll-btn';
+        bottomBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Ke Bawah';
+        bottomBtn.onclick = () => {
+            container.scrollTo({
+                top: container.scrollHeight,
+                behavior: 'smooth'
+            });
+        };
+        
+        // Tombol ke atas
+        const topBtn = document.createElement('button');
+        topBtn.className = 'table-scroll-btn';
+        topBtn.innerHTML = '<i class="fas fa-arrow-up"></i> Ke Atas';
+        topBtn.onclick = () => {
+            container.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        };
+        
+        // Tambahkan tombol ke container
+        buttonContainer.appendChild(bottomBtn);
+        buttonContainer.appendChild(topBtn);
+        
+        // Tambahkan setelah container tabel
+        container.parentNode.insertBefore(buttonContainer, container.nextSibling);
+    });
+}
+
+// Fungsi untuk membuat floating action buttons
+function createFloatingActionButtons() {
+    // Hapus FAB lama jika ada
+    const oldFab = document.getElementById('fab-container');
+    if (oldFab) {
+        oldFab.remove();
+    }
+    
+    // Buat container FAB
+    const fabContainer = document.createElement('div');
+    fabContainer.id = 'fab-container';
+    fabContainer.className = 'fab-container';
+    
+    // FAB untuk ke atas
+    const fabTop = document.createElement('button');
+    fabTop.className = 'fab fab-top';
+    fabTop.innerHTML = '<i class="fas fa-arrow-up"></i>';
+    fabTop.title = 'Ke Atas Tabel';
+    
+    // Label untuk FAB
+    const topLabel = document.createElement('span');
+    topLabel.className = 'fab-label';
+    topLabel.textContent = 'Ke Atas Tabel';
+    fabTop.appendChild(topLabel);
+    
+    fabTop.onclick = scrollToTopOfTable;
+    
+    // FAB untuk ke bawah
+    const fabBottom = document.createElement('button');
+    fabBottom.className = 'fab';
+    fabBottom.innerHTML = '<i class="fas fa-arrow-down"></i>';
+    fabBottom.title = 'Ke Bawah Tabel';
+    
+    const bottomLabel = document.createElement('span');
+    bottomLabel.className = 'fab-label';
+    bottomLabel.textContent = 'Ke Bawah Tabel';
+    fabBottom.appendChild(bottomLabel);
+    
+    fabBottom.onclick = scrollToBottomOfTable;
+    
+    // Tambahkan FAB ke container
+    fabContainer.appendChild(fabTop);
+    fabContainer.appendChild(fabBottom);
+    
+    // Tambahkan ke body
+    document.body.appendChild(fabContainer);
+    
+    // Sembunyikan FAB secara default
+    fabContainer.style.display = 'none';
+    
+    // Tampilkan FAB hanya saat tab "Data Terproses" aktif
+    const observer = new MutationObserver(() => {
+        const processedTab = document.getElementById('processed-tab');
+        if (processedTab && processedTab.classList.contains('active')) {
+            fabContainer.style.display = 'flex';
+        } else {
+            fabContainer.style.display = 'none';
+        }
+    });
+    
+    // Observe perubahan pada tab content
+    const tabContainer = document.querySelector('.tab-content');
+    if (tabContainer) {
+        observer.observe(tabContainer, {
+            attributes: true,
+            attributeFilter: ['class'],
+            subtree: true
+        });
+    }
+    
+    return fabContainer;
+}
+
+// Update fungsi displayProcessedTable() untuk menambahkan tombol scroll
+function displayProcessedTable(data) {
+    const tbody = document.getElementById('processed-table-body');
+    if (!tbody) {
+        console.error('Element #processed-table-body tidak ditemukan');
+        return;
+    }
+    
+    tbody.innerHTML = '';
+    
+    data.forEach((item, index) => {
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td><strong>${item.nama}</strong></td>
+            <td>
+                ${formatDate(item.tanggal)}
+                ${item.isFriday ? '<br><small style="color: #9b59b6; font-weight: bold;">(JUMAT)</small>' : ''}
+            </td>
+            <td>
+                ${item.jamMasuk}
+                ${item.jamMasuk !== item.jamMasukEfektif ? 
+                    `<br><small style="color: #666;">(efektif: ${item.jamMasukEfektif})</small>` : 
+                    ''}
+            </td>
+            <td>${item.jamKeluar}</td>
+            <td>${item.durasiFormatted}</td>
+            <td>${item.jamNormalFormatted}</td>
+            <td style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
+                ${item.jamLembur}
+                ${item.isFriday && item.jamLemburDesimal > 0 ? 
+                    '<br><small style="color: #9b59b6;">(pulang > 15:00)</small>' : 
+                    ''}
+            </td>
+            <td>
+                <span style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-size: 0.85rem;">
+                    ${item.keterangan}
+                </span>
+            </td>
+        `;
+        
+        // Tambahkan class khusus untuk hari Jumat
+        if (item.isFriday) {
+            row.classList.add('friday-row');
+        }
+        
+        tbody.appendChild(row);
+    });
+    
+    // Tambahkan tombol scroll setelah tabel dimuat
+    setTimeout(() => {
+        addTableScrollButtons();
+        createFloatingActionButtons();
+        
+        // Tampilkan tombol jika data banyak
+        if (data.length > 10) {
+            createScrollToBottomButton();
+            
+            // Tambahkan header dengan tombol cepat
+            addQuickNavigationHeader();
+        }
+    }, 500);
+}
+
+// Fungsi untuk menambahkan header dengan tombol cepat
+function addQuickNavigationHeader() {
+    const cardHeader = document.querySelector('.data-preview-card .card-header');
+    if (!cardHeader) return;
+    
+    // Cek apakah sudah ada tombol navigasi
+    if (cardHeader.querySelector('.quick-navigation')) {
+        return;
+    }
+    
+    // Buat container tombol cepat
+    const quickNav = document.createElement('div');
+    quickNav.className = 'quick-navigation';
+    quickNav.style.cssText = `
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    `;
+    
+    // Tombol ke bagian bawah tabel
+    const toBottomBtn = document.createElement('button');
+    toBottomBtn.className = 'btn btn-sm btn-primary';
+    toBottomBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Ke Bawah Tabel';
+    toBottomBtn.style.cssText = `
+        padding: 5px 10px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    `;
+    toBottomBtn.onclick = scrollToBottomOfTable;
+    
+    // Tombol ke bagian atas tabel
+    const toTopBtn = document.createElement('button');
+    toTopBtn.className = 'btn btn-sm btn-secondary';
+    toTopBtn.innerHTML = '<i class="fas fa-arrow-up"></i> Ke Atas Tabel';
+    toTopBtn.style.cssText = `
+        padding: 5px 10px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    `;
+    toTopBtn.onclick = scrollToTopOfTable;
+    
+    // Tombol untuk mencari data tertentu
+    const searchBtn = document.createElement('button');
+    searchBtn.className = 'btn btn-sm btn-success';
+    searchBtn.innerHTML = '<i class="fas fa-search"></i> Cari Karyawan';
+    searchBtn.style.cssText = `
+        padding: 5px 10px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    `;
+    searchBtn.onclick = showSearchModal;
+    
+    quickNav.appendChild(toBottomBtn);
+    quickNav.appendChild(toTopBtn);
+    quickNav.appendChild(searchBtn);
+    
+    // Tambahkan setelah header
+    cardHeader.appendChild(quickNav);
+}
+
+// Fungsi untuk menampilkan modal pencarian
+function showSearchModal() {
+    if (processedData.length === 0) {
+        showNotification('Tidak ada data untuk dicari.', 'warning');
+        return;
+    }
+    
+    // Dapatkan daftar karyawan unik
+    const uniqueEmployees = [...new Set(processedData.map(item => item.nama))].sort();
+    
+    const modalHtml = `
+        <div class="modal" id="search-modal">
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-search"></i> Cari Data Karyawan</h3>
+                    <button class="modal-close" id="close-search-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="search-container">
+                        <div class="input-group" style="margin-bottom: 1rem;">
+                            <input type="text" id="employee-search" placeholder="Cari nama karyawan..." 
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px;">
+                        </div>
+                        
+                        <div class="employee-list" id="employee-list" 
+                             style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; padding: 10px;">
+                            ${uniqueEmployees.map(employee => `
+                                <div class="employee-item" data-employee="${employee}" 
+                                     style="padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;">
+                                    <strong>${employee}</strong>
+                                    <small style="color: #666; float: right;">
+                                        ${processedData.filter(item => item.nama === employee).length} entri
+                                    </small>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div style="margin-top: 1rem; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                            <strong>Tips:</strong> Klik nama karyawan untuk scroll ke data mereka
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancel-search">Batal</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Tambahkan modal ke body
+    const existingModal = document.getElementById('search-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('search-modal');
+    modal.classList.add('active');
+    
+    // Event listeners
+    document.getElementById('close-search-modal').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    document.getElementById('cancel-search').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    // Pencarian real-time
+    const searchInput = document.getElementById('employee-search');
+    const employeeList = document.getElementById('employee-list');
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const items = employeeList.querySelectorAll('.employee-item');
+        
+        items.forEach(item => {
+            const employeeName = item.getAttribute('data-employee').toLowerCase();
+            if (employeeName.includes(searchTerm)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+    
+    // Klik pada item karyawan
+    employeeList.addEventListener('click', function(e) {
+        const employeeItem = e.target.closest('.employee-item');
+        if (employeeItem) {
+            const employeeName = employeeItem.getAttribute('data-employee');
+            scrollToEmployee(employeeName);
+            modal.remove();
+        }
+    });
+    
+    // Fokus pada input pencarian
+    setTimeout(() => {
+        searchInput.focus();
+    }, 100);
+}
+
+// Fungsi untuk scroll ke data karyawan tertentu
+function scrollToEmployee(employeeName) {
+    const tbody = document.getElementById('processed-table-body');
+    if (!tbody) return;
+    
+    // Cari baris pertama untuk karyawan ini
+    const rows = tbody.querySelectorAll('tr');
+    let targetRow = null;
+    
+    for (let row of rows) {
+        const nameCell = row.querySelector('td:nth-child(2) strong');
+        if (nameCell && nameCell.textContent === employeeName) {
+            targetRow = row;
+            break;
+        }
+    }
+    
+    if (targetRow) {
+        // Scroll ke baris target
+        targetRow.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+        
+        // Highlight baris
+        targetRow.style.backgroundColor = '#fff3cd';
+        targetRow.style.transition = 'background-color 0.5s';
+        
+        // Hapus highlight setelah 3 detik
+        setTimeout(() => {
+            targetRow.style.backgroundColor = '';
+        }, 3000);
+        
+        showNotification(`Scroll ke data ${employeeName}...`, 'success');
+    } else {
+        showNotification(`Data untuk ${employeeName} tidak ditemukan`, 'warning');
+    }
+}
+
+// Fungsi untuk menambahkan back to top button
+function addBackToTopButton() {
+    // Cek apakah button sudah ada
+    if (document.getElementById('back-to-top')) {
+        return;
+    }
+    
+    // Buat button
+    const button = document.createElement('button');
+    button.id = 'back-to-top';
+    button.className = 'back-to-top';
+    button.innerHTML = '<i class="fas fa-arrow-up"></i>';
+    button.title = 'Kembali ke atas';
+    
+    // Tambahkan ke body
+    document.body.appendChild(button);
+    
+    // Event listener
+    button.addEventListener('click', () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+    
+    // Tampilkan/sembunyikan button berdasarkan scroll
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+            button.classList.add('show');
+        } else {
+            button.classList.remove('show');
+        }
+    });
+}
+
+// ============================
 // MAIN APPLICATION FUNCTIONS - DENGAN UPDATE JUMAT
 // ============================
 
@@ -1572,7 +2078,7 @@ function initializeApp() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
     
-    // Event listener untuk tombol download gaji lembur (TIDAK DIUBAH)
+    // Event listener untuk tombol download gaji lembur
     const downloadSalaryBtn = document.getElementById('download-salary');
     if (downloadSalaryBtn) {
         // Ubah event listener untuk menampilkan modal download terpisah
@@ -1586,11 +2092,23 @@ function initializeApp() {
         });
     }
     
-    // Tab functionality
+    // Tab functionality dengan scroll buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const tabId = this.getAttribute('data-tab');
             switchTab(tabId);
+            
+            // Tampilkan/sembunyikan tombol scroll berdasarkan tab aktif
+            setTimeout(() => {
+                const fabContainer = document.getElementById('fab-container');
+                if (fabContainer) {
+                    if (tabId === 'processed') {
+                        fabContainer.style.display = 'flex';
+                    } else {
+                        fabContainer.style.display = 'none';
+                    }
+                }
+            }, 300);
         });
     });
     
@@ -1612,7 +2130,7 @@ function initializeApp() {
     const resetBtn = document.getElementById('reset-config');
     if (resetBtn) resetBtn.addEventListener('click', resetConfig);
     
-    // Download buttons (TIDAK DIUBAH)
+    // Download buttons
     const downloadOriginal = document.getElementById('download-original');
     const downloadProcessed = document.getElementById('download-processed');
     const downloadBoth = document.getElementById('download-both');
@@ -1631,6 +2149,9 @@ function initializeApp() {
             }, 500);
         }
     }, 2000);
+    
+    // Tambahkan back to top button
+    addBackToTopButton();
 }
 
 // Handle file selection
@@ -1777,7 +2298,12 @@ function displayResults(data) {
     displayOriginalTable(originalData);
     displayProcessedTable(data);
     displaySummaries(data);
-    // previewOvertimeTable(data); // Di-comment karena tidak diperlukan lagi
+    
+    // Inisialisasi tombol scroll
+    setTimeout(() => {
+        createScrollToBottomButton();
+        createFloatingActionButtons();
+    }, 1000);
 }
 
 // Update main statistics
@@ -1840,57 +2366,6 @@ function displayOriginalTable(data) {
         
         // Tambahkan class khusus untuk hari Jumat
         if (isFridayDay) {
-            row.classList.add('friday-row');
-        }
-        
-        tbody.appendChild(row);
-    });
-}
-
-// Display processed table (DATA PER HARI) - DENGAN INFO JUMAT
-function displayProcessedTable(data) {
-    const tbody = document.getElementById('processed-table-body');
-    if (!tbody) {
-        console.error('Element #processed-table-body tidak ditemukan');
-        return;
-    }
-    
-    tbody.innerHTML = '';
-    
-    data.forEach((item, index) => {
-        const row = document.createElement('tr');
-        
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td><strong>${item.nama}</strong></td>
-            <td>
-                ${formatDate(item.tanggal)}
-                ${item.isFriday ? '<br><small style="color: #9b59b6; font-weight: bold;">(JUMAT)</small>' : ''}
-            </td>
-            <td>
-                ${item.jamMasuk}
-                ${item.jamMasuk !== item.jamMasukEfektif ? 
-                    `<br><small style="color: #666;">(efektif: ${item.jamMasukEfektif})</small>` : 
-                    ''}
-            </td>
-            <td>${item.jamKeluar}</td>
-            <td>${item.durasiFormatted}</td>
-            <td>${item.jamNormalFormatted}</td>
-            <td style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
-                ${item.jamLembur}
-                ${item.isFriday && item.jamLemburDesimal > 0 ? 
-                    '<br><small style="color: #9b59b6;">(pulang > 15:00)</small>' : 
-                    ''}
-            </td>
-            <td>
-                <span style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-size: 0.85rem;">
-                    ${item.keterangan}
-                </span>
-            </td>
-        `;
-        
-        // Tambahkan class khusus untuk hari Jumat
-        if (item.isFriday) {
             row.classList.add('friday-row');
         }
         
@@ -2232,6 +2707,13 @@ function switchTab(tabId) {
         content.classList.remove('active');
         if (content.id === `${tabId}-tab`) {
             content.classList.add('active');
+            
+            // Tambahkan tombol scroll jika tab "processed" aktif
+            if (tabId === 'processed') {
+                setTimeout(() => {
+                    addTableScrollButtons();
+                }, 300);
+            }
         }
     });
 }
@@ -2475,177 +2957,3 @@ if (!document.querySelector('#notification-styles')) {
     `;
     document.head.appendChild(style);
 }
-
-// Add CSS untuk modal pilihan download terpisah
-if (!document.querySelector('#separated-download-styles')) {
-    const style = document.createElement('style');
-    style.id = 'separated-download-styles';
-    style.textContent = `
-        .download-options-separated {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-        
-        .download-options-separated .option-card {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            padding: 1.5rem;
-            background: var(--light-color);
-            border-radius: var(--border-radius-sm);
-            border-left: 5px solid;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .download-options-separated .option-card:hover {
-            transform: translateX(10px);
-            box-shadow: var(--shadow-medium);
-        }
-        
-        #option-friday-only {
-            border-left-color: #9b59b6;
-        }
-        
-        #option-other-days-only {
-            border-left-color: #3498db;
-        }
-        
-        #option-both-separated {
-            border-left-color: #2ecc71;
-        }
-        
-        #option-all-together {
-            border-left-color: #217346;
-        }
-        
-        .download-options-separated .option-content h4 {
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-        }
-        
-        .download-options-separated .option-content p {
-            color: var(--gray-color);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .download-options-separated .option-content ul {
-            list-style-type: none;
-            padding-left: 0;
-        }
-        
-        .download-options-separated .option-content li {
-            color: var(--gray-color);
-            font-size: 0.85rem;
-            margin-bottom: 0.25rem;
-            position: relative;
-            padding-left: 1rem;
-        }
-        
-        .download-options-separated .option-content li:before {
-            content: "✓";
-            color: var(--success-color);
-            position: absolute;
-            left: 0;
-        }
-        
-        .download-stats {
-            margin-bottom: 1.5rem;
-        }
-        
-        .download-stats h4 {
-            color: white;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .download-stats h4 i {
-            font-size: 1.2rem;
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-// Add CSS untuk styling hari Jumat
-if (!document.querySelector('#friday-styles')) {
-    const style = document.createElement('style');
-    style.id = 'friday-styles';
-    style.textContent = `
-        /* Styling untuk hari Jumat */
-        .friday-badge {
-            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            display: inline-block;
-            margin-left: 0.5rem;
-        }
-        
-        /* Highlight row untuk hari Jumat */
-        .data-table tbody tr.friday-row {
-            background: rgba(155, 89, 182, 0.05);
-            border-left: 3px solid #9b59b6;
-        }
-        
-        .data-table tbody tr.friday-row:hover {
-            background: rgba(155, 89, 182, 0.1);
-        }
-        
-        /* Styling untuk info Jumat di summary */
-        .friday-info {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            padding: 1rem;
-            border-radius: var(--border-radius-sm);
-            margin: 1rem 0;
-        }
-        
-        .friday-info h5 {
-            color: white;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-// Fungsi untuk testing aturan Jumat
-function testFridayRules() {
-    const testCases = [
-        // Jumat, masuk sebelum 7, pulang 15:00 (tidak lembur)
-        { tanggal: '15/11/2024', jamMasuk: '06:30', jamKeluar: '15:00' },
-        // Jumat, masuk 7, pulang 15:10 (lembur 10 menit)
-        { tanggal: '15/11/2024', jamMasuk: '07:00', jamKeluar: '15:10' },
-        // Jumat, masuk 7, pulang 16:00 (lembur 1 jam)
-        { tanggal: '15/11/2024', jamMasuk: '07:00', jamKeluar: '16:00' },
-        // Senin, masuk 7, pulang 15:00 (tidak lembur, pulang normal)
-        { tanggal: '11/11/2024', jamMasuk: '07:00', jamKeluar: '15:00' },
-        // Senin, masuk 7, pulang 16:10 (lembur 10 menit)
-        { tanggal: '11/11/2024', jamMasuk: '07:00', jamKeluar: '16:10' }
-    ];
-    
-    console.log('=== TESTING FRIDAY RULES ===');
-    testCases.forEach((test, index) => {
-        const isFridayDay = isFriday(test.tanggal);
-        const effectiveIn = getEffectiveInTimeWithDayRules(test.jamMasuk, test.tanggal);
-        const overtime = calculateOvertimeWithDayRules(test.jamKeluar, test.tanggal);
-        
-        console.log(`Test ${index + 1}:`);
-        console.log(`Tanggal: ${test.tanggal} (${getDayName(test.tanggal)}) ${isFridayDay ? '(JUMAT)' : ''}`);
-        console.log(`Jam Masuk: ${test.jamMasuk} -> Efektif: ${effectiveIn}`);
-        console.log(`Jam Keluar: ${test.jamKeluar}`);
-        console.log(`Lembur: ${overtime} jam`);
-        console.log('---');
-    });
-}
-
-// Panggil fungsi testing saat development (opsional)
-// testFridayRules();
