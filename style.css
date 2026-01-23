@@ -1291,47 +1291,6 @@ body {
     gap: 0.5rem;
 }
 
-/* Tambahkan di akhir file style.css */
-
-/* Styling untuk hari Jumat */
-.friday-badge {
-    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: bold;
-    display: inline-block;
-    margin-left: 0.5rem;
-}
-
-/* Highlight row untuk hari Jumat */
-.data-table tbody tr.friday-row {
-    background: rgba(155, 89, 182, 0.05);
-    border-left: 3px solid #9b59b6;
-}
-
-.data-table tbody tr.friday-row:hover {
-    background: rgba(155, 89, 182, 0.1);
-}
-
-/* Styling untuk info Jumat di summary */
-.friday-info {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    padding: 1rem;
-    border-radius: var(--border-radius-sm);
-    margin: 1rem 0;
-}
-
-.friday-info h5 {
-    color: white;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
 /* CSS untuk modal download terpisah */
 .download-options-separated {
     display: flex;
@@ -1418,7 +1377,6 @@ body {
 .download-stats h4 i {
     font-size: 1.2rem;
 }
-/* Tambahkan di akhir file style.css */
 
 /* ============================
    STYLING UNTUK TOMBOL SCROLL
@@ -1888,4 +1846,105 @@ body {
 
 .saturday-rules-box li {
     margin-bottom: 0.25rem;
+}
+
+/* ============================
+   STYLING UNTUK DOWNLOAD SECTION
+   ============================ */
+
+.download-section-title {
+    grid-column: 1 / -1;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.download-section-title h4 {
+    color: var(--primary-color);
+    border-bottom: 2px solid;
+    padding-bottom: 0.5rem;
+    font-family: 'Montserrat', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Style untuk tombol download ganda */
+.download-option .btn-download + .btn-download {
+    margin-left: 0.5rem;
+}
+
+/* Warna khusus untuk setiap hari */
+.btn-download.senin-kamis {
+    background: #3498db;
+}
+
+.btn-download.jumat {
+    background: #9b59b6;
+}
+
+.btn-download.sabtu {
+    background: #f39c12;
+}
+
+/* Download option dengan multiple buttons */
+.download-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--light-color);
+    border-radius: var(--border-radius-sm);
+    border-left: 5px solid var(--secondary-color);
+    transition: all 0.3s;
+}
+
+.download-option:hover {
+    transform: translateX(5px);
+    box-shadow: var(--shadow-light);
+}
+
+.download-option .button-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Responsive untuk download options */
+@media (max-width: 768px) {
+    .download-option {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .download-option .button-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .download-option .btn-download {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Loading untuk download */
+.download-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.download-loading .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
