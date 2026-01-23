@@ -1807,3 +1807,85 @@ body {
 .back-to-top.show {
     display: flex;
 }
+
+/* ============================
+   STYLING UNTUK HARI SABTU
+   ============================ */
+
+/* Styling untuk hari Sabtu */
+.saturday-badge {
+    background: linear-gradient(135deg, #f39c12 0%, #d35400 100%);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 0.5rem;
+}
+
+/* Highlight row untuk hari Sabtu */
+.data-table tbody tr.saturday-row {
+    background: rgba(243, 156, 18, 0.05);
+    border-left: 3px solid #f39c12;
+}
+
+.data-table tbody tr.saturday-row:hover {
+    background: rgba(243, 156, 18, 0.1);
+}
+
+/* Styling untuk info Sabtu di summary */
+.saturday-info {
+    background: linear-gradient(135deg, #f6e58d 0%, #ffbe76 100%);
+    color: #d35400;
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+    margin: 1rem 0;
+    border-left: 5px solid #f39c12;
+}
+
+.saturday-info h5 {
+    color: #d35400;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Warna untuk opsi download Sabtu */
+#option-saturday-only {
+    border-left-color: #f39c12;
+}
+
+#option-saturday-only .option-icon i {
+    color: #f39c12;
+}
+
+/* Aturan khusus Sabtu di sidebar */
+.saturday-rules-box {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: #fff9e6;
+    border-radius: 8px;
+    border-left: 4px solid #f39c12;
+}
+
+.saturday-rules-box h5 {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #d35400;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.saturday-rules-box ul {
+    font-size: 0.8rem;
+    color: #d35400;
+    padding-left: 1.2rem;
+    margin-bottom: 0;
+}
+
+.saturday-rules-box li {
+    margin-bottom: 0.25rem;
+}
