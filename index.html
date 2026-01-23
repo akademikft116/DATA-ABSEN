@@ -122,6 +122,26 @@
             <li>Lembur ≥ 10 menit setelah jam 16:00</li>
         </ul>
     </div>
+    
+    <!-- Aturan Sabtu -->
+    <div class="saturday-rules-box">
+        <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #d35400;">
+            <i class="fas fa-calendar-day"></i> Aturan Khusus Sabtu:
+        </h5>
+        <ul style="font-size: 0.8rem; color: #d35400; padding-left: 1.2rem; margin-bottom: 0.5rem;">
+            <li>Jam masuk: Bebas (tidak ada jam efektif)</li>
+            <li>Jam kerja normal: 6 jam saja</li>
+            <li>Lembur ≥ 10 menit setelah 6 jam kerja</li>
+        </ul>
+        <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #d35400;">
+            <i class="fas fa-clock"></i> Contoh Perhitungan Sabtu:
+        </h5>
+        <ul style="font-size: 0.8rem; color: #d35400; padding-left: 1.2rem; margin-bottom: 0;">
+            <li>Masuk 08:00, kerja normal sampai 14:00</li>
+            <li>Pulang 15:30 = Lembur 1.5 jam</li>
+            <li>Lembur dibulatkan menjadi 2 jam</li>
+        </ul>
+    </div>
 </div>
             </aside>
 
@@ -383,11 +403,11 @@
                     <div class="card download-card">
                         <div class="card-header">
                             <h3><i class="fas fa-download"></i> Unduh Laporan</h3>
-                            <p>Download hasil pengolahan data dalam format Excel</p>
+                            <p>Download hasil pengolahan data dalam format Excel yang terpisah per jenis hari</p>
                         </div>
                         <div class="card-body">
                             <div class="download-options">
-                                <!-- Opsi 1 -->
+                                <!-- Opsi 1: Data Presensi Asli -->
                                 <div class="download-option">
                                     <div class="option-icon">
                                         <i class="fas fa-file-excel" style="color: #217346;"></i>
@@ -401,7 +421,7 @@
                                     </button>
                                 </div>
 
-                                <!-- Opsi 2 -->
+                                <!-- Opsi 2: Data Terhitung -->
                                 <div class="download-option">
                                     <div class="option-icon">
                                         <i class="fas fa-file-invoice-dollar" style="color: #4A90E2;"></i>
@@ -415,34 +435,89 @@
                                     </button>
                                 </div>
 
-                                <!-- Opsi 3 -->
+                                <!-- SECTION SENIN-KAMIS -->
+                                <div class="download-section-title" style="grid-column: 1 / -1; margin-top: 2rem;">
+                                    <h4 style="color: #3498db; border-bottom: 2px solid #3498db; padding-bottom: 0.5rem;">
+                                        <i class="fas fa-calendar-week"></i> SENIN - KAMIS
+                                    </h4>
+                                </div>
+
+                                <!-- Opsi 3: Senin-Kamis per orang -->
                                 <div class="download-option">
                                     <div class="option-icon">
-                                        <i class="fas fa-file-archive" style="color: #F5A623;"></i>
+                                        <i class="fas fa-user-tie" style="color: #3498db;"></i>
                                     </div>
                                     <div class="option-content">
-                                        <h4>Paket Lengkap</h4>
-                                        <p>Kedua file dalam satu paket ZIP</p>
+                                        <h4>Senin-Kamis per Karyawan</h4>
+                                        <p>Format tabel Excel terpisah untuk setiap karyawan</p>
                                     </div>
-                                    <button class="btn btn-download" id="download-both">
-                                        <i class="fas fa-file-archive"></i> Unduh (.zip)
+                                    <button class="btn btn-download" id="download-other-per-person">
+                                        <i class="fas fa-download"></i> Per Orang
+                                    </button>
+                                    <button class="btn btn-download" style="background: #2980b9;" id="download-other-all">
+                                        <i class="fas fa-users"></i> Semua Data
                                     </button>
                                 </div>
 
-                                <!-- Opsi 4 -->
+                                <!-- SECTION JUMAT -->
+                                <div class="download-section-title" style="grid-column: 1 / -1; margin-top: 2rem;">
+                                    <h4 style="color: #9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom: 0.5rem;">
+                                        <i class="fas fa-calendar-day"></i> HARI JUMAT
+                                    </h4>
+                                </div>
+
+                                <!-- Opsi 4: Jumat per orang -->
                                 <div class="download-option">
                                     <div class="option-icon">
-                                        <i class="fas fa-money-bill-wave" style="color: #27ae60;"></i>
+                                        <i class="fas fa-calendar-day" style="color: #9b59b6;"></i>
                                     </div>
                                     <div class="option-content">
-                                        <h4>Rekap Gaji Lembur</h4>
-                                        <p>Download dengan format tabel Excel per orang</p>
-                                        <small style="color: #666;">
-                                            <i class="fas fa-info-circle"></i> Pilih format tabel per karyawan
-                                        </small>
+                                        <h4>Hari Jumat per Karyawan</h4>
+                                        <p>Format khusus hari Jumat (pulang jam 15:00)</p>
                                     </div>
-                                    <button class="btn btn-download" id="download-salary">
-                                        <i class="fas fa-download"></i> Pilih Format
+                                    <button class="btn btn-download" id="download-friday-per-person">
+                                        <i class="fas fa-download"></i> Per Orang
+                                    </button>
+                                    <button class="btn btn-download" style="background: #8e44ad;" id="download-friday-all">
+                                        <i class="fas fa-users"></i> Semua Data
+                                    </button>
+                                </div>
+
+                                <!-- SECTION SABTU -->
+                                <div class="download-section-title" style="grid-column: 1 / -1; margin-top: 2rem;">
+                                    <h4 style="color: #f39c12; border-bottom: 2px solid #f39c12; padding-bottom: 0.5rem;">
+                                        <i class="fas fa-calendar-day"></i> HARI SABTU
+                                    </h4>
+                                </div>
+
+                                <!-- Opsi 5: Sabtu per orang -->
+                                <div class="download-option">
+                                    <div class="option-icon">
+                                        <i class="fas fa-calendar-day" style="color: #f39c12;"></i>
+                                    </div>
+                                    <div class="option-content">
+                                        <h4>Hari Sabtu per Karyawan</h4>
+                                        <p>Format khusus hari Sabtu (kerja 6 jam, bebas masuk)</p>
+                                    </div>
+                                    <button class="btn btn-download" id="download-saturday-per-person">
+                                        <i class="fas fa-download"></i> Per Orang
+                                    </button>
+                                    <button class="btn btn-download" style="background: #e67e22;" id="download-saturday-all">
+                                        <i class="fas fa-users"></i> Semua Data
+                                    </button>
+                                </div>
+
+                                <!-- Opsi 6: Paket Lengkap Semua Hari -->
+                                <div class="download-option" style="grid-column: 1 / -1; margin-top: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                    <div class="option-icon">
+                                        <i class="fas fa-file-archive" style="color: white;"></i>
+                                    </div>
+                                    <div class="option-content">
+                                        <h4 style="color: white;">Paket Lengkap Semua Hari</h4>
+                                        <p style="color: rgba(255, 255, 255, 0.9);">Semua file dalam satu paket ZIP (terpisah per hari)</p>
+                                    </div>
+                                    <button class="btn btn-download" style="background: white; color: #764ba2; font-weight: bold;" id="download-all-package">
+                                        <i class="fas fa-file-archive"></i> Download ZIP
                                     </button>
                                 </div>
                             </div>
