@@ -1320,6 +1320,326 @@ function createFloatingActionButtons() {
     return fabContainer;
 }
 
+// ============================
+// FUNGSI UNTUK MODAL PILIHAN DOWNLOAD TERPISAH
+// ============================
+
+function showSeparatedDownloadOptions() {
+    if (processedData.length === 0) {
+        showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
+        return;
+    }
+
+    // Pisahkan data berdasarkan hari
+    const fridayData = processedData.filter(item => item.isFriday);
+    const saturdayData = processedData.filter(item => item.isSaturday);
+    const otherDaysData = processedData.filter(item => !item.isFriday && !item.isSaturday);
+
+    // Hitung statistik
+    const fridayCount = fridayData.length;
+    const saturdayCount = saturdayData.length;
+    const otherDaysCount = otherDaysData.length;
+    const totalCount = processedData.length;
+
+    // Buat modal HTML
+    const modalHtml = `
+        <div class="modal" id="download-options-modal">
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-download"></i> Pilihan Format Download</h3>
+                    <button class="modal-close" id="close-download-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="download-stats" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                        <h4><i class="fas fa-chart-pie"></i> Statistik Data</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <div>
+                                <strong>Total Data:</strong> ${totalCount} hari kerja<br>
+                                <small>Dari ${new Set(processedData.map(item => item.nama)).size} karyawan</small>
+                            </div>
+                            <div style="color: #9b59b6;">
+                                <strong>Hari Jumat:</strong> ${fridayCount} hari<br>
+                                <small>${fridayData.filter(item => item.jamLemburDesimal > 0).length} hari dengan lembur</small>
+                            </div>
+                            <div style="color: #f39c12;">
+                                <strong>Hari Sabtu:</strong> ${saturdayCount} hari<br>
+                                <small>${saturdayData.filter(item => item.jamLemburDesimal > 0).length} hari dengan lembur</small>
+                            </div>
+                            <div style="color: #3498db;">
+                                <strong>Hari Lain:</strong> ${otherDaysCount} hari<br>
+                                <small>${otherDaysData.filter(item => item.jamLemburDesimal > 0).length} hari dengan lembur</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="download-options-separated">
+                        <!-- Opsi 1: Format Excel per orang -->
+                        <div class="option-card" id="option-per-person">
+                            <div class="option-icon">
+                                <i class="fas fa-user-tie" style="color: #217346; font-size: 2rem;"></i>
+                            </div>
+                            <div class="option-content">
+                                <h4>Format Tabel per Karyawan</h4>
+                                <p>Buat tabel Excel terpisah untuk setiap karyawan (format seperti slip gaji)</p>
+                                <ul>
+                                    <li>Satu file dengan multiple sheets</li>
+                                    <li>Setiap sheet untuk satu karyawan</li>
+                                    <li>Format tabel siap cetak</li>
+                                    <li>Include total jam dan gaji</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Opsi 2: Format Excel satu file -->
+                        <div class="option-card" id="option-single-file">
+                            <div class="option-icon">
+                                <i class="fas fa-file-excel" style="color: #4A90E2; font-size: 2rem;"></i>
+                            </div>
+                            <div class="option-content">
+                                <h4>Format Excel Satu File</h4>
+                                <p>Semua data dalam satu worksheet dengan format tabel lengkap</p>
+                                <ul>
+                                    <li>Semua data dalam satu sheet</li>
+                                    <li>Kolom lengkap dengan perhitungan</li>
+                                    <li>Dengan warna untuk hari khusus</li>
+                                    <li>Total otomatis di akhir</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Opsi 3: Format terpisah Jumat, Sabtu, Lainnya -->
+                        <div class="option-card" id="option-separated-files">
+                            <div class="option-icon">
+                                <i class="fas fa-calendar-alt" style="color: #9b59b6; font-size: 2rem;"></i>
+                            </div>
+                            <div class="option-content">
+                                <h4>Format Terpisah (Jumat, Sabtu, Lainnya)</h4>
+                                <p>File Excel terpisah berdasarkan jenis hari</p>
+                                <ul>
+                                    <li><span style="color: #9b59b6;">File 1: Data Hari Jumat</span></li>
+                                    <li><span style="color: #f39c12;">File 2: Data Hari Sabtu</span></li>
+                                    <li><span style="color: #3498db;">File 3: Data Hari Lain</span></li>
+                                    <li>Masing-masing dengan perhitungan khusus</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Opsi 4: Format untuk Sabtu saja -->
+                        <div class="option-card" id="option-saturday-only">
+                            <div class="option-icon">
+                                <i class="fas fa-calendar-day" style="color: #f39c12; font-size: 2rem;"></i>
+                            </div>
+                            <div class="option-content">
+                                <h4>Format Khusus Sabtu</h4>
+                                <p>Hanya data hari Sabtu dengan aturan khusus (6 jam kerja)</p>
+                                <ul>
+                                    <li>Data Sabtu saja</li>
+                                    <li>Perhitungan khusus Sabtu</li>
+                                    <li>Info bebas jam masuk</li>
+                                    <li>Pembulatan lembur</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancel-download">Batal</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Tambahkan modal ke body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('download-options-modal');
+    modal.classList.add('active');
+
+    // Event listeners
+    document.getElementById('close-download-modal').addEventListener('click', () => {
+        modal.remove();
+    });
+
+    document.getElementById('cancel-download').addEventListener('click', () => {
+        modal.remove();
+    });
+
+    // Event listeners untuk pilihan
+    document.getElementById('option-per-person').addEventListener('click', () => {
+        downloadPerPersonFormat();
+        modal.remove();
+    });
+
+    document.getElementById('option-single-file').addEventListener('click', () => {
+        downloadSingleFileFormat();
+        modal.remove();
+    });
+
+    document.getElementById('option-separated-files').addEventListener('click', () => {
+        downloadSeparatedFiles();
+        modal.remove();
+    });
+
+    document.getElementById('option-saturday-only').addEventListener('click', () => {
+        downloadSaturdayOnly();
+        modal.remove();
+    });
+}
+
+// ============================
+// FUNGSI DOWNLOAD BERBAGAI FORMAT
+// ============================
+
+// Format 1: Tabel per karyawan
+function downloadPerPersonFormat() {
+    try {
+        if (processedData.length === 0) {
+            showNotification('Data belum diproses.', 'warning');
+            return;
+        }
+        
+        const tables = createOvertimeTablePerPerson(processedData);
+        
+        if (tables.length === 0) {
+            showNotification('Tidak ada data lembur untuk diunduh.', 'info');
+            return;
+        }
+        
+        // Buat workbook
+        const workbook = XLSX.utils.book_new();
+        
+        // Tambahkan setiap tabel sebagai sheet terpisah
+        tables.forEach(table => {
+            const worksheet = XLSX.utils.aoa_to_sheet(table.data);
+            
+            // Set column widths
+            worksheet['!cols'] = [
+                { wch: 20 },  // Name
+                { wch: 10 },  // Hari
+                { wch: 15 },  // Tanggal
+                { wch: 8 },   // IN
+                { wch: 8 },   // OUT
+                { wch: 15 },  // JAM KERJA
+                { wch: 12 },  // TOTAL (Bulat)
+                { wch: 15 }   // TANDA TANGAN
+            ];
+            
+            // Tambahkan sheet
+            XLSX.utils.book_append_sheet(workbook, worksheet, table.employee.substring(0, 31));
+        });
+        
+        // Tambahkan sheet summary
+        const summaryData = createSummarySheet(tables);
+        const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(workbook, summarySheet, 'SUMMARY');
+        
+        // Simpan file
+        const today = new Date();
+        const filename = `lembur_per_karyawan_${today.getFullYear()}-${today.getMonth()+1}.xlsx`;
+        XLSX.writeFile(workbook, filename);
+        
+        showNotification(`File Excel dengan ${tables.length} karyawan berhasil diunduh!`, 'success');
+        
+    } catch (error) {
+        console.error('Error downloading per person format:', error);
+        showNotification('Gagal mengunduh: ' + error.message, 'error');
+    }
+}
+
+// Format 2: Single file
+function downloadSingleFileFormat() {
+    try {
+        if (processedData.length === 0) {
+            showNotification('Data belum diproses.', 'warning');
+            return;
+        }
+        
+        generateReport(processedData, 'data_lembur_semua_hari.xlsx', 'DATA LEMBUR');
+        showNotification('File Excel semua hari berhasil diunduh!', 'success');
+        
+    } catch (error) {
+        console.error('Error downloading single file:', error);
+        showNotification('Gagal mengunduh: ' + error.message, 'error');
+    }
+}
+
+// Format 3: File terpisah
+function downloadSeparatedFiles() {
+    try {
+        if (processedData.length === 0) {
+            showNotification('Data belum diproses.', 'warning');
+            return;
+        }
+        
+        // Pisahkan data
+        const fridayData = processedData.filter(item => item.isFriday);
+        const saturdayData = processedData.filter(item => item.isSaturday);
+        const otherDaysData = processedData.filter(item => !item.isFriday && !item.isSaturday);
+        
+        // Download masing-masing
+        if (fridayData.length > 0) {
+            generateReport(fridayData, 'lembur_hari_jumat.xlsx', 'DATA JUMAT');
+        }
+        
+        if (saturdayData.length > 0) {
+            generateReport(saturdayData, 'lembur_hari_sabtu.xlsx', 'DATA SABTU');
+        }
+        
+        if (otherDaysData.length > 0) {
+            generateReport(otherDaysData, 'lembur_hari_lain.xlsx', 'DATA SENIN-KAMIS');
+        }
+        
+        showNotification('File Excel terpisah berhasil diunduh!', 'success');
+        
+    } catch (error) {
+        console.error('Error downloading separated files:', error);
+        showNotification('Gagal mengunduh: ' + error.message, 'error');
+    }
+}
+
+// Fungsi untuk membuat sheet summary
+function createSummarySheet(tables) {
+    const summaryData = [];
+    
+    // Header
+    summaryData.push(['REKAP LEMBUR KARYAWAN']);
+    summaryData.push(['Dibuat tanggal', new Date().toLocaleDateString('id-ID')]);
+    summaryData.push([]);
+    
+    // Header tabel
+    summaryData.push(['No', 'Nama Karyawan', 'Kategori', 'Total Jam Lembur', 'Total Jam (Bulat)', 'Rate per Jam', 'Total Gaji Lembur']);
+    
+    // Data
+    let totalGajiAll = 0;
+    
+    tables.forEach((table, index) => {
+        summaryData.push([
+            index + 1,
+            table.employee,
+            table.category,
+            table.totalLemburDesimal.toFixed(2),
+            table.totalLemburBulat,
+            `Rp ${table.rate.toLocaleString('id-ID')}`,
+            `Rp ${table.totalGaji.toLocaleString('id-ID')}`
+        ]);
+        
+        totalGajiAll += table.totalGaji;
+    });
+    
+    // Total
+    summaryData.push([]);
+    summaryData.push(['', '', '', '', '', 'TOTAL GAJI LEMBUR:', `Rp ${totalGajiAll.toLocaleString('id-ID')}`]);
+    
+    // Info
+    summaryData.push([]);
+    summaryData.push(['Keterangan:']);
+    summaryData.push(['1. Jam lembur dibulatkan ke angka terdekat']);
+    summaryData.push(['2. Sabtu: kerja normal 6 jam (bebas jam masuk)']);
+    summaryData.push(['3. Jumat: pulang normal jam 15:00']);
+    summaryData.push(['4. Rate: TU=Rp12.500, Staff=Rp10.000, K3=Rp8.000']);
+    
+    return summaryData;
+}
+
 // Update fungsi displayProcessedTable() untuk menambahkan tombol scroll
 function displayProcessedTable(data) {
     const tbody = document.getElementById('processed-table-body');
