@@ -538,8 +538,10 @@ function calculateOvertimePerDay(data, workHours = 8) {
         // Hitung lembur dengan aturan baru (berdasarkan jam masuk, jam pulang, dan hari)
         const jamLemburDesimal = calculateOvertimeWithDayRules(record.jamMasuk, record.jamKeluar, record.tanggal);
         
-        // Jam normal: total jam dikurangi jam lembur, maksimal workHours (kecuali Sabtu)
+        // Cek apakah hari Sabtu - HANYA SEKALI DEKLARASI
         const isSaturdayDay = isSaturday(record.tanggal);
+        
+        // Jam normal: total jam dikurangi jam lembur, maksimal workHours (kecuali Sabtu)
         const maxNormalHours = isSaturdayDay ? 6 : workHours;
         const jamNormal = Math.min(hoursWorked - jamLemburDesimal, maxNormalHours);
         
@@ -567,7 +569,7 @@ function calculateOvertimePerDay(data, workHours = 8) {
         
         // Cek apakah hari Jumat atau Sabtu
         const isFridayDay = isFriday(record.tanggal);
-        const isSaturdayDay = isSaturday(record.tanggal);
+        // isSaturdayDay sudah dideklarasikan di atas - JANGAN DEKLARASI LAGI
         
         // Keterangan khusus dengan info hari
         let keterangan = 'Tidak lembur';
