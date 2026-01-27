@@ -1807,3 +1807,84 @@ body {
 .back-to-top.show {
     display: flex;
 }
+
+/* Tambahkan di akhir file style.css */
+
+/* Styling untuk modal Sabtu */
+.saturday-info {
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 1.5rem;
+}
+
+.saturday-info h4 {
+    color: white;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.saturday-stats {
+    margin-bottom: 1.5rem;
+}
+
+.download-options-saturday {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.download-options-saturday .option-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--light-color);
+    border-radius: var(--border-radius-sm);
+    border-left: 5px solid #e67e22;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.download-options-saturday .option-card:hover {
+    transform: translateX(10px);
+    box-shadow: var(--shadow-medium);
+}
+
+#option-saturday-k3 {
+    border-left-color: #34495e;
+}
+
+.download-options-saturday .option-content h4 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.download-options-saturday .option-content p {
+    color: var(--gray-color);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.download-options-saturday .option-content ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.download-options-saturday .option-content li {
+    color: var(--gray-color);
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+    position: relative;
+    padding-left: 1rem;
+}
+
+.download-options-saturday .option-content li:before {
+    content: "✓";
+    color: var(--success-color);
+    position: absolute;
+    left: 0;
+}
