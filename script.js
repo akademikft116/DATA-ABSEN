@@ -436,6 +436,70 @@ function separateDataByDay(data) {
     };
 }
 
+function setupEventListeners() {
+    console.log('Setting up event listeners...');
+    
+    // File upload
+    const excelFileInput = document.getElementById('excel-file');
+    const browseBtn = document.getElementById('browse-btn');
+    const uploadArea = document.getElementById('upload-area');
+    const processBtn = document.getElementById('process-data');
+    const cancelUploadBtn = document.getElementById('cancel-upload');
+    
+    if (excelFileInput) excelFileInput.addEventListener('change', handleFileSelect);
+    if (browseBtn) browseBtn.addEventListener('click', () => excelFileInput?.click());
+    if (uploadArea) uploadArea.addEventListener('click', () => excelFileInput?.click());
+    if (processBtn) processBtn.addEventListener('click', processData);
+    if (cancelUploadBtn) cancelUploadBtn.addEventListener('click', cancelUpload);
+    
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            switchTab(tabId);
+        });
+    });
+    
+    // Modal
+    const helpBtn = document.getElementById('help-btn');
+    const closeHelpBtns = document.querySelectorAll('#close-help, #close-help-btn');
+    const helpModal = document.getElementById('help-modal');
+    
+    if (helpBtn) helpBtn.addEventListener('click', () => helpModal?.classList.add('active'));
+    closeHelpBtns.forEach(btn => {
+        btn.addEventListener('click', () => helpModal?.classList.remove('active'));
+    });
+    
+    // Template download
+    const templateBtn = document.getElementById('template-btn');
+    if (templateBtn) templateBtn.addEventListener('click', downloadTemplate);
+    
+    // Reset config
+    const resetBtn = document.getElementById('reset-config');
+    if (resetBtn) resetBtn.addEventListener('click', resetConfig);
+    
+    // Download buttons
+    const downloadOriginal = document.getElementById('download-original');
+    const downloadProcessed = document.getElementById('download-processed');
+    const downloadBoth = document.getElementById('download-both');
+    const downloadSalary = document.getElementById('download-salary');
+    const downloadSaturday = document.getElementById('download-saturday');
+    
+    if (downloadOriginal) downloadOriginal.addEventListener('click', () => downloadReport('original'));
+    if (downloadProcessed) downloadProcessed.addEventListener('click', () => downloadReport('processed'));
+    if (downloadBoth) downloadBoth.addEventListener('click', () => downloadReport('both'));
+    if (downloadSalary) downloadSalary.addEventListener('click', showSeparatedDownloadOptions);
+    if (downloadSaturday) downloadSaturday.addEventListener('click', () => {
+        if (processedData.length === 0) {
+            showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
+            return;
+        }
+        showSaturdayDownloadModal();
+    });
+    
+    console.log('Event listeners setup complete!');
+}
+
 // Fungsi untuk menghitung total lembur berdasarkan hari
 function calculateOvertimeByDayType(data) {
     const separated = separateDataByDay(data);
@@ -2817,9 +2881,47 @@ function addBackToTopButton() {
 
 // Initialize application
 function initializeApp() {
-    const now = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
+    console.log('Initializing app...');
+    
+    // 1. Periksa elemen utama
+    const loadingScreen = document.getElementById('loading-screen');
+    const mainContainer = document.getElementById('main-container');
+    const currentDate = document.getElementById('current-date');
+    
+    if (!loadingScreen) console.error('Loading screen not found!');
+    if (!mainContainer) console.error('Main container not found!');
+    if (!currentDate) console.error('Current date element not found!');
+    
+    // 2. Set tanggal
+    if (currentDate) {
+        const now = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        currentDate.textContent = now.toLocaleDateString('id-ID', options);
+    }
+    
+    // 3. Setup event listeners
+    setupEventListeners();
+    
+    // 4. Sembunyikan loading screen
+    setTimeout(() => {
+        if (loadingScreen) {
+            loadingScreen.style.transition = 'opacity 0.5s ease';
+            loadingScreen.style.opacity = '0';
+            
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                if (mainContainer) {
+                    mainContainer.style.opacity = '1';
+                    mainContainer.style.transition = 'opacity 0.5s ease';
+                }
+                console.log('App initialized!');
+            }, 500);
+        }
+    }, 1500);
+    
+    // 5. Setup lainnya
+    addBackToTopButton();
+}
 
     // Event listener untuk tombol download lembur Sabtu
 const downloadSaturdayBtn = document.getElementById('download-saturday');
@@ -2937,16 +3039,16 @@ if (systemInfo) {
     if (downloadProcessed) downloadProcessed.addEventListener('click', () => downloadReport('processed'));
     if (downloadBoth) downloadBoth.addEventListener('click', () => downloadReport('both'));
     
-    // Loading screen
-    setTimeout(() => {
-        if (loadingScreen) {
-            loadingScreen.style.opacity = '0';
-            setTimeout(() => {
-                loadingScreen.style.display = 'none';
-                if (mainContainer) mainContainer.classList.add('loaded');
-            }, 500);
-        }
-    }, 2000);
+   // Loading screen
+setTimeout(() => {
+    if (loadingScreen) {
+        loadingScreen.style.opacity = '0';
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+            if (mainContainer) mainContainer.classList.add('loaded');
+        }, 500);
+    }
+}, 2000); // ← Ini 2 detik, mungkin terlalu lama
     
     // Tambahkan back to top button
     addBackToTopButton();
