@@ -527,6 +527,47 @@ function calculateOvertimePerDay(data, workHours = 8) {
     return result;
 }
 
+// ============================
+// KONFIGURASI ATURAN HARI SABTU
+// ============================
+
+const SATURDAY_RULES = {
+    workHours: 6,                // Hanya bekerja 6 jam di hari Sabtu
+    minOvertimeMinutes: 10,      // Minimal lembur yang dihitung
+    k3SpecialHours: {            // Khusus untuk kategori K3
+        startTime: '07:00',      // Masuk jam 7 pagi
+        endTime: '22:00',        // Pulang jam 10 malam
+        isSpecialDay: true       // Hari kerja khusus
+    }
+};
+
+// Fungsi untuk mengecek apakah suatu tanggal adalah hari Sabtu
+function isSaturday(dateString) {
+    if (!dateString) return false;
+    
+    try {
+        const [day, month, year] = dateString.split('/');
+        const date = new Date(year, month - 1, day);
+        return date.getDay() === 6; // 6 = Sabtu
+    } catch (error) {
+        console.error('Error checking Saturday:', error);
+        return false;
+    }
+}
+
+// Fungsi untuk mendapatkan aturan berdasarkan hari dan kategori
+function getDayRulesWithCategory(dateString, category) {
+    if (isSaturday(dateString) && category === 'K3') {
+        return SATURDAY_RULES.k3SpecialHours;
+    } else if (isSaturday(dateString)) {
+        return SATURDAY_RULES;
+    } else if (isFriday(dateString)) {
+        return FRIDAY_RULES;
+    } else {
+        return NORMAL_DAY_RULES;
+    }
+}
+
 // Helper functions untuk tabel Excel
 function getDayName(dateString) {
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -537,6 +578,125 @@ function getDayName(dateString) {
     } catch (error) {
         return '';
     }
+}
+
+// Fungsi untuk menghitung lembur hari Sabtu dengan aturan khusus
+function calculateSaturdayOvertime(data) {
+    const saturdayData = data.filter(item => isSaturday(item.tanggal));
+    
+    if (saturdayData.length === 0) {
+        return {
+            data: [],
+            summary: [],
+            totalEmployees: 0,
+            totalOvertime: 0,
+            totalOvertimeBulat: 0,
+            totalGaji: 0
+        };
+    }
+    
+    // Proses perhitungan lembur Sabtu
+    const processedData = saturdayData.map(record => {
+        const category = employeeCategories[record.nama] || 'STAFF';
+        const rate = overtimeRates[category];
+        
+        // Untuk hari Sabtu, jam kerja normal hanya 6 jam
+        const normalWorkHours = 6;
+        
+        // Hitung durasi kerja
+        const hoursWorked = calculateHoursWithFridayRules(
+            record.jamMasuk, 
+            record.jamKeluar, 
+            record.tanggal
+        );
+        
+        // Aturan khusus untuk K3 di hari Sabtu
+        let overtimeHours = 0;
+        if (category === 'K3') {
+            // K3 bekerja dari 07:00 sampai 22:00 di hari Sabtu
+            const [startHour, startMinute] = SATURDAY_RULES.k3SpecialHours.startTime.split(':').map(Number);
+            const [endHour, endMinute] = SATURDAY_RULES.k3SpecialHours.endTime.split(':').map(Number);
+            
+            const workStartMinutes = startHour * 60 + startMinute;
+            const workEndMinutes = endHour * 60 + endMinute;
+            
+            // Parse waktu keluar
+            const [outHour, outMinute] = record.jamKeluar.split(':').map(Number);
+            const outMinutes = outHour * 60 + (outMinute || 0);
+            
+            // Hitung lembur jika pulang setelah 22:00
+            if (outMinutes > workEndMinutes) {
+                overtimeHours = (outMinutes - workEndMinutes) / 60;
+            }
+        } else {
+            // Untuk non-K3, lembur dihitung setelah 6 jam kerja
+            if (hoursWorked > normalWorkHours) {
+                overtimeHours = hoursWorked - normalWorkHours;
+            }
+        }
+        
+        // Abaikan lembur kurang dari 10 menit
+        if (overtimeHours < (SATURDAY_RULES.minOvertimeMinutes / 60)) {
+            overtimeHours = 0;
+        }
+        
+        // Hitung jam normal (maksimal 6 jam untuk Sabtu)
+        const normalHours = Math.min(hoursWorked, normalWorkHours);
+        
+        // Pembulatan jam lembur
+        const overtimeBulat = roundOvertimeHours(overtimeHours);
+        
+        return {
+            ...record,
+            kategori: category,
+            rate: rate,
+            jamNormalSabtu: normalHours,
+            jamLemburSabtu: overtimeHours,
+            jamLemburSabtuBulat: overtimeBulat,
+            gajiLemburSabtu: overtimeBulat * rate,
+            keteranganSabtu: category === 'K3' 
+                ? `K3 - Kerja Sabtu 07:00-22:00 (${overtimeBulat} jam lembur)` 
+                : `Sabtu - Kerja 6 jam normal (${overtimeBulat} jam lembur)`
+        };
+    });
+    
+    // Group by employee untuk summary
+    const employeeGroups = {};
+    processedData.forEach(item => {
+        const employeeName = item.nama;
+        if (!employeeGroups[employeeName]) {
+            employeeGroups[employeeName] = {
+                nama: employeeName,
+                kategori: item.kategori,
+                rate: item.rate,
+                totalJam: 0,
+                totalJamBulat: 0,
+                totalGaji: 0,
+                records: []
+            };
+        }
+        
+        employeeGroups[employeeName].totalJam += item.jamLemburSabtu;
+        employeeGroups[employeeName].totalJamBulat += item.jamLemburSabtuBulat;
+        employeeGroups[employeeName].totalGaji += item.gajiLemburSabtu;
+        employeeGroups[employeeName].records.push(item);
+    });
+    
+    const summary = Object.values(employeeGroups);
+    
+    // Hitung total
+    const totalOvertime = processedData.reduce((sum, item) => sum + item.jamLemburSabtu, 0);
+    const totalOvertimeBulat = processedData.reduce((sum, item) => sum + item.jamLemburSabtuBulat, 0);
+    const totalGaji = processedData.reduce((sum, item) => sum + item.gajiLemburSabtu, 0);
+    
+    return {
+        data: processedData,
+        summary: summary,
+        totalEmployees: summary.length,
+        totalOvertime: totalOvertime,
+        totalOvertimeBulat: totalOvertimeBulat,
+        totalGaji: totalGaji
+    };
 }
 
 function formatExcelDate(dateString) {
@@ -995,6 +1155,158 @@ function downloadAllTogether() {
     }
 }
 
+// Fungsi untuk menampilkan modal download lembur Sabtu
+function showSaturdayDownloadModal() {
+    if (processedData.length === 0) {
+        showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
+        return;
+    }
+    
+    // Hitung data Sabtu
+    const saturdayResult = calculateSaturdayOvertime(processedData);
+    
+    const modalHtml = `
+        <div class="modal" id="saturday-download-modal">
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-calendar-day"></i> Download Laporan Lembur Hari Sabtu</h3>
+                    <button class="modal-close" id="close-saturday-download">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="saturday-info" style="background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                        <h4><i class="fas fa-info-circle"></i> Aturan Khusus Hari Sabtu:</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+                            <div>
+                                <strong>Untuk Semua Karyawan:</strong>
+                                <ul style="margin-top: 0.5rem; padding-left: 1rem;">
+                                    <li>Jam kerja normal: 6 jam</li>
+                                    <li>Masuk bebas jam berapa saja</li>
+                                    <li>Lembur ≥ 10 menit setelah 6 jam kerja</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <strong>Khusus Kategori K3:</strong>
+                                <ul style="margin-top: 0.5rem; padding-left: 1rem;">
+                                    <li>Kerja dari: 07:00 - 22:00</li>
+                                    <li>Total: 15 jam kerja</li>
+                                    <li>Lembur ≥ 10 menit setelah jam 22:00</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="saturday-stats" style="margin-bottom: 1.5rem;">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                            <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 2rem; font-weight: bold; color: #e67e22;">${saturdayResult.totalEmployees}</div>
+                                <div style="font-size: 0.9rem;">Karyawan Masuk</div>
+                            </div>
+                            <div style="background: #ffeaa7; padding: 1rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 2rem; font-weight: bold; color: #e67e22;">${saturdayResult.totalOvertime.toFixed(2)}</div>
+                                <div style="font-size: 0.9rem;">Jam Lembur (Desimal)</div>
+                            </div>
+                            <div style="background: #fab1a0; padding: 1rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 2rem; font-weight: bold; color: #e67e22;">Rp ${Math.round(saturdayResult.totalGaji).toLocaleString('id-ID')}</div>
+                                <div style="font-size: 0.9rem;">Total Gaji Lembur</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="download-options-saturday">
+                        <div class="option-card" id="option-saturday-detail">
+                            <div class="option-icon">
+                                <i class="fas fa-file-alt" style="color: #e67e22; font-size: 2.5rem;"></i>
+                            </div>
+                            <div class="option-content">
+                                <h4>Download Detail per Hari</h4>
+                                <p>File Excel berisi detail lembur per hari Sabtu</p>
+                                <ul style="text-align: left; margin-top: 0.5rem;">
+                                    <li>Detail per hari kerja Sabtu</li>
+                                    <li>Format tabel lengkap</li>
+                                    <li>Perhitungan jam normal dan lembur</li>
+                                    <li>Kolom keterangan khusus Sabtu</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="option-card" id="option-saturday-summary">
+                            <div class="option-icon">
+                                <i class="fas fa-users" style="color: #e67e22; font-size: 2.5rem;"></i>
+                            </div>
+                            <div class="option-content">
+                                <h4>Download Summary per Karyawan</h4>
+                                <p>File Excel berisi ringkasan lembur per karyawan</p>
+                                <ul style="text-align: left; margin-top: 0.5rem;">
+                                    <li>Ringkasan per karyawan</li>
+                                    <li>Total jam lembur yang dibulatkan</li>
+                                    <li>Perhitungan gaji lengkap</li>
+                                    <li>Worksheet rekap kategori</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="option-card" id="option-saturday-k3">
+                            <div class="option-icon">
+                                <i class="fas fa-hard-hat" style="color: #34495e; font-size: 2.5rem;"></i>
+                            </div>
+                            <div class="option-content">
+                                <h4>Download Khusus K3</h4>
+                                <p>File Excel khusus data K3 hari Sabtu</p>
+                                <ul style="text-align: left; margin-top: 0.5rem;">
+                                    <li>Data khusus kategori K3</li>
+                                    <li>Format 07:00 - 22:00</li>
+                                    <li>Perhitungan lembur setelah 22:00</li>
+                                    <li>Worksheet terpisah</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancel-saturday-download">Batal</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Tambahkan modal ke body
+    const existingModal = document.getElementById('saturday-download-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('saturday-download-modal');
+    modal.classList.add('active');
+    
+    // Event listeners
+    document.getElementById('close-saturday-download').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    document.getElementById('cancel-saturday-download').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    // Pilihan 1: Download detail per hari
+    document.getElementById('option-saturday-detail').addEventListener('click', () => {
+        modal.remove();
+        downloadSaturdayDetail(saturdayResult.data);
+    });
+    
+    // Pilihan 2: Download summary per karyawan
+    document.getElementById('option-saturday-summary').addEventListener('click', () => {
+        modal.remove();
+        downloadSaturdaySummary(saturdayResult.summary);
+    });
+    
+    // Pilihan 3: Download khusus K3
+    document.getElementById('option-saturday-k3').addEventListener('click', () => {
+        modal.remove();
+        downloadSaturdayK3(saturdayResult.data);
+    });
+}
+
 // ============================
 // FUNGSI GENERATE EXCEL TERPISAH
 // ============================
@@ -1111,6 +1423,308 @@ function generateFridayOnlyExcel(fridayData) {
     } catch (error) {
         console.error('Error generating Friday Excel:', error);
         throw error;
+    }
+}
+
+// Fungsi untuk download detail lembur Sabtu
+function downloadSaturdayDetail(data) {
+    try {
+        if (data.length === 0) {
+            showNotification('Tidak ada data lembur untuk hari Sabtu.', 'info');
+            return;
+        }
+        
+        // Buat workbook baru
+        const workbook = XLSX.utils.book_new();
+        
+        // Data untuk worksheet
+        const wsData = [];
+        
+        // Header
+        wsData.push(['LAPORAN LEMBUR KHUSUS HARI SABTU']);
+        wsData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
+        wsData.push(['ATURAN: Semua karyawan kerja 6 jam, K3 kerja 07:00-22:00']);
+        wsData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
+        wsData.push([]);
+        
+        // Header tabel
+        wsData.push(['No', 'Nama Karyawan', 'Kategori', 'Tanggal', 'Hari', 'Jam Masuk', 'Jam Keluar', 'Durasi Kerja', 'Jam Normal (Sabtu)', 'Jam Lembur (Desimal)', 'Jam Lembur (Bulat)', 'Gaji Lembur', 'Keterangan']);
+        
+        // Data
+        data.forEach((item, index) => {
+            wsData.push([
+                index + 1,
+                item.nama,
+                item.kategori,
+                formatExcelDate(item.tanggal),
+                'Sabtu',
+                item.jamMasuk,
+                item.jamKeluar,
+                item.durasiFormatted,
+                `${item.jamNormalSabtu.toFixed(2)} jam`,
+                item.jamLemburSabtu > 0 ? `${item.jamLemburSabtu.toFixed(2)} jam` : '0 jam',
+                item.jamLemburSabtuBulat > 0 ? `${item.jamLemburSabtuBulat} jam` : '0 jam',
+                item.gajiLemburSabtu > 0 ? formatCurrency(item.gajiLemburSabtu) : 'Rp 0',
+                item.keteranganSabtu
+            ]);
+        });
+        
+        // Total
+        const totalJam = data.reduce((sum, item) => sum + item.jamLemburSabtu, 0);
+        const totalJamBulat = data.reduce((sum, item) => sum + item.jamLemburSabtuBulat, 0);
+        const totalGaji = data.reduce((sum, item) => sum + item.gajiLemburSabtu, 0);
+        
+        wsData.push([]);
+        wsData.push(['TOTAL SABTU', '', '', '', '', '', '', '', '', 
+            `${totalJam.toFixed(2)} jam`, 
+            `${totalJamBulat} jam (dibulatkan)`, 
+            formatCurrency(totalGaji), '']);
+        
+        // Buat worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet(wsData);
+        
+        // Set column widths
+        worksheet['!cols'] = [
+            { wch: 5 },   // No
+            { wch: 20 },  // Nama
+            { wch: 12 },  // Kategori
+            { wch: 15 },  // Tanggal
+            { wch: 10 },  // Hari
+            { wch: 10 },  // Jam Masuk
+            { wch: 10 },  // Jam Keluar
+            { wch: 15 },  // Durasi Kerja
+            { wch: 20 },  // Jam Normal
+            { wch: 18 },  // Jam Lembur (Desimal)
+            { wch: 18 },  // Jam Lembur (Bulat)
+            { wch: 20 },  // Gaji Lembur
+            { wch: 35 }   // Keterangan
+        ];
+        
+        // Tambahkan ke workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'LEMBUR SABTU');
+        
+        // Simpan file
+        const today = new Date();
+        const formattedDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+        const filename = `lembur_sabtu_detail_${formattedDate}.xlsx`;
+        
+        XLSX.writeFile(workbook, filename);
+        showNotification('File Excel lembur Sabtu berhasil diunduh!', 'success');
+        
+    } catch (error) {
+        console.error('Error downloading Saturday detail:', error);
+        showNotification('Gagal mengunduh data Sabtu: ' + error.message, 'error');
+    }
+}
+
+// Fungsi untuk download summary lembur Sabtu
+function downloadSaturdaySummary(summary) {
+    try {
+        if (summary.length === 0) {
+            showNotification('Tidak ada data lembur untuk hari Sabtu.', 'info');
+            return;
+        }
+        
+        // Buat workbook baru
+        const workbook = XLSX.utils.book_new();
+        
+        // Data untuk worksheet
+        const wsData = [];
+        
+        // Header
+        wsData.push(['REKAPITULASI LEMBUR HARI SABTU']);
+        wsData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
+        wsData.push(['ATURAN KHUSUS: Kerja 6 jam, K3: 07:00-22:00']);
+        wsData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
+        wsData.push([]);
+        
+        // Header tabel summary
+        wsData.push(['No', 'Nama Karyawan', 'Kategori', 'Rate per Jam', 'Total Jam Lembur (Desimal)', 'Total Jam Lembur (Bulat)', 'Total Gaji Lembur']);
+        
+        // Data summary
+        summary.forEach((item, index) => {
+            wsData.push([
+                index + 1,
+                item.nama,
+                item.kategori,
+                `Rp ${item.rate.toLocaleString('id-ID')}`,
+                item.totalJam > 0 ? `${item.totalJam.toFixed(2)} jam` : '0 jam',
+                item.totalJamBulat > 0 ? `${item.totalJamBulat} jam` : '0 jam',
+                formatCurrency(item.totalGaji)
+            ]);
+        });
+        
+        // Total
+        const totalJam = summary.reduce((sum, item) => sum + item.totalJam, 0);
+        const totalJamBulat = summary.reduce((sum, item) => sum + item.totalJamBulat, 0);
+        const totalGaji = summary.reduce((sum, item) => sum + item.totalGaji, 0);
+        
+        wsData.push([]);
+        wsData.push(['TOTAL KESELURUHAN', '', '', '', 
+            `${totalJam.toFixed(2)} jam`, 
+            `${totalJamBulat} jam (dibulatkan)`, 
+            formatCurrency(totalGaji)]);
+        
+        // Buat worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet(wsData);
+        
+        // Set column widths
+        worksheet['!cols'] = [
+            { wch: 5 },   // No
+            { wch: 25 },  // Nama
+            { wch: 15 },  // Kategori
+            { wch: 15 },  // Rate
+            { wch: 20 },  // Jam Lembur (Desimal)
+            { wch: 20 },  // Jam Lembur (Bulat)
+            { wch: 25 }   // Total Gaji
+        ];
+        
+        // Tambahkan ke workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'SUMMARY SABTU');
+        
+        // Worksheet untuk per kategori
+        const byCategory = {};
+        summary.forEach(item => {
+            if (!byCategory[item.kategori]) {
+                byCategory[item.kategori] = {
+                    totalJam: 0,
+                    totalJamBulat: 0,
+                    totalGaji: 0,
+                    count: 0
+                };
+            }
+            byCategory[item.kategori].totalJam += item.totalJam;
+            byCategory[item.kategori].totalJamBulat += item.totalJamBulat;
+            byCategory[item.kategori].totalGaji += item.totalGaji;
+            byCategory[item.kategori].count++;
+        });
+        
+        const categoryData = [];
+        categoryData.push(['REKAP PER KATEGORI - HARI SABTU']);
+        categoryData.push([]);
+        categoryData.push(['Kategori', 'Jumlah Karyawan', 'Total Jam (Desimal)', 'Total Jam (Bulat)', 'Total Gaji']);
+        
+        Object.keys(byCategory).forEach(category => {
+            const data = byCategory[category];
+            categoryData.push([
+                category,
+                data.count,
+                `${data.totalJam.toFixed(2)} jam`,
+                `${data.totalJamBulat} jam`,
+                formatCurrency(data.totalGaji)
+            ]);
+        });
+        
+        const categoryWs = XLSX.utils.aoa_to_sheet(categoryData);
+        categoryWs['!cols'] = [
+            { wch: 15 },  // Kategori
+            { wch: 15 },  // Jumlah
+            { wch: 20 },  // Jam (Desimal)
+            { wch: 20 },  // Jam (Bulat)
+            { wch: 25 }   // Total Gaji
+        ];
+        
+        XLSX.utils.book_append_sheet(workbook, categoryWs, 'REKAP KATEGORI');
+        
+        // Simpan file
+        const today = new Date();
+        const formattedDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+        const filename = `lembur_sabtu_summary_${formattedDate}.xlsx`;
+        
+        XLSX.writeFile(workbook, filename);
+        showNotification('File Excel summary Sabtu berhasil diunduh!', 'success');
+        
+    } catch (error) {
+        console.error('Error downloading Saturday summary:', error);
+        showNotification('Gagal mengunduh summary Sabtu: ' + error.message, 'error');
+    }
+}
+
+// Fungsi untuk download khusus K3 hari Sabtu
+function downloadSaturdayK3(data) {
+    try {
+        const k3Data = data.filter(item => item.kategori === 'K3');
+        
+        if (k3Data.length === 0) {
+            showNotification('Tidak ada data K3 untuk hari Sabtu.', 'info');
+            return;
+        }
+        
+        // Buat workbook baru
+        const workbook = XLSX.utils.book_new();
+        
+        // Data untuk worksheet
+        const wsData = [];
+        
+        // Header khusus K3
+        wsData.push(['LAPORAN LEMBUR KHUSUS K3 - HARI SABTU']);
+        wsData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
+        wsData.push(['ATURAN KHUSUS K3: Kerja dari 07:00 sampai 22:00 (15 jam)']);
+        wsData.push(['Lembur dihitung setelah jam 22:00, minimal 10 menit']);
+        wsData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
+        wsData.push([]);
+        
+        // Header tabel
+        wsData.push(['No', 'Nama Karyawan', 'Tanggal', 'Jam Masuk', 'Jam Keluar', 'Durasi Kerja', 'Jam Lembur (Desimal)', 'Jam Lembur (Bulat)', 'Gaji Lembur', 'Keterangan']);
+        
+        // Data K3
+        k3Data.forEach((item, index) => {
+            wsData.push([
+                index + 1,
+                item.nama,
+                formatExcelDate(item.tanggal),
+                item.jamMasuk,
+                item.jamKeluar,
+                item.durasiFormatted,
+                item.jamLemburSabtu > 0 ? `${item.jamLemburSabtu.toFixed(2)} jam` : '0 jam',
+                item.jamLemburSabtuBulat > 0 ? `${item.jamLemburSabtuBulat} jam` : '0 jam',
+                item.gajiLemburSabtu > 0 ? formatCurrency(item.gajiLemburSabtu) : 'Rp 0',
+                `K3 Sabtu: 07:00-22:00 (${item.jamKeluar > '22:00' ? 'Lembur' : 'Tidak lembur'})`
+            ]);
+        });
+        
+        // Total K3
+        const totalJam = k3Data.reduce((sum, item) => sum + item.jamLemburSabtu, 0);
+        const totalJamBulat = k3Data.reduce((sum, item) => sum + item.jamLemburSabtuBulat, 0);
+        const totalGaji = k3Data.reduce((sum, item) => sum + item.gajiLemburSabtu, 0);
+        
+        wsData.push([]);
+        wsData.push(['TOTAL K3 SABTU', '', '', '', '', '', 
+            `${totalJam.toFixed(2)} jam`, 
+            `${totalJamBulat} jam (dibulatkan)`, 
+            formatCurrency(totalGaji), '']);
+        
+        // Buat worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet(wsData);
+        
+        // Set column widths
+        worksheet['!cols'] = [
+            { wch: 5 },   // No
+            { wch: 20 },  // Nama
+            { wch: 15 },  // Tanggal
+            { wch: 10 },  // Jam Masuk
+            { wch: 10 },  // Jam Keluar
+            { wch: 15 },  // Durasi Kerja
+            { wch: 18 },  // Jam Lembur (Desimal)
+            { wch: 18 },  // Jam Lembur (Bulat)
+            { wch: 20 },  // Gaji Lembur
+            { wch: 30 }   // Keterangan
+        ];
+        
+        // Tambahkan ke workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'K3 SABTU');
+        
+        // Simpan file
+        const today = new Date();
+        const formattedDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+        const filename = `lembur_k3_sabtu_${formattedDate}.xlsx`;
+        
+        XLSX.writeFile(workbook, filename);
+        showNotification('File Excel K3 Sabtu berhasil diunduh!', 'success');
+        
+    } catch (error) {
+        console.error('Error downloading Saturday K3:', error);
+        showNotification('Gagal mengunduh data K3 Sabtu: ' + error.message, 'error');
     }
 }
 
@@ -2168,6 +2782,19 @@ function initializeApp() {
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
+
+    // Event listener untuk tombol download lembur Sabtu
+const downloadSaturdayBtn = document.getElementById('download-saturday');
+if (downloadSaturdayBtn) {
+    downloadSaturdayBtn.addEventListener('click', () => {
+        if (processedData.length === 0) {
+            showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
+            return;
+        }
+        // Tampilkan modal download Sabtu
+        showSaturdayDownloadModal();
+    });
+}
     
     // Tambahkan info pembulatan ke sidebar
     const systemInfo = document.querySelector('.system-info');
