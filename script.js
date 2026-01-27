@@ -61,7 +61,7 @@ const employeeCategories = {
     'Pak Nanang': 'K3'
 };
 
-// DOM Elements
+// DOM Elements (GLOBAL - hanya dideklarasikan sekali)
 const loadingScreen = document.getElementById('loading-screen');
 const mainContainer = document.getElementById('main-container');
 const excelFileInput = document.getElementById('excel-file');
@@ -314,7 +314,6 @@ function calculateHoursWithFridayRules(timeIn, timeOut, dateString) {
 }
 
 // Fungsi untuk menghitung lembur dengan aturan baru termasuk Jumat
-// Fungsi untuk menghitung lembur dengan aturan baru termasuk Jumat
 function calculateOvertimeWithDayRules(jamMasuk, jamKeluar, dateString) {
     if (!jamMasuk || !jamKeluar || !dateString) return 0;
     
@@ -527,7 +526,6 @@ function calculateOvertimeByDayType(data) {
 // FUNGSI PERHITUNGAN BARU DENGAN ATURAN JUMAT
 // ============================
 
-// Calculate overtime per day - DENGAN ATURAN JUMAT
 // Calculate overtime per day - DENGAN ATURAN BARU
 function calculateOvertimePerDay(data, workHours = 8) {
     const result = data.map(record => {
@@ -629,6 +627,7 @@ function calculateOvertimePerDay(data, workHours = 8) {
     
     return result;
 }
+
 // ============================
 // KONFIGURASI ATURAN HARI SABTU
 // ============================
@@ -2883,175 +2882,83 @@ function addBackToTopButton() {
 function initializeApp() {
     console.log('Initializing app...');
     
-    // 1. Periksa elemen utama
-    const loadingScreen = document.getElementById('loading-screen');
-    const mainContainer = document.getElementById('main-container');
+    // Debug: cek elemen
+    console.log('Loading screen:', loadingScreen);
+    console.log('Main container:', mainContainer);
+    
+    if (!loadingScreen || !mainContainer) {
+        console.error('Critical elements not found!');
+        return;
+    }
+    
+    // 1. Set tanggal
     const currentDate = document.getElementById('current-date');
-    
-    if (!loadingScreen) console.error('Loading screen not found!');
-    if (!mainContainer) console.error('Main container not found!');
-    if (!currentDate) console.error('Current date element not found!');
-    
-    // 2. Set tanggal
     if (currentDate) {
         const now = new Date();
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         currentDate.textContent = now.toLocaleDateString('id-ID', options);
     }
     
-    // 3. Setup event listeners
+    // 2. Setup event listeners
     setupEventListeners();
     
-    // 4. Sembunyikan loading screen
+    // 3. Sembunyikan loading screen setelah 1.5 detik
     setTimeout(() => {
-        if (loadingScreen) {
-            loadingScreen.style.transition = 'opacity 0.5s ease';
-            loadingScreen.style.opacity = '0';
-            
-            setTimeout(() => {
-                loadingScreen.style.display = 'none';
-                if (mainContainer) {
-                    mainContainer.style.opacity = '1';
-                    mainContainer.style.transition = 'opacity 0.5s ease';
-                }
-                console.log('App initialized!');
-            }, 500);
-        }
-    }, 1500);
-    
-    // 5. Setup lainnya
-    addBackToTopButton();
-}
-
-    // Event listener untuk tombol download lembur Sabtu
-const downloadSaturdayBtn = document.getElementById('download-saturday');
-if (downloadSaturdayBtn) {
-    downloadSaturdayBtn.addEventListener('click', () => {
-        if (processedData.length === 0) {
-            showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
-            return;
-        }
-        // Tampilkan modal download Sabtu
-        showSaturdayDownloadModal();
-    });
-}
-    
-    // Tambahkan info pembulatan ke sidebar
-    // Tambahkan info aturan baru ke sidebar
-const systemInfo = document.querySelector('.system-info');
-if (systemInfo) {
-    const infoHtml = `
-        <div style="margin-top: 1rem; padding: 0.75rem; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
-            <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #1565c0;">
-                <i class="fas fa-clock"></i> Aturan Baru Lembur (Senin-Kamis):
-            </h5>
-            <ul style="font-size: 0.8rem; color: #1565c0; padding-left: 1.2rem; margin-bottom: 0.5rem;">
-                <li><strong>Jam masuk efektif:</strong> 07:00</li>
-                <li><strong>Perhitungan dimulai dari:</strong> Jam 07:00</li>
-                <li><strong>Jam kerja normal:</strong> 8 jam</li>
-                <li><strong>Lembur jika:</strong> Kerja > 8 jam dari jam 07:00</li>
-                <li><strong>Minimal lembur:</strong> ≥ 10 menit</li>
-            </ul>
-            <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #7b1fa2;">
-                <i class="fas fa-calendar-day"></i> Aturan Jumat:
-            </h5>
-            <ul style="font-size: 0.8rem; color: #7b1fa2; padding-left: 1.2rem; margin-bottom: 0;">
-                <li><strong>Jam masuk efektif:</strong> 07:00</li>
-                <li><strong>Jam pulang normal:</strong> 15:00</li>
-                <li><strong>Lembur jika:</strong> Pulang > 15:00</li>
-                <li><strong>Minimal lembur:</strong> ≥ 10 menit</li>
-            </ul>
-        </div>
-        
-        <div style="margin-top: 1rem; padding: 0.75rem; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
-            <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #856404;">
-                <i class="fas fa-calculator"></i> Aturan Pembulatan Lembur:
-            </h5>
-            <ul style="font-size: 0.8rem; color: #856404; padding-left: 1.2rem; margin-bottom: 0;">
-                <li>Contoh: 7,18 jam → dibulatkan menjadi 7 jam</li>
-                <li>Contoh: 7,67 jam → dibulatkan menjadi 8 jam</li>
-                <li>Pembulatan standar (0.5 ke atas)</li>
-                <li>Gaji dihitung berdasarkan jam yang telah dibulatkan</li>
-            </ul>
-        </div>
-    `;
-    systemInfo.insertAdjacentHTML('beforeend', infoHtml);
-}
-    
-    // Event listener untuk tombol download gaji lembur
-    const downloadSalaryBtn = document.getElementById('download-salary');
-    if (downloadSalaryBtn) {
-        // Ubah event listener untuk menampilkan modal download terpisah
-        downloadSalaryBtn.addEventListener('click', () => {
-            if (processedData.length === 0) {
-                showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
-                return;
-            }
-            // Tampilkan modal pilihan download terpisah
-            showSeparatedDownloadOptions();
-        });
-    }
-    
-    // Tab functionality dengan scroll buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tabId = this.getAttribute('data-tab');
-            switchTab(tabId);
-            
-            // Tampilkan/sembunyikan tombol scroll berdasarkan tab aktif
-            setTimeout(() => {
-                const fabContainer = document.getElementById('fab-container');
-                if (fabContainer) {
-                    if (tabId === 'processed') {
-                        fabContainer.style.display = 'flex';
-                    } else {
-                        fabContainer.style.display = 'none';
-                    }
-                }
-            }, 300);
-        });
-    });
-    
-    // Modal functionality
-    const helpBtn = document.getElementById('help-btn');
-    const closeHelpBtns = document.querySelectorAll('#close-help, #close-help-btn');
-    const helpModal = document.getElementById('help-modal');
-    
-    if (helpBtn) helpBtn.addEventListener('click', () => helpModal.classList.add('active'));
-    closeHelpBtns.forEach(btn => {
-        btn.addEventListener('click', () => helpModal.classList.remove('active'));
-    });
-    
-    // Template download
-    const templateBtn = document.getElementById('template-btn');
-    if (templateBtn) templateBtn.addEventListener('click', downloadTemplate);
-    
-    // Reset config
-    const resetBtn = document.getElementById('reset-config');
-    if (resetBtn) resetBtn.addEventListener('click', resetConfig);
-    
-    // Download buttons
-    const downloadOriginal = document.getElementById('download-original');
-    const downloadProcessed = document.getElementById('download-processed');
-    const downloadBoth = document.getElementById('download-both');
-    
-    if (downloadOriginal) downloadOriginal.addEventListener('click', () => downloadReport('original'));
-    if (downloadProcessed) downloadProcessed.addEventListener('click', () => downloadReport('processed'));
-    if (downloadBoth) downloadBoth.addEventListener('click', () => downloadReport('both'));
-    
-   // Loading screen
-setTimeout(() => {
-    if (loadingScreen) {
+        console.log('Hiding loading screen...');
+        loadingScreen.style.transition = 'opacity 0.5s ease';
         loadingScreen.style.opacity = '0';
+        
         setTimeout(() => {
             loadingScreen.style.display = 'none';
-            if (mainContainer) mainContainer.classList.add('loaded');
+            mainContainer.style.opacity = '1';
+            mainContainer.style.transition = 'opacity 0.5s ease';
+            console.log('App initialized successfully!');
         }, 500);
-    }
-}, 2000); // ← Ini 2 detik, mungkin terlalu lama
+    }, 1500);
     
-    // Tambahkan back to top button
+    // 4. Setup lainnya
     addBackToTopButton();
+    
+    // 5. Tambahkan info pembulatan ke sidebar
+    const systemInfo = document.querySelector('.system-info');
+    if (systemInfo) {
+        const infoHtml = `
+            <div style="margin-top: 1rem; padding: 0.75rem; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #1565c0;">
+                    <i class="fas fa-clock"></i> Aturan Baru Lembur (Senin-Kamis):
+                </h5>
+                <ul style="font-size: 0.8rem; color: #1565c0; padding-left: 1.2rem; margin-bottom: 0.5rem;">
+                    <li><strong>Jam masuk efektif:</strong> 07:00</li>
+                    <li><strong>Perhitungan dimulai dari:</strong> Jam 07:00</li>
+                    <li><strong>Jam kerja normal:</strong> 8 jam</li>
+                    <li><strong>Lembur jika:</strong> Kerja > 8 jam dari jam 07:00</li>
+                    <li><strong>Minimal lembur:</strong> ≥ 10 menit</li>
+                </ul>
+                <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #7b1fa2;">
+                    <i class="fas fa-calendar-day"></i> Aturan Jumat:
+                </h5>
+                <ul style="font-size: 0.8rem; color: #7b1fa2; padding-left: 1.2rem; margin-bottom: 0;">
+                    <li><strong>Jam masuk efektif:</strong> 07:00</li>
+                    <li><strong>Jam pulang normal:</strong> 15:00</li>
+                    <li><strong>Lembur jika:</strong> Pulang > 15:00</li>
+                    <li><strong>Minimal lembur:</strong> ≥ 10 menit</li>
+                </ul>
+            </div>
+            
+            <div style="margin-top: 1rem; padding: 0.75rem; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+                <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #856404;">
+                    <i class="fas fa-calculator"></i> Aturan Pembulatan Lembur:
+                </h5>
+                <ul style="font-size: 0.8rem; color: #856404; padding-left: 1.2rem; margin-bottom: 0;">
+                    <li>Contoh: 7,18 jam → dibulatkan menjadi 7 jam</li>
+                    <li>Contoh: 7,67 jam → dibulatkan menjadi 8 jam</li>
+                    <li>Pembulatan standar (0.5 ke atas)</li>
+                    <li>Gaji dihitung berdasarkan jam yang telah dibulatkan</li>
+                </ul>
+            </div>
+        `;
+        systemInfo.insertAdjacentHTML('beforeend', infoHtml);
+    }
 }
 
 // Handle file selection
@@ -3278,7 +3185,43 @@ function displayOriginalTable(data) {
 
 // Display summaries DENGAN ATURAN BARU
 function displaySummaries(data) {
-    // ... kode sebelumnya tetap ...
+    // Hitung summary karyawan
+    const employeeSummary = calculateOvertimeSummary(data);
+    const employeeSummaryElem = document.getElementById('employee-summary');
+    const financialSummary = document.getElementById('financial-summary');
+    
+    if (employeeSummaryElem) {
+        let html = '<div style="max-height: 300px; overflow-y: auto;">';
+        employeeSummary.forEach(emp => {
+            if (emp.totalLemburDesimal > 0) {
+                html += `
+                    <div style="margin-bottom: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${emp.nama}</strong>
+                                <br><small style="color: #666;">Kategori: ${emp.kategori}</small>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: #e74c3c; font-weight: bold;">${emp.totalLemburBulat} jam lembur</div>
+                                <div style="font-size: 0.9rem;">(${emp.totalLemburDesimal.toFixed(2)} jam desimal)</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.85rem;">
+                            <div>
+                                Jumat: ${emp.fridayLemburBulat} jam<br>
+                                Senin-Kamis: ${emp.otherDaysLemburBulat} jam
+                            </div>
+                            <div style="font-weight: bold; color: #27ae60;">
+                                ${emp.totalGajiFormatted}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        html += '</div>';
+        employeeSummaryElem.innerHTML = html;
+    }
     
     // Financial summary dengan perhitungan gaji DAN INFO ATURAN BARU
     const totalJam = data.reduce((sum, item) => sum + item.durasi, 0);
@@ -3304,7 +3247,31 @@ function displaySummaries(data) {
         return item.durasi > 8 && item.jamLemburDesimal === 0;
     }).length;
     
-    // ... sisanya tetap sama ...
+    // Hitung total gaji dengan pembulatan
+    let totalGajiAll = 0;
+    let totalGajiJumat = 0;
+    let totalGajiLain = 0;
+    
+    employeeSummary.forEach(emp => {
+        totalGajiAll += emp.totalGaji;
+        totalGajiJumat += emp.fridayGaji;
+        totalGajiLain += emp.otherDaysGaji;
+    });
+    
+    let salaryHtml = '';
+    employeeSummary.forEach((emp, index) => {
+        if (emp.totalLemburDesimal > 0) {
+            salaryHtml += `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; padding: 0.5rem; background: ${index % 2 === 0 ? '#f8f9fa' : 'white'}; border-radius: 4px;">
+                    <div>${emp.nama} (${emp.kategori})</div>
+                    <div style="text-align: right;">
+                        <div><strong>${emp.totalLemburBulat} jam</strong> × Rp ${emp.rate.toLocaleString('id-ID')}</div>
+                        <div style="color: #27ae60; font-weight: bold;">${emp.totalGajiFormatted}</div>
+                    </div>
+                </div>
+            `;
+        }
+    });
     
     if (financialSummary) {
         financialSummary.innerHTML = `
