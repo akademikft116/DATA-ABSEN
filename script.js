@@ -257,7 +257,6 @@ function getDayRules(dateString) {
     return isFriday(dateString) ? FRIDAY_RULES : NORMAL_DAY_RULES;
 }
 
-// Calculate hours between two time strings DENGAN ATURAN BARU
 function calculateHoursWithFridayRules(timeIn, timeOut, dateString) {
     if (!timeIn || !timeOut || !dateString) return 0;
     
@@ -282,20 +281,12 @@ function calculateHoursWithFridayRules(timeIn, timeOut, dateString) {
         // Dapatkan aturan berdasarkan hari
         const rules = getDayRules(dateString);
         
-        // Konversi jam mulai kerja efektif ke menit
-        const [startHour, startMinute] = rules.workStartTime.split(':').map(Number);
-        const workStartMinutes = startHour * 60 + startMinute;
-        
-        // Konversi input ke menit
+        // PERUBAHAN: Gunakan jam masuk sebenarnya, bukan jam 07:00
         const inMinutes = inTime.hours * 60 + inTime.minutes;
         const outMinutes = outTime.hours * 60 + outTime.minutes;
         
-        // ATURAN BARU: Jam kerja hanya dihitung mulai dari jam 07:00
-        // Jika masuk sebelum 07:00, tetap dihitung dari 07:00
-        const effectiveInMinutes = Math.max(inMinutes, workStartMinutes);
-        
         // Hitung total menit kerja
-        let totalMinutes = outMinutes - effectiveInMinutes;
+        let totalMinutes = outMinutes - inMinutes;
         
         // Jika pulang sebelum masuk (melewati tengah malam)
         if (totalMinutes < 0) {
@@ -313,7 +304,6 @@ function calculateHoursWithFridayRules(timeIn, timeOut, dateString) {
     }
 }
 
-// Fungsi untuk menghitung lembur dengan aturan baru termasuk Jumat
 function calculateOvertimeWithDayRules(jamMasuk, jamKeluar, dateString) {
     if (!jamMasuk || !jamKeluar || !dateString) return 0;
     
@@ -336,21 +326,15 @@ function calculateOvertimeWithDayRules(jamMasuk, jamKeluar, dateString) {
         // Dapatkan aturan berdasarkan hari
         const rules = getDayRules(dateString);
         
-        // Konversi ke menit
-        const [startHour, startMinute] = rules.workStartTime.split(':').map(Number);
-        const workStartMinutes = startHour * 60 + startMinute;
-        
+        // PERUBAHAN: Gunakan jam masuk sebenarnya
         const inMinutes = inTime.hours * 60 + inTime.minutes;
         const outMinutes = outTime.hours * 60 + outTime.minutes;
         
-        // ATURAN BARU: Jam kerja hanya dihitung mulai dari jam 07:00
-        const effectiveInMinutes = Math.max(inMinutes, workStartMinutes);
-        
         // Hitung total menit kerja
-        let totalMinutes = outMinutes - effectiveInMinutes;
+        let totalMinutes = outMinutes - inMinutes;
         if (totalMinutes < 0) totalMinutes += 24 * 60;
         
-        // ATURAN BARU: Lembur dihitung jika kerja > 8 jam
+        // Lembur dihitung jika kerja > 8 jam dari jam masuk
         const maxNormalMinutes = rules.dailyWorkHours * 60; // 8 jam = 480 menit
         
         // Jika total kerja kurang dari 8 jam, tidak ada lembur
@@ -359,7 +343,7 @@ function calculateOvertimeWithDayRules(jamMasuk, jamKeluar, dateString) {
         // Hitung menit lembur (kelebihan dari 8 jam)
         let overtimeMinutes = totalMinutes - maxNormalMinutes;
         
-        // Aturan: Abaikan lembur kurang dari minimal yang ditentukan
+        // Abaikan lembur kurang dari 10 menit
         if (overtimeMinutes < rules.minOvertimeMinutes) {
             return 0;
         }
