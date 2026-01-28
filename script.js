@@ -438,18 +438,20 @@ function separateDataByDay(data) {
 function setupEventListeners() {
     console.log('Setting up event listeners...');
     
-    // File upload
-    const excelFileInput = document.getElementById('excel-file');
-    const browseBtn = document.getElementById('browse-btn');
-    const uploadArea = document.getElementById('upload-area');
-    const processBtn = document.getElementById('process-data');
-    const cancelUploadBtn = document.getElementById('cancel-upload');
-    
-    if (excelFileInput) excelFileInput.addEventListener('change', handleFileSelect);
-    if (browseBtn) browseBtn.addEventListener('click', () => excelFileInput?.click());
-    if (uploadArea) uploadArea.addEventListener('click', () => excelFileInput?.click());
-    if (processBtn) processBtn.addEventListener('click', processData);
-    if (cancelUploadBtn) cancelUploadBtn.addEventListener('click', cancelUpload);
+    try {
+        // File upload
+        const excelFileInput = document.getElementById('excel-file');
+        const browseBtn = document.getElementById('browse-btn');
+        const uploadArea = document.getElementById('upload-area');
+        const processBtn = document.getElementById('process-data');
+        const cancelUploadBtn = document.getElementById('cancel-upload');
+        
+        if (excelFileInput) excelFileInput.addEventListener('change', handleFileSelect);
+        if (browseBtn) browseBtn.addEventListener('click', () => excelFileInput?.click());
+        if (uploadArea) uploadArea.addEventListener('click', () => excelFileInput?.click());
+        if (processBtn) processBtn.addEventListener('click', processData);
+        if (cancelUploadBtn) cancelUploadBtn.addEventListener('click', cancelUpload);
+        
     
     // Tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -495,8 +497,10 @@ function setupEventListeners() {
         }
         showSaturdayDownloadModal();
     });
-    
-    console.log('Event listeners setup complete!');
+ console.log('All event listeners setup complete!');
+    } catch (error) {
+        console.error('Error in setupEventListeners:', error);
+    }
 }
 
 // Fungsi untuk menghitung total lembur berdasarkan hari
@@ -2892,11 +2896,19 @@ function initializeApp() {
     console.log('Initializing app...');
     
     // Debug: cek elemen
+    const loadingScreen = document.getElementById('loading-screen');
+    const mainContainer = document.getElementById('main-container');
+    
     console.log('Loading screen:', loadingScreen);
     console.log('Main container:', mainContainer);
     
     if (!loadingScreen || !mainContainer) {
         console.error('Critical elements not found!');
+        // Coba langsung tampilkan main container
+        if (mainContainer) {
+            mainContainer.style.opacity = '1';
+            mainContainer.style.display = 'block';
+        }
         return;
     }
     
@@ -2909,7 +2921,12 @@ function initializeApp() {
     }
     
     // 2. Setup event listeners
-    setupEventListeners();
+    try {
+        setupEventListeners();
+        console.log('Event listeners setup successfully');
+    } catch (error) {
+        console.error('Error setting up event listeners:', error);
+    }
     
     // 3. Sembunyikan loading screen setelah 1.5 detik
     setTimeout(() => {
@@ -2921,12 +2938,19 @@ function initializeApp() {
             loadingScreen.style.display = 'none';
             mainContainer.style.opacity = '1';
             mainContainer.style.transition = 'opacity 0.5s ease';
+            mainContainer.style.display = 'block';
             console.log('App initialized successfully!');
+            
+            // Tambahkan class loaded untuk styling
+            mainContainer.classList.add('loaded');
         }, 500);
     }, 1500);
     
     // 4. Setup lainnya
     addBackToTopButton();
+    
+    console.log('Initialization complete');
+}
     
     // 5. Tambahkan info pembulatan ke sidebar
     const systemInfo = document.querySelector('.system-info');
