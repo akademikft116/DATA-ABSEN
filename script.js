@@ -128,18 +128,31 @@ function formatHoursToDisplay(hours, rounded = false) {
 // FUNGSI PEMBULATAN BARU
 // ============================
 
-// Fungsi untuk membulatkan jam lembur (7.18 -> 7, 7.67 -> 8)
+// Fungsi untuk membulatkan jam lembur DENGAN BATAS MAKSIMAL 7 JAM
 function roundOvertimeHours(hours) {
     if (!hours || hours <= 0) return 0;
+    
+    // Jika jam lembur melebihi 7 jam, batasi menjadi 7 jam
+    if (hours > 7) {
+        // Lembur maksimal 7 jam per hari
+        return 7;
+    }
     
     // Pembulatan standar: 0.5 ke atas dibulatkan ke atas
     return Math.round(hours);
 }
 
-// Fungsi untuk membulatkan dan format jam lembur
-function roundAndFormatHours(hours) {
-    const rounded = roundOvertimeHours(hours);
-    return `${rounded} jam`;
+// Fungsi untuk membulatkan dan format jam lembur DENGAN BATAS 7 JAM
+function formatOvertimeInfo(overtimeHours) {
+    const rounded = roundOvertimeHours(overtimeHours);
+    
+    if (overtimeHours > 7) {
+        return `${rounded} jam (maksimal, dari ${overtimeHours.toFixed(2)} jam)`;
+    } else if (rounded !== Math.round(overtimeHours)) {
+        return `${rounded} jam (dibulatkan dari ${overtimeHours.toFixed(2)} jam)`;
+    } else {
+        return `${rounded} jam`;
+    }
 }
 
 // Format date from DD/MM/YYYY to readable format
@@ -326,7 +339,7 @@ function calculateOvertimeWithDayRules(jamMasuk, jamKeluar, dateString) {
         // Dapatkan aturan berdasarkan hari
         const rules = getDayRules(dateString);
         
-        // PERUBAHAN: Gunakan jam masuk sebenarnya
+        // Gunakan jam masuk sebenarnya
         const inMinutes = inTime.hours * 60 + inTime.minutes;
         const outMinutes = outTime.hours * 60 + outTime.minutes;
         
@@ -348,17 +361,20 @@ function calculateOvertimeWithDayRules(jamMasuk, jamKeluar, dateString) {
             return 0;
         }
         
-        // Konversi ke jam (desimal)
+        // KONVERSI KE JAM (DESIMAL)
         const overtimeHours = Math.round((overtimeMinutes / 60) * 100) / 100;
         
-        return overtimeHours;
+        // BATASI MAKSIMAL 7 JAM LEMBUR PER HARI
+        const maxOvertimeHours = 7;
+        const limitedOvertimeHours = Math.min(overtimeHours, maxOvertimeHours);
+        
+        return limitedOvertimeHours;
         
     } catch (error) {
         console.error('Error calculating overtime with day rules:', error);
         return 0;
     }
 }
-
 // Fungsi untuk mendapatkan jam masuk efektif dengan aturan Jumat
 function getEffectiveInTimeWithDayRules(jamMasuk, dateString) {
     if (!jamMasuk || !dateString) return jamMasuk;
@@ -2546,7 +2562,6 @@ function createFloatingActionButtons() {
     return fabContainer;
 }
 
-// Update fungsi displayProcessedTable() untuk menambahkan tombol scroll
 function displayProcessedTable(data) {
     const tbody = document.getElementById('processed-table-body');
     if (!tbody) {
@@ -2559,6 +2574,7 @@ function displayProcessedTable(data) {
     data.forEach((item, index) => {
         const row = document.createElement('tr');
         const jamLemburBulat = roundOvertimeHours(item.jamLemburDesimal);
+        const isCapped = item.jamLemburDesimal > 7;
         
         row.innerHTML = `
             <td>${index + 1}</td>
@@ -2567,28 +2583,31 @@ function displayProcessedTable(data) {
                 ${formatDate(item.tanggal)}
                 ${item.isFriday ? '<br><small style="color: #9b59b6; font-weight: bold;">(JUMAT)</small>' : ''}
             </td>
-            <td>
-                ${item.jamMasuk}
-                ${item.jamMasuk !== item.jamMasukEfektif ? 
-                    `<br><small style="color: #666;">(efektif: ${item.jamMasukEfektif})</small>` : 
-                    ''}
-            </td>
+            <td>${item.jamMasuk}</td>
             <td>${item.jamKeluar}</td>
             <td>${item.durasiFormatted}</td>
             <td>${item.jamNormalFormatted}</td>
             <td style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
                 ${jamLemburBulat > 0 ? jamLemburBulat + ' jam' : item.jamLembur}
-                ${item.isFriday && item.jamLemburDesimal > 0 ? 
-                    '<br><small style="color: #9b59b6;">(pulang > 15:00)</small>' : 
+                ${isCapped ? 
+                    '<br><small style="color: #e67e22; font-weight: bold;">(MAKSIMAL 7 JAM)</small>' : 
                     ''}
-                ${item.jamLemburDesimal > 0 ? 
+                ${item.jamLemburDesimal > 0 && !isCapped ? 
                     `<br><small style="color: #666; font-size: 0.8rem;">(${item.jamLemburDesimal.toFixed(2)} jam desimal)</small>` : 
+                    ''}
+                ${isCapped ? 
+                    `<br><small style="color: #666; font-size: 0.8rem;">(${item.jamLemburDesimal.toFixed(2)} jam → dibatasi 7 jam)</small>` : 
                     ''}
             </td>
             <td>
                 <span style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-size: 0.85rem;">
                     ${item.keterangan}
-                    ${item.jamLemburDesimal > 0 ? '<br><small style="color: #666;">(dibulatkan: ' + jamLemburBulat + ' jam)</small>' : ''}
+                    ${isCapped ? 
+                        '<br><small style="color: #e67e22; font-weight: bold;">(LEMBUR DIBATASI MAKSIMAL 7 JAM)</small>' : 
+                        ''}
+                    ${item.jamLemburDesimal > 0 && !isCapped ? 
+                        '<br><small style="color: #666;">(dibulatkan: ' + jamLemburBulat + ' jam)</small>' : 
+                        ''}
                 </span>
             </td>
         `;
@@ -2598,8 +2617,14 @@ function displayProcessedTable(data) {
             row.classList.add('friday-row');
         }
         
+        // Tambahkan class khusus jika lembur dibatasi
+        if (isCapped) {
+            row.classList.add('overtime-capped-row');
+        }
+        
         tbody.appendChild(row);
     });
+}
     
     // Tambahkan tombol scroll setelah tabel dimuat
     setTimeout(() => {
