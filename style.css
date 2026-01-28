@@ -1976,3 +1976,24 @@ body {
 .container.loaded {
     opacity: 1;
 }
+
+/* Tambahkan di akhir style.css */
+.data-table tbody tr.overtime-capped-row {
+    background: rgba(230, 126, 34, 0.05);
+    border-left: 3px solid #e67e22;
+}
+
+.data-table tbody tr.overtime-capped-row:hover {
+    background: rgba(230, 126, 34, 0.1);
+}
+
+.overtime-capped-badge {
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 0.5rem;
+}
