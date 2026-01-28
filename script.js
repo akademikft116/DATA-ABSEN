@@ -13,10 +13,6 @@ let currentWorkHours = 8;
 // KONFIGURASI ATURAN BARU - HARI JUMAT
 // ============================
 
-// ============================
-// KONFIGURASI ATURAN BARU - SENIN-KAMIS
-// ============================
-
 // Hari Senin-Kamis special rules
 const NORMAL_DAY_RULES = {
     workStartTime: '07:00',      // Jam masuk minimal untuk dihitung
@@ -72,13 +68,17 @@ const processBtn = document.getElementById('process-data');
 const resultsSection = document.getElementById('results-section');
 const cancelUploadBtn = document.getElementById('cancel-upload');
 
+// Debug: Cek elemen penting
+console.log('=== DEBUG ELEMENTS ===');
+console.log('Loading screen:', loadingScreen);
+console.log('Main container:', mainContainer);
+console.log('Excel file input:', excelFileInput);
+console.log('Browse button:', browseBtn);
+console.log('Process button:', processBtn);
+console.log('======================');
+
 // Event Listeners
 document.addEventListener('DOMContentLoaded', initializeApp);
-excelFileInput.addEventListener('change', handleFileSelect);
-browseBtn.addEventListener('click', () => excelFileInput.click());
-uploadArea.addEventListener('click', () => excelFileInput.click());
-processBtn.addEventListener('click', processData);
-cancelUploadBtn.addEventListener('click', cancelUpload);
 
 // ============================
 // HELPER FUNCTIONS - DENGAN ATURAN JUMAT
@@ -125,7 +125,7 @@ function formatHoursToDisplay(hours, rounded = false) {
 }
 
 // ============================
-// FUNGSI PEMBULATAN BARU
+// FUNGSI PEMBULATAN BARU DENGAN BATAS 7 JAM
 // ============================
 
 // Fungsi untuk membulatkan jam lembur DENGAN BATAS MAKSIMAL 7 JAM
@@ -142,7 +142,13 @@ function roundOvertimeHours(hours) {
     return Math.round(hours);
 }
 
-// Fungsi untuk membulatkan dan format jam lembur DENGAN BATAS 7 JAM
+// Fungsi untuk membulatkan dan format jam lembur
+function roundAndFormatHours(hours) {
+    const rounded = roundOvertimeHours(hours);
+    return `${rounded} jam`;
+}
+
+// Fungsi untuk menampilkan informasi lembur dengan batas 7 jam
 function formatOvertimeInfo(overtimeHours) {
     const rounded = roundOvertimeHours(overtimeHours);
     
@@ -270,6 +276,7 @@ function getDayRules(dateString) {
     return isFriday(dateString) ? FRIDAY_RULES : NORMAL_DAY_RULES;
 }
 
+// Calculate hours between two time strings DENGAN ATURAN BARU (FLEKSIBEL JAM MASUK)
 function calculateHoursWithFridayRules(timeIn, timeOut, dateString) {
     if (!timeIn || !timeOut || !dateString) return 0;
     
@@ -291,10 +298,7 @@ function calculateHoursWithFridayRules(timeIn, timeOut, dateString) {
         
         if (!inTime || !outTime) return 0;
         
-        // Dapatkan aturan berdasarkan hari
-        const rules = getDayRules(dateString);
-        
-        // PERUBAHAN: Gunakan jam masuk sebenarnya, bukan jam 07:00
+        // PERUBAHAN: Gunakan jam masuk sebenarnya (tidak dipaksakan 07:00)
         const inMinutes = inTime.hours * 60 + inTime.minutes;
         const outMinutes = outTime.hours * 60 + outTime.minutes;
         
@@ -317,6 +321,7 @@ function calculateHoursWithFridayRules(timeIn, timeOut, dateString) {
     }
 }
 
+// Fungsi untuk menghitung lembur dengan aturan baru (FLEKSIBEL JAM MASUK)
 function calculateOvertimeWithDayRules(jamMasuk, jamKeluar, dateString) {
     if (!jamMasuk || !jamKeluar || !dateString) return 0;
     
@@ -339,7 +344,7 @@ function calculateOvertimeWithDayRules(jamMasuk, jamKeluar, dateString) {
         // Dapatkan aturan berdasarkan hari
         const rules = getDayRules(dateString);
         
-        // Gunakan jam masuk sebenarnya
+        // PERUBAHAN: Gunakan jam masuk sebenarnya (FLEKSIBEL)
         const inMinutes = inTime.hours * 60 + inTime.minutes;
         const outMinutes = outTime.hours * 60 + outTime.minutes;
         
@@ -361,7 +366,7 @@ function calculateOvertimeWithDayRules(jamMasuk, jamKeluar, dateString) {
             return 0;
         }
         
-        // KONVERSI KE JAM (DESIMAL)
+        // Konversi ke jam (desimal)
         const overtimeHours = Math.round((overtimeMinutes / 60) * 100) / 100;
         
         // BATASI MAKSIMAL 7 JAM LEMBUR PER HARI
@@ -375,44 +380,11 @@ function calculateOvertimeWithDayRules(jamMasuk, jamKeluar, dateString) {
         return 0;
     }
 }
-// Fungsi untuk mendapatkan jam masuk efektif dengan aturan Jumat
+
+// Fungsi untuk mendapatkan jam masuk efektif dengan aturan fleksibel
 function getEffectiveInTimeWithDayRules(jamMasuk, dateString) {
-    if (!jamMasuk || !dateString) return jamMasuk;
-    
-    try {
-        const parseTime = (timeStr) => {
-            if (!timeStr) return null;
-            if (typeof timeStr === 'string') {
-                if (timeStr.includes(':')) {
-                    const [hours, minutes] = timeStr.split(':').map(Number);
-                    return { hours, minutes: minutes || 0 };
-                }
-            }
-            return null;
-        };
-        
-        const inTime = parseTime(jamMasuk);
-        if (!inTime) return jamMasuk;
-        
-        // Dapatkan aturan berdasarkan hari
-        const rules = getDayRules(dateString);
-        
-        const [startHour, startMinute] = rules.workStartTime.split(':').map(Number);
-        const workStartMinutes = startHour * 60 + startMinute;
-        const inMinutes = inTime.hours * 60 + inTime.minutes;
-        
-        // Jika masuk sebelum jam mulai efektif, gunakan jam mulai efektif
-        if (inMinutes < workStartMinutes) {
-            return rules.workStartTime;
-        }
-        
-        // Jika masuk setelah jam mulai efektif, gunakan jam masuk sebenarnya
-        return jamMasuk;
-        
-    } catch (error) {
-        console.error('Error getting effective in time:', error);
-        return jamMasuk;
-    }
+    // PERUBAHAN: Kembalikan jam masuk sebenarnya (FLEKSIBEL)
+    return jamMasuk;
 }
 
 // Calculate hours between two time strings (untuk kompatibilitas)
@@ -446,58 +418,74 @@ function setupEventListeners() {
         const processBtn = document.getElementById('process-data');
         const cancelUploadBtn = document.getElementById('cancel-upload');
         
-        if (excelFileInput) excelFileInput.addEventListener('change', handleFileSelect);
-        if (browseBtn) browseBtn.addEventListener('click', () => excelFileInput?.click());
-        if (uploadArea) uploadArea.addEventListener('click', () => excelFileInput?.click());
-        if (processBtn) processBtn.addEventListener('click', processData);
-        if (cancelUploadBtn) cancelUploadBtn.addEventListener('click', cancelUpload);
-        
-    
-    // Tabs
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tabId = this.getAttribute('data-tab');
-            switchTab(tabId);
-        });
-    });
-    
-    // Modal
-    const helpBtn = document.getElementById('help-btn');
-    const closeHelpBtns = document.querySelectorAll('#close-help, #close-help-btn');
-    const helpModal = document.getElementById('help-modal');
-    
-    if (helpBtn) helpBtn.addEventListener('click', () => helpModal?.classList.add('active'));
-    closeHelpBtns.forEach(btn => {
-        btn.addEventListener('click', () => helpModal?.classList.remove('active'));
-    });
-    
-    // Template download
-    const templateBtn = document.getElementById('template-btn');
-    if (templateBtn) templateBtn.addEventListener('click', downloadTemplate);
-    
-    // Reset config
-    const resetBtn = document.getElementById('reset-config');
-    if (resetBtn) resetBtn.addEventListener('click', resetConfig);
-    
-    // Download buttons
-    const downloadOriginal = document.getElementById('download-original');
-    const downloadProcessed = document.getElementById('download-processed');
-    const downloadBoth = document.getElementById('download-both');
-    const downloadSalary = document.getElementById('download-salary');
-    const downloadSaturday = document.getElementById('download-saturday');
-    
-    if (downloadOriginal) downloadOriginal.addEventListener('click', () => downloadReport('original'));
-    if (downloadProcessed) downloadProcessed.addEventListener('click', () => downloadReport('processed'));
-    if (downloadBoth) downloadBoth.addEventListener('click', () => downloadReport('both'));
-    if (downloadSalary) downloadSalary.addEventListener('click', showSeparatedDownloadOptions);
-    if (downloadSaturday) downloadSaturday.addEventListener('click', () => {
-        if (processedData.length === 0) {
-            showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
-            return;
+        if (excelFileInput) {
+            console.log('Adding listener to excel file input');
+            excelFileInput.addEventListener('change', handleFileSelect);
         }
-        showSaturdayDownloadModal();
-    });
- console.log('All event listeners setup complete!');
+        if (browseBtn) {
+            console.log('Adding listener to browse button');
+            browseBtn.addEventListener('click', () => excelFileInput?.click());
+        }
+        if (uploadArea) {
+            console.log('Adding listener to upload area');
+            uploadArea.addEventListener('click', () => excelFileInput?.click());
+        }
+        if (processBtn) {
+            console.log('Adding listener to process button');
+            processBtn.addEventListener('click', processData);
+        }
+        if (cancelUploadBtn) {
+            console.log('Adding listener to cancel upload button');
+            cancelUploadBtn.addEventListener('click', cancelUpload);
+        }
+        
+        // Tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+                switchTab(tabId);
+            });
+        });
+        
+        // Modal
+        const helpBtn = document.getElementById('help-btn');
+        const closeHelpBtns = document.querySelectorAll('#close-help, #close-help-btn');
+        const helpModal = document.getElementById('help-modal');
+        
+        if (helpBtn) helpBtn.addEventListener('click', () => helpModal?.classList.add('active'));
+        closeHelpBtns.forEach(btn => {
+            btn.addEventListener('click', () => helpModal?.classList.remove('active'));
+        });
+        
+        // Template download
+        const templateBtn = document.getElementById('template-btn');
+        if (templateBtn) templateBtn.addEventListener('click', downloadTemplate);
+        
+        // Reset config
+        const resetBtn = document.getElementById('reset-config');
+        if (resetBtn) resetBtn.addEventListener('click', resetConfig);
+        
+        // Download buttons
+        const downloadOriginal = document.getElementById('download-original');
+        const downloadProcessed = document.getElementById('download-processed');
+        const downloadBoth = document.getElementById('download-both');
+        const downloadSalary = document.getElementById('download-salary');
+        const downloadSaturday = document.getElementById('download-saturday');
+        
+        if (downloadOriginal) downloadOriginal.addEventListener('click', () => downloadReport('original'));
+        if (downloadProcessed) downloadProcessed.addEventListener('click', () => downloadReport('processed'));
+        if (downloadBoth) downloadBoth.addEventListener('click', () => downloadReport('both'));
+        if (downloadSalary) downloadSalary.addEventListener('click', showSeparatedDownloadOptions);
+        if (downloadSaturday) downloadSaturday.addEventListener('click', () => {
+            if (processedData.length === 0) {
+                showNotification('Data belum diproses. Silakan hitung lembur terlebih dahulu.', 'warning');
+                return;
+            }
+            showSaturdayDownloadModal();
+        });
+        
+        console.log('Event listeners setup complete!');
+        
     } catch (error) {
         console.error('Error in setupEventListeners:', error);
     }
@@ -527,20 +515,20 @@ function calculateOvertimeByDayType(data) {
 }
 
 // ============================
-// FUNGSI PERHITUNGAN BARU DENGAN ATURAN JUMAT
+// FUNGSI PERHITUNGAN BARU DENGAN ATURAN JUMAT DAN FLEKSIBEL JAM MASUK
 // ============================
 
-// Calculate overtime per day - DENGAN ATURAN BARU
+// Calculate overtime per day - DENGAN ATURAN BARU (FLEKSIBEL JAM MASUK)
 function calculateOvertimePerDay(data, workHours = 8) {
     const result = data.map(record => {
-        // Hitung total jam kerja (mulai dari jam 07:00)
+        // Hitung total jam kerja (menggunakan jam masuk sebenarnya)
         const hoursWorked = calculateHoursWithFridayRules(
             record.jamMasuk, 
             record.jamKeluar, 
             record.tanggal
         );
         
-        // Hitung lembur dengan aturan baru (berdasarkan jam pulang dan hari)
+        // Hitung lembur dengan aturan baru (FLEKSIBEL JAM MASUK)
         const jamLemburDesimal = calculateOvertimeWithDayRules(
             record.jamMasuk, 
             record.jamKeluar, 
@@ -569,7 +557,7 @@ function calculateOvertimePerDay(data, workHours = 8) {
         const jamNormalDisplay = formatHoursToDisplay(jamNormal);
         const durasiDisplay = formatHoursToDisplay(hoursWorked);
         
-        // Tentukan jam masuk efektif berdasarkan hari
+        // Tentukan jam masuk efektif (jam masuk sebenarnya)
         const effectiveInTime = getEffectiveInTimeWithDayRules(record.jamMasuk, record.tanggal);
         
         // Cek apakah hari Jumat
@@ -581,9 +569,14 @@ function calculateOvertimePerDay(data, workHours = 8) {
         
         if (jamLemburDesimal > 0) {
             if (isFridayDay) {
-                keterangan = `Lembur ${jamLemburDisplay} (Jumat - kerja > 8 jam dari jam 07:00)`;
+                keterangan = `Lembur ${jamLemburDisplay} (Jumat - kerja > 8 jam dari jam masuk)`;
             } else {
-                keterangan = `Lembur ${jamLemburDisplay} (kerja > 8 jam dari jam 07:00)`;
+                keterangan = `Lembur ${jamLemburDisplay} (kerja > 8 jam dari jam masuk)`;
+            }
+            
+            // Tambahkan info jika lembur dibatasi 7 jam
+            if (jamLemburDesimal > 7) {
+                keterangan = `Lembur ${jamLemburDisplay} (DIBATASI MAKSIMAL 7 JAM)`;
             }
             
             if (effectiveInTime !== record.jamMasuk) {
@@ -594,7 +587,7 @@ function calculateOvertimePerDay(data, workHours = 8) {
         } else if (isFridayDay) {
             keterangan = `Hari Jumat - Kerja 8 jam normal`;
         } else {
-            keterangan = `Kerja ≤ 8 jam dari jam 07:00`;
+            keterangan = `Kerja ≤ 8 jam dari jam masuk`;
         }
         
         return {
@@ -615,7 +608,7 @@ function calculateOvertimePerDay(data, workHours = 8) {
             workEndTime: isFridayDay ? '15:00' : '16:00',
             hari: getDayName(record.tanggal),
             // Tambahan untuk debugging
-            workStartEffective: '07:00',
+            workStartEffective: record.jamMasuk,
             maxNormalHours: 8
         };
     });
@@ -745,10 +738,15 @@ function calculateSaturdayOvertime(data) {
             overtimeHours = 0;
         }
         
+        // BATASI MAKSIMAL 7 JAM LEMBUR
+        if (overtimeHours > 7) {
+            overtimeHours = 7;
+        }
+        
         // Hitung jam normal (maksimal 6 jam untuk Sabtu)
         const normalHours = Math.min(hoursWorked, normalWorkHours);
         
-        // Pembulatan jam lembur
+        // Pembulatan jam lembur DENGAN BATAS 7 JAM
         const overtimeBulat = roundOvertimeHours(overtimeHours);
         
         return {
@@ -873,7 +871,6 @@ function processYourExcelFormat(rawData) {
                     waktu: time,
                     rawDatetime: waktu
                 });
-            }
         }
     }
     
@@ -936,7 +933,7 @@ function pairInOutTimes(data) {
     return result;
 }
 
-// Hitung total jam lembur per karyawan DENGAN PEMBULATAN
+// Hitung total jam lembur per karyawan DENGAN PEMBULATAN DAN BATAS 7 JAM
 function calculateOvertimeSummary(data) {
     const summary = {};
     
@@ -966,11 +963,11 @@ function calculateOvertimeSummary(data) {
         }
     });
     
-    // Hitung total dengan pembulatan
+    // Hitung total dengan pembulatan DAN BATAS 7 JAM PER HARI
     Object.keys(summary).forEach(employee => {
         const record = summary[employee];
         
-        // Hitung versi bulat
+        // Hitung versi bulat DENGAN BATAS 7 JAM
         record.totalLemburBulat = roundOvertimeHours(record.totalLemburDesimal);
         record.fridayLemburBulat = roundOvertimeHours(record.fridayOvertime);
         record.otherDaysLemburBulat = roundOvertimeHours(record.otherDaysOvertime);
@@ -988,13 +985,23 @@ function calculateOvertimeSummary(data) {
         record.fridayGajiFormatted = formatCurrency(record.fridayGaji);
         record.otherDaysGajiFormatted = formatCurrency(record.otherDaysGaji);
         
-        // Format jam dengan pembulatan
-        record.totalLemburFormatted = `${record.totalLemburBulat} jam (${record.totalLemburDesimal.toFixed(2)})`;
+        // Format jam dengan pembulatan DAN INFO BATAS
+        if (record.totalLemburDesimal > 7 * data.filter(item => item.nama === employee).length) {
+            // Ada hari yang lembur > 7 jam
+            record.totalLemburFormatted = `${record.totalLemburBulat} jam (dibatasi maksimal 7 jam/hari)`;
+        } else {
+            record.totalLemburFormatted = `${record.totalLemburBulat} jam (${record.totalLemburDesimal.toFixed(2)})`;
+        }
+        
         record.fridayLemburFormatted = `${record.fridayLemburBulat} jam (${record.fridayOvertime.toFixed(2)})`;
         record.otherDaysLemburFormatted = `${record.otherDaysLemburBulat} jam (${record.otherDaysOvertime.toFixed(2)})`;
         
         // Info detail
-        record.infoDetail = `${record.totalLemburDesimal.toFixed(2)} jam → ${record.totalLemburBulat} jam (dibulatkan)`;
+        if (record.totalLemburDesimal > 7 * data.filter(item => item.nama === employee).length) {
+            record.infoDetail = `Dibatasi maksimal 7 jam/hari (${record.totalLemburDesimal.toFixed(2)} jam total)`;
+        } else {
+            record.infoDetail = `${record.totalLemburDesimal.toFixed(2)} jam → ${record.totalLemburBulat} jam (dibulatkan)`;
+        }
     });
     
     return Object.values(summary);
@@ -1444,7 +1451,7 @@ function generateFridayOnlyExcel(fridayData) {
                 return new Date(dateA) - new Date(dateB);
             });
             
-            // Hitung total dengan pembulatan
+            // Hitung total dengan pembulatan DAN BATAS 7 JAM
             const totalLembur = records.reduce((sum, item) => sum + (item.jamLemburDesimal || 0), 0);
             const totalLemburBulat = roundOvertimeHours(totalLembur);
             const totalGaji = totalLemburBulat * rate;
@@ -1454,8 +1461,8 @@ function generateFridayOnlyExcel(fridayData) {
             
             // Header
             wsData.push([`LEMBUR KARYAWAN - ${employeeName.toUpperCase()} (HARI JUMAT)`]);
-            wsData.push(['Pulang Normal: 15:00 | Lembur ≥ 10 menit setelah 15:00']);
-            wsData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
+            wsData.push(['Pulang Normal: 15:00 | Lembur ≥ 10 menit setelah 8 jam kerja dari jam masuk']);
+            wsData.push(['Catatan: Jam lembur dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0) dan DIBATASI MAKSIMAL 7 JAM']);
             wsData.push([]);
             
             // Header tabel
@@ -1464,14 +1471,16 @@ function generateFridayOnlyExcel(fridayData) {
             // Data
             records.forEach(record => {
                 const jamLemburBulat = roundOvertimeHours(record.jamLemburDesimal);
+                const isCapped = record.jamLemburDesimal > 7;
+                
                 wsData.push([
                     formatExcelDate(record.tanggal),
                     record.jamMasuk,
                     record.jamKeluar,
                     `${record.jamNormal.toFixed(2)} jam`,
                     record.jamLemburDesimal > 0 ? `${record.jamLemburDesimal.toFixed(2)} jam` : '0 jam',
-                    jamLemburBulat > 0 ? `${jamLemburBulat} jam` : '0 jam',
-                    record.keterangan
+                    jamLemburBulat > 0 ? `${jamLemburBulat} jam${isCapped ? ' (MAKS)' : ''}` : '0 jam',
+                    isCapped ? `LEMBUR DIBATASI MAKSIMAL 7 JAM (${record.jamLemburDesimal.toFixed(2)} jam → 7 jam)` : record.keterangan
                 ]);
             });
             
@@ -1479,7 +1488,7 @@ function generateFridayOnlyExcel(fridayData) {
             wsData.push([]);
             wsData.push(['TOTAL JUMAT:', '', '', '', 
                 `${totalLembur.toFixed(2)} jam`, 
-                `${totalLemburBulat} jam (dibulatkan)`, 
+                `${totalLemburBulat} jam (dibulatkan${totalLembur > 7 * records.length ? ' & dibatasi 7 jam/hari' : ''})`, 
                 `Rp ${Math.round(totalGaji).toLocaleString('id-ID')}`]);
             
             // Buat worksheet
@@ -1493,7 +1502,7 @@ function generateFridayOnlyExcel(fridayData) {
                 { wch: 12 }, // Jam Normal
                 { wch: 18 }, // Jam Lembur (Desimal)
                 { wch: 18 }, // Jam Lembur (Bulat)
-                { wch: 30 }  // Keterangan
+                { wch: 35 }  // Keterangan
             ];
             
             // Tambahkan ke workbook
@@ -1549,7 +1558,7 @@ function downloadSaturdayDetail(data) {
         wsData.push(['LAPORAN LEMBUR KHUSUS HARI SABTU']);
         wsData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
         wsData.push(['ATURAN: Semua karyawan kerja 6 jam, K3 kerja 07:00-22:00']);
-        wsData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
+        wsData.push(['Catatan: Jam lembur dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0) dan DIBATASI MAKSIMAL 7 JAM']);
         wsData.push([]);
         
         // Header tabel
@@ -1557,6 +1566,7 @@ function downloadSaturdayDetail(data) {
         
         // Data
         data.forEach((item, index) => {
+            const isCapped = item.jamLemburSabtu > 7;
             wsData.push([
                 index + 1,
                 item.nama,
@@ -1568,9 +1578,9 @@ function downloadSaturdayDetail(data) {
                 item.durasiFormatted,
                 `${item.jamNormalSabtu.toFixed(2)} jam`,
                 item.jamLemburSabtu > 0 ? `${item.jamLemburSabtu.toFixed(2)} jam` : '0 jam',
-                item.jamLemburSabtuBulat > 0 ? `${item.jamLemburSabtuBulat} jam` : '0 jam',
+                item.jamLemburSabtuBulat > 0 ? `${item.jamLemburSabtuBulat} jam${isCapped ? ' (MAKS)' : ''}` : '0 jam',
                 item.gajiLemburSabtu > 0 ? formatCurrency(item.gajiLemburSabtu) : 'Rp 0',
-                item.keteranganSabtu
+                isCapped ? `LEMBUR DIBATASI MAKSIMAL 7 JAM (${item.jamLemburSabtu.toFixed(2)} jam → 7 jam)` : item.keteranganSabtu
             ]);
         });
         
@@ -1582,7 +1592,7 @@ function downloadSaturdayDetail(data) {
         wsData.push([]);
         wsData.push(['TOTAL SABTU', '', '', '', '', '', '', '', '', 
             `${totalJam.toFixed(2)} jam`, 
-            `${totalJamBulat} jam (dibulatkan)`, 
+            `${totalJamBulat} jam (dibulatkan${totalJam > 7 * data.length ? ' & dibatasi' : ''})`, 
             formatCurrency(totalGaji), '']);
         
         // Buat worksheet
@@ -1640,7 +1650,7 @@ function downloadSaturdaySummary(summary) {
         wsData.push(['REKAPITULASI LEMBUR HARI SABTU']);
         wsData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
         wsData.push(['ATURAN KHUSUS: Kerja 6 jam, K3: 07:00-22:00']);
-        wsData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
+        wsData.push(['Catatan: Jam lembur dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0) dan DIBATASI MAKSIMAL 7 JAM']);
         wsData.push([]);
         
         // Header tabel summary
@@ -1648,13 +1658,14 @@ function downloadSaturdaySummary(summary) {
         
         // Data summary
         summary.forEach((item, index) => {
+            const isCapped = item.totalJam > 7 * item.records.length;
             wsData.push([
                 index + 1,
                 item.nama,
                 item.kategori,
                 `Rp ${item.rate.toLocaleString('id-ID')}`,
                 item.totalJam > 0 ? `${item.totalJam.toFixed(2)} jam` : '0 jam',
-                item.totalJamBulat > 0 ? `${item.totalJamBulat} jam` : '0 jam',
+                item.totalJamBulat > 0 ? `${item.totalJamBulat} jam${isCapped ? ' (MAKS)' : ''}` : '0 jam',
                 formatCurrency(item.totalGaji)
             ]);
         });
@@ -1667,7 +1678,7 @@ function downloadSaturdaySummary(summary) {
         wsData.push([]);
         wsData.push(['TOTAL KESELURUHAN', '', '', '', 
             `${totalJam.toFixed(2)} jam`, 
-            `${totalJamBulat} jam (dibulatkan)`, 
+            `${totalJamBulat} jam (dibulatkan${totalJam > 7 * summary.reduce((sum, item) => sum + item.records.length, 0) ? ' & dibatasi' : ''})`, 
             formatCurrency(totalGaji)]);
         
         // Buat worksheet
@@ -1766,7 +1777,7 @@ function downloadSaturdayK3(data) {
         wsData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
         wsData.push(['ATURAN KHUSUS K3: Kerja dari 07:00 sampai 22:00 (15 jam)']);
         wsData.push(['Lembur dihitung setelah jam 22:00, minimal 10 menit']);
-        wsData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
+        wsData.push(['Catatan: Jam lembur dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0) dan DIBATASI MAKSIMAL 7 JAM']);
         wsData.push([]);
         
         // Header tabel
@@ -1774,6 +1785,7 @@ function downloadSaturdayK3(data) {
         
         // Data K3
         k3Data.forEach((item, index) => {
+            const isCapped = item.jamLemburSabtu > 7;
             wsData.push([
                 index + 1,
                 item.nama,
@@ -1782,9 +1794,10 @@ function downloadSaturdayK3(data) {
                 item.jamKeluar,
                 item.durasiFormatted,
                 item.jamLemburSabtu > 0 ? `${item.jamLemburSabtu.toFixed(2)} jam` : '0 jam',
-                item.jamLemburSabtuBulat > 0 ? `${item.jamLemburSabtuBulat} jam` : '0 jam',
+                item.jamLemburSabtuBulat > 0 ? `${item.jamLemburSabtuBulat} jam${isCapped ? ' (MAKS)' : ''}` : '0 jam',
                 item.gajiLemburSabtu > 0 ? formatCurrency(item.gajiLemburSabtu) : 'Rp 0',
-                `K3 Sabtu: 07:00-22:00 (${item.jamKeluar > '22:00' ? 'Lembur' : 'Tidak lembur'})`
+                isCapped ? `K3 Sabtu: LEMBUR DIBATASI MAKSIMAL 7 JAM (${item.jamKeluar > '22:00' ? 'Lembur' : 'Tidak lembur'})` : 
+                          `K3 Sabtu: 07:00-22:00 (${item.jamKeluar > '22:00' ? 'Lembur' : 'Tidak lembur'})`
             ]);
         });
         
@@ -1796,7 +1809,7 @@ function downloadSaturdayK3(data) {
         wsData.push([]);
         wsData.push(['TOTAL K3 SABTU', '', '', '', '', '', 
             `${totalJam.toFixed(2)} jam`, 
-            `${totalJamBulat} jam (dibulatkan)`, 
+            `${totalJamBulat} jam (dibulatkan${totalJam > 7 * k3Data.length ? ' & dibatasi' : ''})`, 
             formatCurrency(totalGaji), '']);
         
         // Buat worksheet
@@ -1813,7 +1826,7 @@ function downloadSaturdayK3(data) {
             { wch: 18 },  // Jam Lembur (Desimal)
             { wch: 18 },  // Jam Lembur (Bulat)
             { wch: 20 },  // Gaji Lembur
-            { wch: 30 }   // Keterangan
+            { wch: 35 }   // Keterangan
         ];
         
         // Tambahkan ke workbook
@@ -1861,7 +1874,7 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
                 return new Date(dateA) - new Date(dateB);
             });
             
-            // Hitung total dengan pembulatan
+            // Hitung total dengan pembulatan DAN BATAS 7 JAM
             const totalLembur = records.reduce((sum, item) => sum + (item.jamLemburDesimal || 0), 0);
             const totalLemburBulat = roundOvertimeHours(totalLembur);
             const totalGaji = totalLemburBulat * rate;
@@ -1871,8 +1884,8 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
             
             // Header
             wsData.push([`LEMBUR KARYAWAN - ${employeeName.toUpperCase()} (SENIN-KAMIS)`]);
-            wsData.push(['Pulang Normal: 16:00 | Lembur ≥ 10 menit setelah 16:00']);
-            wsData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
+            wsData.push(['Pulang Normal: 16:00 | Lembur ≥ 10 menit setelah 8 jam kerja dari jam masuk']);
+            wsData.push(['Catatan: Jam lembur dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0) dan DIBATASI MAKSIMAL 7 JAM']);
             wsData.push([]);
             
             // Header tabel
@@ -1881,6 +1894,8 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
             // Data
             records.forEach(record => {
                 const jamLemburBulat = roundOvertimeHours(record.jamLemburDesimal);
+                const isCapped = record.jamLemburDesimal > 7;
+                
                 wsData.push([
                     formatExcelDate(record.tanggal),
                     record.hari,
@@ -1888,8 +1903,8 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
                     record.jamKeluar,
                     `${record.jamNormal.toFixed(2)} jam`,
                     record.jamLemburDesimal > 0 ? `${record.jamLemburDesimal.toFixed(2)} jam` : '0 jam',
-                    jamLemburBulat > 0 ? `${jamLemburBulat} jam` : '0 jam',
-                    record.keterangan
+                    jamLemburBulat > 0 ? `${jamLemburBulat} jam${isCapped ? ' (MAKS)' : ''}` : '0 jam',
+                    isCapped ? `LEMBUR DIBATASI MAKSIMAL 7 JAM (${record.jamLemburDesimal.toFixed(2)} jam → 7 jam)` : record.keterangan
                 ]);
             });
             
@@ -1897,7 +1912,7 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
             wsData.push([]);
             wsData.push(['TOTAL SENIN-KAMIS:', '', '', '', '', 
                 `${totalLembur.toFixed(2)} jam`, 
-                `${totalLemburBulat} jam (dibulatkan)`,
+                `${totalLemburBulat} jam (dibulatkan${totalLembur > 7 * records.length ? ' & dibatasi 7 jam/hari' : ''})`,
                 `Rp ${Math.round(totalGaji).toLocaleString('id-ID')}`]);
             
             // Buat worksheet
@@ -1912,7 +1927,7 @@ function generateOtherDaysOnlyExcel(otherDaysData) {
                 { wch: 12 }, // Jam Normal
                 { wch: 18 }, // Jam Lembur (Desimal)
                 { wch: 18 }, // Jam Lembur (Bulat)
-                { wch: 30 }  // Keterangan
+                { wch: 35 }  // Keterangan
             ];
             
             // Tambahkan ke workbook
@@ -2021,7 +2036,7 @@ function generateAllInOneExcel(allData) {
             { wch: 12 },  // Jam Normal
             { wch: 18 },  // Jam Lembur (Desimal)
             { wch: 18 },  // Jam Lembur (Bulat)
-            { wch: 30 }   // Keterangan
+            { wch: 35 }   // Keterangan
         ];
         XLSX.utils.book_append_sheet(workbook, detailWs, 'DETAIL DATA');
         
@@ -2046,8 +2061,8 @@ function generateFridaySummary(fridayData) {
     
     // Header
     summaryData.push(['REKAPITULASI LEMBUR KARYAWAN - HARI JUMAT']);
-    summaryData.push(['Pulang Normal: 15:00 | Lembur ≥ 10 menit setelah 15:00']);
-    summaryData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
+    summaryData.push(['Pulang Normal: 15:00 | Lembur ≥ 10 menit setelah 8 jam kerja dari jam masuk']);
+    summaryData.push(['Catatan: Jam lembur dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0) dan DIBATASI MAKSIMAL 7 JAM']);
     summaryData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
     summaryData.push([]);
     summaryData.push(['No', 'Nama Karyawan', 'Kategori', 'Total Jam Lembur (Desimal)', 'Total Jam Lembur (Bulat)', 'Total Gaji Lembur', 'Rate']);
@@ -2061,13 +2076,14 @@ function generateFridaySummary(fridayData) {
         if (item.fridayOvertime > 0) {
             const jamBulat = roundOvertimeHours(item.fridayOvertime);
             const gaji = jamBulat * item.rate;
+            const isCapped = item.fridayOvertime > 7 * fridayData.filter(d => d.nama === item.nama).length;
             
             summaryData.push([
                 index + 1,
                 item.nama,
                 item.kategori,
                 item.fridayOvertime.toFixed(2) + ' jam',
-                jamBulat + ' jam',
+                jamBulat + ' jam' + (isCapped ? ' (MAKS)' : ''),
                 formatCurrency(gaji),
                 `Rp ${item.rate.toLocaleString('id-ID')}/jam`
             ]);
@@ -2081,7 +2097,7 @@ function generateFridaySummary(fridayData) {
     summaryData.push([]);
     summaryData.push(['TOTAL JUMAT', '', '', 
         `${totalJamAll.toFixed(2)} jam`, 
-        `${totalJamAllBulat} jam (dibulatkan)`, 
+        `${totalJamAllBulat} jam (dibulatkan${totalJamAll > 7 * fridayData.length ? ' & dibatasi' : ''})`, 
         formatCurrency(totalGajiAll), '']);
     
     return summaryData;
@@ -2095,8 +2111,8 @@ function generateOtherDaysSummary(otherDaysData) {
     
     // Header
     summaryData.push(['REKAPITULASI LEMBUR KARYAWAN - SENIN s/d KAMIS']);
-    summaryData.push(['Pulang Normal: 16:00 | Lembur ≥ 10 menit setelah 16:00']);
-    summaryData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
+    summaryData.push(['Pulang Normal: 16:00 | Lembur ≥ 10 menit setelah 8 jam kerja dari jam masuk']);
+    summaryData.push(['Catatan: Jam lembur dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0) dan DIBATASI MAKSIMAL 7 JAM']);
     summaryData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
     summaryData.push([]);
     summaryData.push(['No', 'Nama Karyawan', 'Kategori', 'Total Jam Lembur (Desimal)', 'Total Jam Lembur (Bulat)', 'Total Gaji Lembur', 'Rate']);
@@ -2110,13 +2126,14 @@ function generateOtherDaysSummary(otherDaysData) {
         if (item.otherDaysOvertime > 0) {
             const jamBulat = roundOvertimeHours(item.otherDaysOvertime);
             const gaji = jamBulat * item.rate;
+            const isCapped = item.otherDaysOvertime > 7 * otherDaysData.filter(d => d.nama === item.nama).length;
             
             summaryData.push([
                 index + 1,
                 item.nama,
                 item.kategori,
                 item.otherDaysOvertime.toFixed(2) + ' jam',
-                jamBulat + ' jam',
+                jamBulat + ' jam' + (isCapped ? ' (MAKS)' : ''),
                 formatCurrency(gaji),
                 `Rp ${item.rate.toLocaleString('id-ID')}/jam`
             ]);
@@ -2130,7 +2147,7 @@ function generateOtherDaysSummary(otherDaysData) {
     summaryData.push([]);
     summaryData.push(['TOTAL SENIN-KAMIS', '', '', 
         `${totalJamAll.toFixed(2)} jam`, 
-        `${totalJamAllBulat} jam (dibulatkan)`, 
+        `${totalJamAllBulat} jam (dibulatkan${totalJamAll > 7 * otherDaysData.length ? ' & dibatasi' : ''})`, 
         formatCurrency(totalGajiAll), '']);
     
     return summaryData;
@@ -2145,7 +2162,7 @@ function generateTotalSummary(allData) {
     // Header
     summaryData.push(['REKAPITULASI TOTAL LEMBUR KARYAWAN']);
     summaryData.push(['Jumat: Pulang 15:00 | Senin-Kamis: Pulang 16:00']);
-    summaryData.push(['Catatan: Jam lembur telah dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0)']);
+    summaryData.push(['Catatan: Jam lembur dibulatkan (0.5 ke atas → 1, di bawah 0.5 → 0) dan DIBATASI MAKSIMAL 7 JAM']);
     summaryData.push(['FAKULTAS TEKNIK - UNIVERSITAS LANGLANGBUANA']);
     summaryData.push([]);
     summaryData.push(['No', 'Nama Karyawan', 'Kategori', 'Total Jam (Desimal)', 'Jam (Bulat)', 'Jumat', 'Biasa', 'Total Gaji', 'Rate']);
@@ -2164,14 +2181,17 @@ function generateTotalSummary(allData) {
             const otherDaysBulat = roundOvertimeHours(item.otherDaysOvertime);
             const totalGaji = totalBulat * item.rate;
             
+            const hasCappedFriday = item.fridayOvertime > 7 * allData.filter(d => d.nama === item.nama && d.isFriday).length;
+            const hasCappedOther = item.otherDaysOvertime > 7 * allData.filter(d => d.nama === item.nama && !d.isFriday).length;
+            
             summaryData.push([
                 index + 1,
                 item.nama,
                 item.kategori,
                 item.totalLemburDesimal.toFixed(2) + ' jam',
                 totalBulat + ' jam',
-                fridayBulat + ' jam',
-                otherDaysBulat + ' jam',
+                fridayBulat + ' jam' + (hasCappedFriday ? ' (M)' : ''),
+                otherDaysBulat + ' jam' + (hasCappedOther ? ' (M)' : ''),
                 formatCurrency(totalGaji),
                 `Rp ${item.rate.toLocaleString('id-ID')}/jam`
             ]);
@@ -2187,7 +2207,7 @@ function generateTotalSummary(allData) {
     summaryData.push([]);
     summaryData.push(['TOTAL KESELURUHAN', '', '', 
         `${totalJamAll.toFixed(2)} jam`,
-        `${totalJamAllBulat} jam (dibulatkan)`,
+        `${totalJamAllBulat} jam (dibulatkan${totalJamAll > 7 * allData.length ? ' & dibatasi' : ''})`,
         `${totalJumatAll} jam`,
         `${totalBiasaAll} jam`,
         formatCurrency(totalGajiAll), '']);
@@ -2227,7 +2247,7 @@ function createOvertimeTablePerPerson(data) {
             return new Date(dateA) - new Date(dateB);
         });
         
-        // Hitung total per orang DENGAN PEMBULATAN
+        // Hitung total per orang DENGAN PEMBULATAN DAN BATAS 7 JAM
         const totalLemburDesimal = records.reduce((sum, item) => sum + (item.jamLemburDesimal || 0), 0);
         const totalLemburBulat = roundOvertimeHours(totalLemburDesimal);
         const totalGaji = totalLemburBulat * rate;
@@ -2283,7 +2303,7 @@ function createOvertimeTablePerPerson(data) {
             'OUT',
             `JAM KERJA (${currentWorkHours} jam)`,
             'TOTAL (Bulat)',
-            'TANDA TANGAN'
+            'CATATAN'
         ]);
         
         // Data per hari
@@ -2295,6 +2315,7 @@ function createOvertimeTablePerPerson(data) {
             const jamMasuk = record.jamMasuk || '-';
             const jamKeluar = record.jamKeluar || '-';
             const lemburJamBulat = roundOvertimeHours(record.jamLemburDesimal);
+            const isCapped = record.jamLemburDesimal > 7;
             
             cumulativeTotalBulat += lemburJamBulat;
             
@@ -2305,8 +2326,8 @@ function createOvertimeTablePerPerson(data) {
                 jamMasuk,
                 jamKeluar,
                 currentWorkHours,
-                lemburJamBulat,
-                record.isFriday ? 'Jumat' : '' // Tambahkan catatan untuk Jumat
+                lemburJamBulat + (isCapped ? ' (MAKS)' : ''),
+                isCapped ? 'LEMBUR DIBATASI MAKSIMAL 7 JAM' : (record.isFriday ? 'Jumat' : '')
             ]);
         });
         
@@ -2318,7 +2339,7 @@ function createOvertimeTablePerPerson(data) {
             ]);
         }
         
-        // Baris total (sesuai format gambar) - MENGGUNAKAN YANG SUDAH DIBULATKAN
+        // Baris total (sesuai format gambar) - MENGGUNAKAN YANG SUDAH DIBULATKAN DAN DIBATASI
         tableData.push([
             '', // Name kosong
             '', // Hari kosong
@@ -2326,18 +2347,18 @@ function createOvertimeTablePerPerson(data) {
             '', // IN kosong
             '', // OUT kosong
             '', // JAM KERJA kosong
-            cumulativeTotalBulat, // Total jam lembur yang sudah dibulatkan
-            '' // Tanda tangan kosong
+            cumulativeTotalBulat + (totalLemburDesimal > 7 * filteredRecords.length ? ' (DIBATASI)' : ''), 
+            '' // Catatan kosong
         ]);
         
         // Baris jumlah jam lembur (dibulatkan)
         tableData.push([
             '', '', '', '', '', 
-            cumulativeTotalBulat, // Jam lembur yang sudah dibulatkan
+            cumulativeTotalBulat, // Jam lembur yang sudah dibulatkan dan dibatasi
             '', ''
         ]);
         
-        // Baris gaji lembur - MENGGUNAKAN JAM YANG SUDAH DIBULATKAN
+        // Baris gaji lembur - MENGGUNAKAN JAM YANG SUDAH DIBULATKAN DAN DIBATASI
         const totalGajiRounded = cumulativeTotalBulat * rate;
         
         tableData.push([
@@ -2566,6 +2587,7 @@ function createFloatingActionButtons() {
     return fabContainer;
 }
 
+// Update fungsi displayProcessedTable() untuk menambahkan tombol scroll
 function displayProcessedTable(data) {
     const tbody = document.getElementById('processed-table-body');
     if (!tbody) {
@@ -2587,14 +2609,22 @@ function displayProcessedTable(data) {
                 ${formatDate(item.tanggal)}
                 ${item.isFriday ? '<br><small style="color: #9b59b6; font-weight: bold;">(JUMAT)</small>' : ''}
             </td>
-            <td>${item.jamMasuk}</td>
+            <td>
+                ${item.jamMasuk}
+                ${item.jamMasuk !== item.jamMasukEfektif ? 
+                    `<br><small style="color: #666;">(efektif: ${item.jamMasukEfektif})</small>` : 
+                    ''}
+            </td>
             <td>${item.jamKeluar}</td>
             <td>${item.durasiFormatted}</td>
             <td>${item.jamNormalFormatted}</td>
             <td style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
                 ${jamLemburBulat > 0 ? jamLemburBulat + ' jam' : item.jamLembur}
                 ${isCapped ? 
-                    '<br><small style="color: #e67e22; font-weight: bold;">(MAKSIMAL 7 JAM)</small>' : 
+                    '<br><small style="color: #e67e22; font-weight: bold;">(DIBATASI MAKSIMAL 7 JAM)</small>' : 
+                    ''}
+                ${item.isFriday && item.jamLemburDesimal > 0 ? 
+                    '<br><small style="color: #9b59b6;">(pulang > 15:00)</small>' : 
                     ''}
                 ${item.jamLemburDesimal > 0 && !isCapped ? 
                     `<br><small style="color: #666; font-size: 0.8rem;">(${item.jamLemburDesimal.toFixed(2)} jam desimal)</small>` : 
@@ -2606,12 +2636,8 @@ function displayProcessedTable(data) {
             <td>
                 <span style="color: ${item.jamLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-size: 0.85rem;">
                     ${item.keterangan}
-                    ${isCapped ? 
-                        '<br><small style="color: #e67e22; font-weight: bold;">(LEMBUR DIBATASI MAKSIMAL 7 JAM)</small>' : 
-                        ''}
-                    ${item.jamLemburDesimal > 0 && !isCapped ? 
-                        '<br><small style="color: #666;">(dibulatkan: ' + jamLemburBulat + ' jam)</small>' : 
-                        ''}
+                    ${isCapped ? '<br><small style="color: #e67e22; font-weight: bold;">(LEMBUR DIBATASI MAKSIMAL 7 JAM)</small>' : 
+                     item.jamLemburDesimal > 0 ? '<br><small style="color: #666;">(dibulatkan: ' + jamLemburBulat + ' jam)</small>' : ''}
                 </span>
             </td>
         `;
@@ -2628,7 +2654,6 @@ function displayProcessedTable(data) {
         
         tbody.appendChild(row);
     });
-}
     
     // Tambahkan tombol scroll setelah tabel dimuat
     setTimeout(() => {
@@ -2888,7 +2913,7 @@ function addBackToTopButton() {
 }
 
 // ============================
-// MAIN APPLICATION FUNCTIONS - DENGAN UPDATE JUMAT
+// MAIN APPLICATION FUNCTIONS - DENGAN UPDATE JUMAT DAN FLEKSIBEL JAM MASUK
 // ============================
 
 // Initialize application
@@ -2896,9 +2921,6 @@ function initializeApp() {
     console.log('Initializing app...');
     
     // Debug: cek elemen
-    const loadingScreen = document.getElementById('loading-screen');
-    const mainContainer = document.getElementById('main-container');
-    
     console.log('Loading screen:', loadingScreen);
     console.log('Main container:', mainContainer);
     
@@ -2908,6 +2930,7 @@ function initializeApp() {
         if (mainContainer) {
             mainContainer.style.opacity = '1';
             mainContainer.style.display = 'block';
+            mainContainer.classList.add('loaded');
         }
         return;
     }
@@ -2931,67 +2954,26 @@ function initializeApp() {
     // 3. Sembunyikan loading screen setelah 1.5 detik
     setTimeout(() => {
         console.log('Hiding loading screen...');
-        loadingScreen.style.transition = 'opacity 0.5s ease';
-        loadingScreen.style.opacity = '0';
-        
-        setTimeout(() => {
-            loadingScreen.style.display = 'none';
-            mainContainer.style.opacity = '1';
-            mainContainer.style.transition = 'opacity 0.5s ease';
-            mainContainer.style.display = 'block';
-            console.log('App initialized successfully!');
+        if (loadingScreen) {
+            loadingScreen.style.transition = 'opacity 0.5s ease';
+            loadingScreen.style.opacity = '0';
             
-            // Tambahkan class loaded untuk styling
-            mainContainer.classList.add('loaded');
-        }, 500);
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                if (mainContainer) {
+                    mainContainer.style.opacity = '1';
+                    mainContainer.style.transition = 'opacity 0.5s ease';
+                    mainContainer.classList.add('loaded');
+                }
+                console.log('App initialized successfully!');
+            }, 500);
+        }
     }, 1500);
     
     // 4. Setup lainnya
     addBackToTopButton();
     
     console.log('Initialization complete');
-}
-    
-    // 5. Tambahkan info pembulatan ke sidebar
-    const systemInfo = document.querySelector('.system-info');
-    if (systemInfo) {
-        const infoHtml = `
-            <div style="margin-top: 1rem; padding: 0.75rem; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
-                <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #1565c0;">
-                    <i class="fas fa-clock"></i> Aturan Baru Lembur (Senin-Kamis):
-                </h5>
-                <ul style="font-size: 0.8rem; color: #1565c0; padding-left: 1.2rem; margin-bottom: 0.5rem;">
-                    <li><strong>Jam masuk efektif:</strong> 07:00</li>
-                    <li><strong>Perhitungan dimulai dari:</strong> Jam 07:00</li>
-                    <li><strong>Jam kerja normal:</strong> 8 jam</li>
-                    <li><strong>Lembur jika:</strong> Kerja > 8 jam dari jam 07:00</li>
-                    <li><strong>Minimal lembur:</strong> ≥ 10 menit</li>
-                </ul>
-                <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #7b1fa2;">
-                    <i class="fas fa-calendar-day"></i> Aturan Jumat:
-                </h5>
-                <ul style="font-size: 0.8rem; color: #7b1fa2; padding-left: 1.2rem; margin-bottom: 0;">
-                    <li><strong>Jam masuk efektif:</strong> 07:00</li>
-                    <li><strong>Jam pulang normal:</strong> 15:00</li>
-                    <li><strong>Lembur jika:</strong> Pulang > 15:00</li>
-                    <li><strong>Minimal lembur:</strong> ≥ 10 menit</li>
-                </ul>
-            </div>
-            
-            <div style="margin-top: 1rem; padding: 0.75rem; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
-                <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #856404;">
-                    <i class="fas fa-calculator"></i> Aturan Pembulatan Lembur:
-                </h5>
-                <ul style="font-size: 0.8rem; color: #856404; padding-left: 1.2rem; margin-bottom: 0;">
-                    <li>Contoh: 7,18 jam → dibulatkan menjadi 7 jam</li>
-                    <li>Contoh: 7,67 jam → dibulatkan menjadi 8 jam</li>
-                    <li>Pembulatan standar (0.5 ke atas)</li>
-                    <li>Gaji dihitung berdasarkan jam yang telah dibulatkan</li>
-                </ul>
-            </div>
-        `;
-        systemInfo.insertAdjacentHTML('beforeend', infoHtml);
-    }
 }
 
 // Handle file selection
@@ -3009,7 +2991,9 @@ async function handleFileSelect(event) {
         
         updateSidebarStats(data);
         showNotification('File berhasil diunggah!', 'success');
-        processBtn.disabled = false;
+        if (processBtn) {
+            processBtn.disabled = false;
+        }
         
         previewUploadedData(data);
         
@@ -3069,12 +3053,16 @@ function showFilePreview(file) {
     const fileSize = document.getElementById('file-size');
     const fileDate = document.getElementById('file-date');
     
-    fileName.textContent = file.name;
-    fileSize.textContent = formatFileSize(file.size);
-    fileDate.textContent = new Date(file.lastModified).toLocaleDateString('id-ID');
+    if (fileName) fileName.textContent = file.name;
+    if (fileSize) fileSize.textContent = formatFileSize(file.size);
+    if (fileDate) fileDate.textContent = new Date(file.lastModified).toLocaleDateString('id-ID');
     
-    filePreview.style.display = 'block';
-    uploadArea.style.display = 'none';
+    if (filePreview) {
+        filePreview.style.display = 'block';
+    }
+    if (uploadArea) {
+        uploadArea.style.display = 'none';
+    }
 }
 
 // Simulate upload progress
@@ -3083,6 +3071,8 @@ function simulateUploadProgress() {
     
     const progressBar = document.getElementById('upload-progress');
     const progressText = document.getElementById('progress-text');
+    
+    if (!progressBar || !progressText) return;
     
     let progress = 0;
     uploadProgressInterval = setInterval(() => {
@@ -3097,7 +3087,7 @@ function simulateUploadProgress() {
     }, 100);
 }
 
-// Process data (HITUNG LEMBUR SAJA) - DENGAN ATURAN JUMAT DAN PEMBULATAN
+// Process data (HITUNG LEMBUR SAJA) - DENGAN ATURAN JUMAT, FLEKSIBEL JAM MASUK, DAN BATAS 7 JAM
 function processData() {
     if (originalData.length === 0) {
         showNotification('Tidak ada data untuk diproses.', 'warning');
@@ -3106,33 +3096,39 @@ function processData() {
     
     currentWorkHours = parseFloat(document.getElementById('work-hours').value) || 8;
     
-    processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung Lembur...';
-    processBtn.disabled = true;
+    if (processBtn) {
+        processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung Lembur...';
+        processBtn.disabled = true;
+    }
     
     setTimeout(() => {
         try {
-            // Hitung lembur per hari dengan jam kerja yang diatur DAN ATURAN JUMAT
+            // Hitung lembur per hari dengan jam kerja yang diatur DAN ATURAN JUMAT DAN FLEKSIBEL JAM MASUK
             processedData = calculateOvertimePerDay(originalData, currentWorkHours);
             
             displayResults(processedData);
             createCharts(processedData);
             
-            resultsSection.style.display = 'block';
-            resultsSection.scrollIntoView({ behavior: 'smooth' });
+            if (resultsSection) {
+                resultsSection.style.display = 'block';
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+            }
             
-            showNotification(`Perhitungan lembur selesai! Jam lembur telah dibulatkan (${currentWorkHours} jam kerja, termasuk aturan Jumat)`, 'success');
+            showNotification(`Perhitungan lembur selesai! Jam lembur telah dibulatkan dan dibatasi maksimal 7 jam per hari.`, 'success');
             
         } catch (error) {
             console.error('Error processing data:', error);
             showNotification('Terjadi kesalahan saat menghitung lembur.', 'error');
         } finally {
-            processBtn.innerHTML = '<i class="fas fa-calculator"></i> Hitung Lembur';
-            processBtn.disabled = false;
+            if (processBtn) {
+                processBtn.innerHTML = '<i class="fas fa-calculator"></i> Hitung Lembur';
+                processBtn.disabled = false;
+            }
         }
     }, 1500);
 }
 
-// Display results - DENGAN UPDATE JUMAT DAN PEMBULATAN
+// Display results - DENGAN UPDATE JUMAT, FLEKSIBEL JAM MASUK, DAN BATAS 7 JAM
 function displayResults(data) {
     updateMainStatistics(data);
     displayOriginalTable(originalData);
@@ -3170,12 +3166,12 @@ function updateMainStatistics(data) {
     
     if (totalKaryawanElem) totalKaryawanElem.textContent = totalKaryawan;
     if (totalHariElem) totalHariElem.textContent = totalHari;
-    if (totalLemburElem) totalLemburElem.textContent = formatHoursToDisplay(totalLemburDesimal) + ` (${totalLemburBulat} jam dibulatkan)`;
+    if (totalLemburElem) totalLemburElem.textContent = formatOvertimeInfo(totalLemburDesimal);
     
     // Update total gaji dengan info terpisah
     if (totalGajiElem) {
         totalGajiElem.innerHTML = `
-            ${totalLemburBulat} jam lembur (dibulatkan)<br>
+            ${totalLemburBulat} jam lembur (dibulatkan${totalLemburDesimal > 7 * data.length ? ' & dibatasi 7 jam/hari' : ''})<br>
             <small style="font-size: 0.8rem;">
                 Jumat: ${lemburJumatBulat} jam (${hariJumat} hari)<br>
                 Senin-Kamis: ${lemburLainBulat} jam (${hariLain} hari)
@@ -3216,7 +3212,7 @@ function displayOriginalTable(data) {
     });
 }
 
-// Display summaries DENGAN ATURAN BARU
+// Display summaries DENGAN ATURAN BARU (FLEKSIBEL JAM MASUK DAN BATAS 7 JAM)
 function displaySummaries(data) {
     // Hitung summary karyawan
     const employeeSummary = calculateOvertimeSummary(data);
@@ -3227,6 +3223,7 @@ function displaySummaries(data) {
         let html = '<div style="max-height: 300px; overflow-y: auto;">';
         employeeSummary.forEach(emp => {
             if (emp.totalLemburDesimal > 0) {
+                const isCapped = emp.totalLemburDesimal > 7 * data.filter(item => item.nama === emp.nama).length;
                 html += `
                     <div style="margin-bottom: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 8px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -3235,14 +3232,14 @@ function displaySummaries(data) {
                                 <br><small style="color: #666;">Kategori: ${emp.kategori}</small>
                             </div>
                             <div style="text-align: right;">
-                                <div style="color: #e74c3c; font-weight: bold;">${emp.totalLemburBulat} jam lembur</div>
+                                <div style="color: ${isCapped ? '#e67e22' : '#e74c3c'}; font-weight: bold;">${emp.totalLemburBulat} jam lembur${isCapped ? ' (MAKS)' : ''}</div>
                                 <div style="font-size: 0.9rem;">(${emp.totalLemburDesimal.toFixed(2)} jam desimal)</div>
                             </div>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.85rem;">
                             <div>
-                                Jumat: ${emp.fridayLemburBulat} jam<br>
-                                Senin-Kamis: ${emp.otherDaysLemburBulat} jam
+                                Jumat: ${emp.fridayLemburBulat} jam${emp.fridayOvertime > 7 * data.filter(item => item.nama === emp.nama && item.isFriday).length ? ' (M)' : ''}<br>
+                                Senin-Kamis: ${emp.otherDaysLemburBulat} jam${emp.otherDaysOvertime > 7 * data.filter(item => item.nama === emp.nama && !item.isFriday).length ? ' (M)' : ''}
                             </div>
                             <div style="font-weight: bold; color: #27ae60;">
                                 ${emp.totalGajiFormatted}
@@ -3262,15 +3259,9 @@ function displaySummaries(data) {
     const totalLemburBulat = roundOvertimeHours(totalLemburDesimal);
     const totalNormal = data.reduce((sum, item) => sum + item.jamNormal, 0);
     const hariDenganLembur = data.filter(item => item.jamLemburDesimal > 0).length;
+    const hariLemburDibatasi = data.filter(item => item.jamLemburDesimal > 7).length;
     
     // Hitung statistik tambahan
-    const hariMasukSebelum7 = data.filter(item => {
-        const jamMasuk = item.jamMasuk;
-        if (!jamMasuk) return false;
-        const [hours] = jamMasuk.split(':').map(Number);
-        return hours < 7;
-    }).length;
-    
     const hariKerjaLebih8Jam = data.filter(item => {
         return item.durasi > 8;
     }).length;
@@ -3294,9 +3285,10 @@ function displaySummaries(data) {
     let salaryHtml = '';
     employeeSummary.forEach((emp, index) => {
         if (emp.totalLemburDesimal > 0) {
+            const isCapped = emp.totalLemburDesimal > 7 * data.filter(item => item.nama === emp.nama).length;
             salaryHtml += `
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; padding: 0.5rem; background: ${index % 2 === 0 ? '#f8f9fa' : 'white'}; border-radius: 4px;">
-                    <div>${emp.nama} (${emp.kategori})</div>
+                    <div>${emp.nama} (${emp.kategori})${isCapped ? ' <span style="color: #e67e22; font-size: 0.8rem;">(MAKS)</span>' : ''}</div>
                     <div style="text-align: right;">
                         <div><strong>${emp.totalLemburBulat} jam</strong> × Rp ${emp.rate.toLocaleString('id-ID')}</div>
                         <div style="color: #27ae60; font-weight: bold;">${emp.totalGajiFormatted}</div>
@@ -3308,22 +3300,22 @@ function displaySummaries(data) {
     
     if (financialSummary) {
         financialSummary.innerHTML = `
-            <div><strong>ATURAN BARU PERHITUNGAN LEMBUR:</strong></div>
+            <div><strong>ATURAN PERHITUNGAN LEMBUR:</strong></div>
             <div style="font-size: 0.85rem; color: #666; margin-bottom: 1rem; padding: 0.75rem; background: #fff3cd; border-radius: 4px;">
-                • <strong>Jam masuk efektif:</strong> 07:00 (semua hari)<br>
-                • <strong>Perhitungan dimulai dari:</strong> Jam 07:00<br>
-                • <strong>Jam kerja normal:</strong> 8 jam sehari<br>
-                • <strong>Lembur dihitung jika:</strong> Kerja > 8 jam dari jam 07:00<br>
+                • <strong>Jam masuk:</strong> Fleksibel (bisa jam berapa saja)<br>
+                • <strong>Jam kerja normal:</strong> 8 jam dari jam masuk<br>
+                • <strong>Lembur dihitung jika:</strong> Kerja > 8 jam dari jam masuk<br>
                 • <strong>Minimal lembur:</strong> 10 menit<br>
+                • <strong>Maksimal lembur:</strong> 7 jam per hari<br>
                 • <strong>Pembulatan jam:</strong> 0.5 ke atas → 1, di bawah 0.5 → 0
             </div>
             
             <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
                 <div style="flex: 1; padding: 0.5rem; background: rgba(52, 152, 219, 0.1); border-radius: 4px; margin-right: 0.5rem;">
                     <strong style="color: #3498db;">Statistik Kerja:</strong><br>
-                    Masuk sebelum 07:00: <strong>${hariMasukSebelum7} hari</strong><br>
                     Kerja > 8 jam: <strong>${hariKerjaLebih8Jam} hari</strong><br>
-                    Dengan lembur: <strong>${hariDenganLembur} hari</strong>
+                    Dengan lembur: <strong>${hariDenganLembur} hari</strong><br>
+                    Lembur dibatasi: <strong>${hariLemburDibatasi} hari</strong>
                 </div>
                 <div style="flex: 1; padding: 0.5rem; background: rgba(231, 76, 60, 0.1); border-radius: 4px;">
                     <strong style="color: #e74c3c;">Lembur Diabaikan:</strong><br>
@@ -3336,13 +3328,12 @@ function displaySummaries(data) {
                 <div>Total Entri Data: <strong>${data.length} hari</strong></div>
                 <div>Total Jam Kerja: <strong>${formatHoursToDisplay(totalJam)}</strong></div>
                 <div>Total Jam Normal: <strong>${formatHoursToDisplay(totalNormal)}</strong></div>
-                <div style="color: ${totalLemburDesimal > 0 ? '#e74c3c' : '#27ae60'}; font-weight: bold;">
-                    Total Jam Lembur: <strong>${formatHoursToDisplay(totalLemburDesimal)}</strong><br>
-                    <small>Setelah dibulatkan: <strong>${roundAndFormatHours(totalLemburDesimal)}</strong></small>
+                <div style="color: ${totalLemburDesimal > 0 ? (totalLemburDesimal > 7 * data.length ? '#e67e22' : '#e74c3c') : '#27ae60'}; font-weight: bold;">
+                    Total Jam Lembur: <strong>${formatOvertimeInfo(totalLemburDesimal)}</strong>
                 </div>
             </div>
             <div style="border-top: 2px solid #3498db; padding-top: 0.5rem; margin-top: 0.5rem;">
-                <strong>Perhitungan Gaji Lembur (dengan pembulatan):</strong><br>
+                <strong>Perhitungan Gaji Lembur (dengan pembulatan & batas 7 jam):</strong><br>
                 ${salaryHtml}
                 <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
                     <div style="font-weight: bold; color: #9b59b6;">
@@ -3353,7 +3344,7 @@ function displaySummaries(data) {
                     </div>
                 </div>
                 <div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
-                    <i class="fas fa-info-circle"></i> Gaji dihitung berdasarkan jam lembur yang telah dibulatkan
+                    <i class="fas fa-info-circle"></i> Gaji dihitung berdasarkan jam lembur yang telah dibulatkan dan dibatasi maksimal 7 jam/hari
                 </div>
             </div>
         `;
@@ -3534,12 +3525,12 @@ function cancelUpload() {
         uploadProgressInterval = null;
     }
     
-    excelFileInput.value = '';
-    filePreview.style.display = 'none';
-    uploadArea.style.display = 'block';
-    processBtn.disabled = true;
+    if (excelFileInput) excelFileInput.value = '';
+    if (filePreview) filePreview.style.display = 'none';
+    if (uploadArea) uploadArea.style.display = 'block';
+    if (processBtn) processBtn.disabled = true;
     
-    resultsSection.style.display = 'none';
+    if (resultsSection) resultsSection.style.display = 'none';
 }
 
 // Reset configuration
@@ -3615,8 +3606,8 @@ function prepareExportData(data) {
             'Durasi Kerja': item.durasiFormatted,
             'Jam Normal': item.jamNormalFormatted,
             'Jam Lembur (Desimal)': item.jamLemburDesimal.toFixed(2) + ' jam',
-            'Jam Lembur (Bulat)': roundOvertimeHours(item.jamLemburDesimal) + ' jam',
-            'Keterangan': item.keterangan,
+            'Jam Lembur (Bulat)': roundOvertimeHours(item.jamLemburDesimal) + (item.jamLemburDesimal > 7 ? ' jam (MAKS)' : ' jam'),
+            'Keterangan': item.jamLemburDesimal > 7 ? 'LEMBUR DIBATASI MAKSIMAL 7 JAM' : item.keterangan,
             'Catatan Khusus': item.isFriday ? 'HARI JUMAT - Pulang normal jam 15:00' : ''
         }));
     } else {
@@ -3689,8 +3680,11 @@ function updateSidebarStats(data) {
     const uniqueEmployees = new Set(data.map(item => item.nama)).size;
     const totalDays = new Set(data.map(item => item.tanggal)).size;
     
-    document.getElementById('stat-employees').textContent = uniqueEmployees;
-    document.getElementById('stat-attendance').textContent = totalDays;
+    const statEmployees = document.getElementById('stat-employees');
+    const statAttendance = document.getElementById('stat-attendance');
+    
+    if (statEmployees) statEmployees.textContent = uniqueEmployees;
+    if (statAttendance) statAttendance.textContent = totalDays;
 }
 
 // Format file size
@@ -3764,4 +3758,11 @@ if (!document.querySelector('#notification-styles')) {
         }
     `;
     document.head.appendChild(style);
+}
+
+// Panggil initializeApp saat DOM siap
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    initializeApp();
 }
