@@ -36,7 +36,7 @@ body {
     overflow-x: hidden;
 }
 
-/* Tambahkan di style.css */
+/* Loading Screen FIXED */
 .loading-screen {
     position: fixed;
     top: 0;
@@ -57,6 +57,64 @@ body {
     pointer-events: none;
 }
 
+.loading-content {
+    text-align: center;
+    color: white;
+    padding: 2rem;
+}
+
+.loading-logo-img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 1.5rem;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.9; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.loading-text h3 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.loading-text p {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin-bottom: 1.5rem;
+}
+
+.loading-bar {
+    width: 300px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 0 auto;
+}
+
+.loading-progress {
+    height: 100%;
+    background: white;
+    width: 0%;
+    animation: loading 2s ease-in-out infinite;
+    border-radius: 3px;
+}
+
+@keyframes loading {
+    0% { width: 0%; transform: translateX(-100%); }
+    50% { width: 100%; transform: translateX(0%); }
+    100% { width: 0%; transform: translateX(100%); }
+}
+
+/* Main Container */
 .container {
     opacity: 0;
     transition: opacity 0.5s ease;
@@ -65,6 +123,7 @@ body {
 .container.loaded {
     opacity: 1;
 }
+
 /* Header */
 .header {
     background: white;
@@ -1193,49 +1252,6 @@ body {
     left: 0;
 }
 
-/* Tambahkan di akhir file style.css */
-
-/* Styling untuk hari Jumat */
-.friday-badge {
-    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: bold;
-    display: inline-block;
-    margin-left: 0.5rem;
-}
-
-/* Highlight row untuk hari Jumat */
-.data-table tbody tr.friday-row {
-    background: rgba(155, 89, 182, 0.05);
-    border-left: 3px solid #9b59b6;
-}
-
-.data-table tbody tr.friday-row:hover {
-    background: rgba(155, 89, 182, 0.1);
-}
-
-/* Styling untuk info Jumat di summary */
-.friday-info {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    padding: 1rem;
-    border-radius: var(--border-radius-sm);
-    margin: 1rem 0;
-}
-
-.friday-info h5 {
-    color: white;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* Tambahkan di akhir file style.css */
-
 /* Styling untuk hari Jumat */
 .friday-badge {
     background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
@@ -1361,140 +1377,9 @@ body {
 .download-stats h4 i {
     font-size: 1.2rem;
 }
-/* Tambahkan di akhir file style.css */
 
 /* ============================
    STYLING UNTUK TOMBOL SCROLL
-   ============================ */
-
-/* Styling untuk hari Jumat */
-.friday-badge {
-    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: bold;
-    display: inline-block;
-    margin-left: 0.5rem;
-}
-
-/* Highlight row untuk hari Jumat */
-.data-table tbody tr.friday-row {
-    background: rgba(155, 89, 182, 0.05);
-    border-left: 3px solid #9b59b6;
-}
-
-.data-table tbody tr.friday-row:hover {
-    background: rgba(155, 89, 182, 0.1);
-}
-
-/* Styling untuk info Jumat di summary */
-.friday-info {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    padding: 1rem;
-    border-radius: var(--border-radius-sm);
-    margin: 1rem 0;
-}
-
-.friday-info h5 {
-    color: white;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* CSS untuk modal download terpisah */
-.download-options-separated {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.download-options-separated .option-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1.5rem;
-    background: var(--light-color);
-    border-radius: var(--border-radius-sm);
-    border-left: 5px solid;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.download-options-separated .option-card:hover {
-    transform: translateX(10px);
-    box-shadow: var(--shadow-medium);
-}
-
-#option-friday-only {
-    border-left-color: #9b59b6;
-}
-
-#option-other-days-only {
-    border-left-color: #3498db;
-}
-
-#option-both-separated {
-    border-left-color: #2ecc71;
-}
-
-#option-all-together {
-    border-left-color: #217346;
-}
-
-.download-options-separated .option-content h4 {
-    color: var(--primary-color);
-    margin-bottom: 0.5rem;
-}
-
-.download-options-separated .option-content p {
-    color: var(--gray-color);
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-}
-
-.download-options-separated .option-content ul {
-    list-style-type: none;
-    padding-left: 0;
-}
-
-.download-options-separated .option-content li {
-    color: var(--gray-color);
-    font-size: 0.85rem;
-    margin-bottom: 0.25rem;
-    position: relative;
-    padding-left: 1rem;
-}
-
-.download-options-separated .option-content li:before {
-    content: "✓";
-    color: var(--success-color);
-    position: absolute;
-    left: 0;
-}
-
-.download-stats {
-    margin-bottom: 1.5rem;
-}
-
-.download-stats h4 {
-    color: white;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.download-stats h4 i {
-    font-size: 1.2rem;
-}
-
-/* ============================
-   TOMBOL SCROLL KE BAWAH
    ============================ */
 
 .scroll-to-bottom-btn {
@@ -1751,8 +1636,6 @@ body {
     display: flex;
 }
 
-/* Tambahkan di akhir file style.css */
-
 /* Styling untuk modal Sabtu */
 .saturday-info {
     background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
@@ -1832,95 +1715,7 @@ body {
     left: 0;
 }
 
-/* Perbaikan Loading Screen */
-.loading-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    opacity: 1;
-    transition: opacity 0.5s ease;
-}
-
-.loading-screen.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.loading-content {
-    text-align: center;
-    color: white;
-    padding: 2rem;
-}
-
-.loading-logo-img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-bottom: 1.5rem;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.05); opacity: 0.9; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-.loading-text h3 {
-    font-size: 1.8rem;
-    margin-bottom: 0.5rem;
-    font-family: 'Montserrat', sans-serif;
-}
-
-.loading-text p {
-    font-size: 1rem;
-    opacity: 0.9;
-    margin-bottom: 1.5rem;
-}
-
-.loading-bar {
-    width: 300px;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-    overflow: hidden;
-    margin: 0 auto;
-}
-
-.loading-progress {
-    height: 100%;
-    background: white;
-    width: 0%;
-    animation: loading 2s ease-in-out infinite;
-    border-radius: 3px;
-}
-
-@keyframes loading {
-    0% { width: 0%; transform: translateX(-100%); }
-    50% { width: 100%; transform: translateX(0%); }
-    100% { width: 0%; transform: translateX(100%); }
-}
-
-/* Main Container */
-.container {
-    opacity: 0;
-    transition: opacity 0.5s ease;
-}
-
-.container.loaded {
-    opacity: 1;
-}
-
-/* Tambahkan di akhir style.css */
+/* Styling untuk lembur yang dibatasi */
 .data-table tbody tr.overtime-capped-row {
     background: rgba(230, 126, 34, 0.05);
     border-left: 3px solid #e67e22;
@@ -1939,4 +1734,91 @@ body {
     font-weight: bold;
     display: inline-block;
     margin-left: 0.5rem;
+}
+
+/* Styling untuk info batas lembur di sidebar */
+.batas-lembur-info {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: #fff3cd;
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+}
+
+.batas-lembur-info h5 {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #856404;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.batas-lembur-info ul {
+    font-size: 0.8rem;
+    color: #856404;
+    padding-left: 1.2rem;
+    margin-bottom: 0;
+}
+
+.batas-lembur-info li {
+    margin-bottom: 0.25rem;
+}
+
+/* Info aturan fleksibel jam masuk */
+.aturan-jam-masuk-info {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: #e3f2fd;
+    border-radius: 8px;
+    border-left: 4px solid #2196f3;
+}
+
+.aturan-jam-masuk-info h5 {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #1565c0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.aturan-jam-masuk-info ul {
+    font-size: 0.8rem;
+    color: #1565c0;
+    padding-left: 1.2rem;
+    margin-bottom: 0;
+}
+
+.aturan-jam-masuk-info li {
+    margin-bottom: 0.25rem;
+}
+
+/* Aturan Jumat */
+.aturan-jumat-info {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: #f3e5f5;
+    border-radius: 8px;
+    border-left: 4px solid #9b59b6;
+}
+
+.aturan-jumat-info h5 {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #7b1fa2;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.aturan-jumat-info ul {
+    font-size: 0.8rem;
+    color: #7b1fa2;
+    padding-left: 1.2rem;
+    margin-bottom: 0;
+}
+
+.aturan-jumat-info li {
+    margin-bottom: 0.25rem;
 }
