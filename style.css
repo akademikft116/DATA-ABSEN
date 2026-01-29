@@ -36,85 +36,83 @@ body {
     overflow-x: hidden;
 }
 
-/* Loading Screen FIXED */
+/* Loading Screen */
 .loading-screen {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--gradient-primary);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
-    opacity: 1;
     transition: opacity 0.5s ease;
-}
-
-.loading-screen.hidden {
-    opacity: 0;
-    pointer-events: none;
 }
 
 .loading-content {
     text-align: center;
     color: white;
-    padding: 2rem;
 }
 
-.loading-logo-img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-bottom: 1.5rem;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.05); opacity: 0.9; }
-    100% { transform: scale(1); opacity: 1; }
+.loading-logo {
+    font-size: 5rem;
+    margin-bottom: 2rem;
+    animation: pulse 2s infinite;
 }
 
 .loading-text h3 {
-    font-size: 1.8rem;
-    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    margin-bottom: 1rem;
     font-family: 'Montserrat', sans-serif;
 }
 
 .loading-text p {
-    font-size: 1rem;
+    font-size: 1.2rem;
     opacity: 0.9;
-    margin-bottom: 1.5rem;
 }
 
 .loading-bar {
     width: 300px;
-    height: 6px;
+    height: 4px;
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
+    border-radius: 2px;
+    margin-top: 2rem;
     overflow: hidden;
-    margin: 0 auto;
 }
 
 .loading-progress {
     height: 100%;
     background: white;
     width: 0%;
-    animation: loading 2s ease-in-out infinite;
-    border-radius: 3px;
+    animation: loading 3s ease-in-out infinite;
+}
+
+/* Logo Loading */
+.loading-logo-img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 2rem;
+    animation: pulse 2s infinite;
+    border: 5px solid white;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
 }
 
 @keyframes loading {
-    0% { width: 0%; transform: translateX(-100%); }
-    50% { width: 100%; transform: translateX(0%); }
-    100% { width: 0%; transform: translateX(100%); }
+    0% { width: 0%; }
+    50% { width: 100%; }
+    100% { width: 0%; }
 }
 
-/* Main Container */
+/* Container */
 .container {
     opacity: 0;
     transition: opacity 0.5s ease;
@@ -1252,6 +1250,180 @@ body {
     left: 0;
 }
 
+/* Tambahkan di akhir file style.css */
+
+/* Styling untuk hari Jumat */
+.friday-badge {
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 0.5rem;
+}
+
+/* Highlight row untuk hari Jumat */
+.data-table tbody tr.friday-row {
+    background: rgba(155, 89, 182, 0.05);
+    border-left: 3px solid #9b59b6;
+}
+
+.data-table tbody tr.friday-row:hover {
+    background: rgba(155, 89, 182, 0.1);
+}
+
+/* Styling untuk info Jumat di summary */
+.friday-info {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+    margin: 1rem 0;
+}
+
+.friday-info h5 {
+    color: white;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Tambahkan di akhir file style.css */
+
+/* Styling untuk hari Jumat */
+.friday-badge {
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 0.5rem;
+}
+
+/* Highlight row untuk hari Jumat */
+.data-table tbody tr.friday-row {
+    background: rgba(155, 89, 182, 0.05);
+    border-left: 3px solid #9b59b6;
+}
+
+.data-table tbody tr.friday-row:hover {
+    background: rgba(155, 89, 182, 0.1);
+}
+
+/* Styling untuk info Jumat di summary */
+.friday-info {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+    margin: 1rem 0;
+}
+
+.friday-info h5 {
+    color: white;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* CSS untuk modal download terpisah */
+.download-options-separated {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.download-options-separated .option-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--light-color);
+    border-radius: var(--border-radius-sm);
+    border-left: 5px solid;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.download-options-separated .option-card:hover {
+    transform: translateX(10px);
+    box-shadow: var(--shadow-medium);
+}
+
+#option-friday-only {
+    border-left-color: #9b59b6;
+}
+
+#option-other-days-only {
+    border-left-color: #3498db;
+}
+
+#option-both-separated {
+    border-left-color: #2ecc71;
+}
+
+#option-all-together {
+    border-left-color: #217346;
+}
+
+.download-options-separated .option-content h4 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.download-options-separated .option-content p {
+    color: var(--gray-color);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.download-options-separated .option-content ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.download-options-separated .option-content li {
+    color: var(--gray-color);
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+    position: relative;
+    padding-left: 1rem;
+}
+
+.download-options-separated .option-content li:before {
+    content: "✓";
+    color: var(--success-color);
+    position: absolute;
+    left: 0;
+}
+
+.download-stats {
+    margin-bottom: 1.5rem;
+}
+
+.download-stats h4 {
+    color: white;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.download-stats h4 i {
+    font-size: 1.2rem;
+}
+/* Tambahkan di akhir file style.css */
+
+/* ============================
+   STYLING UNTUK TOMBOL SCROLL
+   ============================ */
+
 /* Styling untuk hari Jumat */
 .friday-badge {
     background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
@@ -1379,7 +1551,7 @@ body {
 }
 
 /* ============================
-   STYLING UNTUK TOMBOL SCROLL
+   TOMBOL SCROLL KE BAWAH
    ============================ */
 
 .scroll-to-bottom-btn {
@@ -1634,589 +1806,4 @@ body {
 
 .back-to-top.show {
     display: flex;
-}
-
-/* Styling untuk modal Sabtu */
-.saturday-info {
-    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
-    color: white;
-    padding: 1rem;
-    border-radius: var(--border-radius-sm);
-    margin-bottom: 1.5rem;
-}
-
-.saturday-info h4 {
-    color: white;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.saturday-stats {
-    margin-bottom: 1.5rem;
-}
-
-.download-options-saturday {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.download-options-saturday .option-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1.5rem;
-    background: var(--light-color);
-    border-radius: var(--border-radius-sm);
-    border-left: 5px solid #e67e22;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.download-options-saturday .option-card:hover {
-    transform: translateX(10px);
-    box-shadow: var(--shadow-medium);
-}
-
-#option-saturday-k3 {
-    border-left-color: #34495e;
-}
-
-.download-options-saturday .option-content h4 {
-    color: var(--primary-color);
-    margin-bottom: 0.5rem;
-}
-
-.download-options-saturday .option-content p {
-    color: var(--gray-color);
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-}
-
-.download-options-saturday .option-content ul {
-    list-style-type: none;
-    padding-left: 0;
-}
-
-.download-options-saturday .option-content li {
-    color: var(--gray-color);
-    font-size: 0.85rem;
-    margin-bottom: 0.25rem;
-    position: relative;
-    padding-left: 1rem;
-}
-
-.download-options-saturday .option-content li:before {
-    content: "✓";
-    color: var(--success-color);
-    position: absolute;
-    left: 0;
-}
-
-/* Styling untuk lembur yang dibatasi */
-.data-table tbody tr.overtime-capped-row {
-    background: rgba(230, 126, 34, 0.05);
-    border-left: 3px solid #e67e22;
-}
-
-.data-table tbody tr.overtime-capped-row:hover {
-    background: rgba(230, 126, 34, 0.1);
-}
-
-.overtime-capped-badge {
-    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: bold;
-    display: inline-block;
-    margin-left: 0.5rem;
-}
-
-/* Styling untuk info batas lembur di sidebar */
-.batas-lembur-info {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    background: #fff3cd;
-    border-radius: 8px;
-    border-left: 4px solid #ffc107;
-}
-
-.batas-lembur-info h5 {
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-    color: #856404;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.batas-lembur-info ul {
-    font-size: 0.8rem;
-    color: #856404;
-    padding-left: 1.2rem;
-    margin-bottom: 0;
-}
-
-.batas-lembur-info li {
-    margin-bottom: 0.25rem;
-}
-
-/* Info aturan fleksibel jam masuk */
-.aturan-jam-masuk-info {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    background: #e3f2fd;
-    border-radius: 8px;
-    border-left: 4px solid #2196f3;
-}
-
-.aturan-jam-masuk-info h5 {
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-    color: #1565c0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.aturan-jam-masuk-info ul {
-    font-size: 0.8rem;
-    color: #1565c0;
-    padding-left: 1.2rem;
-    margin-bottom: 0;
-}
-
-.aturan-jam-masuk-info li {
-    margin-bottom: 0.25rem;
-}
-
-/* Aturan Jumat */
-.aturan-jumat-info {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    background: #f3e5f5;
-    border-radius: 8px;
-    border-left: 4px solid #9b59b6;
-}
-
-.aturan-jumat-info h5 {
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-    color: #7b1fa2;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.aturan-jumat-info ul {
-    font-size: 0.8rem;
-    color: #7b1fa2;
-    padding-left: 1.2rem;
-    margin-bottom: 0;
-}
-
-.aturan-jumat-info li {
-    margin-bottom: 0.25rem;
-}
-
-
-/* ============================
-   FIX UNTUK UPLOAD AREA
-   ============================ */
-
-/* Pastikan upload area bisa diklik */
-.upload-area {
-    cursor: pointer;
-    position: relative;
-}
-
-#excel-file {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
-    z-index: 10;
-}
-
-#browse-btn {
-    position: relative;
-    z-index: 5;
-}
-
-/* Visual feedback saat hover */
-.upload-area:hover {
-    background: rgba(52, 152, 219, 0.1);
-    border-color: var(--primary-color);
-}
-
-.upload-area.drag-over {
-    background: rgba(52, 152, 219, 0.2) !important;
-    border-color: var(--secondary-color) !important;
-    border-width: 4px !important;
-}
-
-/* Style untuk file preview yang aktif */
-.file-preview.active {
-    display: block !important;
-    animation: slideIn 0.5s ease;
-}
-
-/* Drop zone indicator */
-.drop-zone-indicator {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(52, 152, 219, 0.1);
-    border: 3px dashed var(--secondary-color);
-    border-radius: var(--border-radius);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 1;
-}
-
-.drop-zone-indicator.show {
-    display: flex;
-}
-
-.drop-zone-indicator i {
-    font-size: 3rem;
-    color: var(--secondary-color);
-    margin-bottom: 1rem;
-}
-
-.drop-zone-indicator p {
-    color: var(--secondary-color);
-    font-weight: bold;
-    font-size: 1.2rem;
-}
-
-/* Loading state untuk upload area */
-.upload-area.loading {
-    background: rgba(52, 152, 219, 0.05);
-    border-color: #ddd;
-    cursor: wait;
-}
-
-.upload-area.loading * {
-    pointer-events: none;
-}
-
-/* File info styling */
-.file-info {
-    position: relative;
-    z-index: 2;
-}
-
-.file-info.loading {
-    opacity: 0.7;
-}
-
-/* Button states */
-.btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none !important;
-}
-
-.btn:disabled:hover {
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-/* Process button specific */
-#process-data:disabled {
-    background: #95a5a6 !important;
-    cursor: not-allowed;
-}
-
-/* Error state */
-.upload-area.error {
-    border-color: var(--danger-color);
-    background: rgba(231, 76, 60, 0.05);
-}
-
-.upload-area.error .upload-icon i {
-    color: var(--danger-color);
-}
-
-/* Success state */
-.upload-area.success {
-    border-color: var(--success-color);
-    background: rgba(46, 204, 113, 0.05);
-}
-
-/* Fix untuk modal z-index */
-.modal {
-    z-index: 2000;
-}
-
-.modal-content {
-    max-height: 80vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-.modal-body {
-    overflow-y: auto;
-    max-height: 60vh;
-}
-
-/* Fix untuk tab di dalam modal */
-.modal .tabs {
-    margin-top: 1rem;
-}
-
-/* Responsive fixes */
-@media (max-width: 768px) {
-    .upload-area {
-        padding: 2rem 1rem;
-    }
-    
-    .upload-icon {
-        font-size: 3rem;
-    }
-    
-    .upload-area h4 {
-        font-size: 1.2rem;
-    }
-    
-    .file-info {
-        flex-direction: column;
-        text-align: center;
-        gap: 1rem;
-    }
-    
-    .file-meta {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-}
-
-/* Animation for file upload */
-@keyframes pulseUpload {
-    0% { opacity: 1; }
-    50% { opacity: 0.7; }
-    100% { opacity: 1; }
-}
-
-.uploading {
-    animation: pulseUpload 1.5s infinite;
-}
-
-/* Custom scrollbar untuk modal */
-.modal-body::-webkit-scrollbar {
-    width: 8px;
-}
-
-.modal-body::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.modal-body::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
-}
-
-.modal-body::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
-
-
-/* ============================
-   STYLING UNTUK MODAL DOWNLOAD
-   ============================ */
-
-.download-options-separated,
-.download-options-saturday {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.option-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1.5rem;
-    background: #f8f9fa;
-    border-radius: 10px;
-    border-left: 5px solid;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-bottom: 0.5rem;
-}
-
-.option-card:hover {
-    transform: translateX(10px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    background: white;
-}
-
-.option-card .option-icon {
-    flex-shrink: 0;
-}
-
-.option-card .option-content {
-    flex: 1;
-}
-
-.option-card .option-content h4 {
-    color: #2c3e50;
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
-}
-
-.option-card .option-content p {
-    color: #666;
-    font-size: 0.9rem;
-    margin-bottom: 0.75rem;
-}
-
-.option-card .option-content ul {
-    list-style-type: none;
-    padding-left: 0;
-    margin: 0;
-}
-
-.option-card .option-content li {
-    color: #666;
-    font-size: 0.85rem;
-    margin-bottom: 0.25rem;
-    position: relative;
-    padding-left: 1.2rem;
-}
-
-.option-card .option-content li:before {
-    content: "✓";
-    color: #27ae60;
-    position: absolute;
-    left: 0;
-    font-weight: bold;
-}
-
-/* Warna border untuk berbagai opsi */
-#option-all-together {
-    border-left-color: #217346;
-}
-
-#option-friday-only {
-    border-left-color: #9b59b6;
-}
-
-#option-other-days-only {
-    border-left-color: #3498db;
-}
-
-#option-saturday-only,
-#option-saturday-all {
-    border-left-color: #e67e22;
-}
-
-#option-saturday-summary {
-    border-left-color: #34495e;
-}
-
-/* Info box untuk modal */
-.saturday-info {
-    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
-    color: white;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-}
-
-.saturday-info h4 {
-    color: white;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.saturday-info p {
-    color: white;
-    opacity: 0.9;
-    margin-bottom: 0;
-    font-size: 0.95rem;
-}
-
-/* Stats box */
-.download-stats {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-}
-
-.download-stats h4 {
-    color: white;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* Tombol download di hasil */
-.btn-download {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.3s ease;
-    min-width: 150px;
-    justify-content: center;
-}
-
-.btn-download:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-}
-
-.btn-download:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-/* Responsive untuk tombol download */
-@media (max-width: 768px) {
-    .download-option {
-        flex-direction: column;
-        text-align: center;
-        gap: 1rem;
-    }
-    
-    .btn-download {
-        width: 100%;
-    }
-    
-    .option-card {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .option-card .option-icon {
-        margin-bottom: 0.5rem;
-    }
 }
