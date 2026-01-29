@@ -1908,7 +1908,7 @@ function displayProcessedTable(data) {
 
 // Display summaries
 function displaySummaries(data) {
-    const employeeSummary = calculateOvertimeSummary(data);
+    const employeeSummary = calculateOvertimeSummary ? calculateOvertimeSummary(data) : [];
     const employeeSummaryElem = document.getElementById('employee-summary');
     const financialSummary = document.getElementById('financial-summary');
     
@@ -1988,6 +1988,80 @@ function displaySummaries(data) {
                 </div>
             </div>
         `;
+    }
+}
+
+// Fungsi untuk cek apakah lembur dibatasi maksimal 7 jam
+function isOvertimeCapped(jamLemburDesimal) {
+    return jamLemburDesimal > 7;
+}
+
+// ============================
+// FUNGSI RINGKASAN LEMBUR PER KARYAWAN
+// ============================
+
+function calculateOvertimeSummary(data) {
+    const summary = {};
+    
+    data.forEach(item => {
+        if (!summary[item.nama]) {
+            summary[item.nama] = {
+                nama: item.nama,
+                totalLemburDesimal: 0,
+                totalLemburBulat: 0,
+                fridayLemburDesimal: 0,
+                fridayLemburBulat: 0,
+                otherDaysLemburDesimal: 0,
+                otherDaysLemburBulat: 0,
+                saturdayLemburDesimal: 0,
+                saturdayLemburBulat: 0,
+                kategori: employeeCategories[item.nama] || 'STAFF'
+            };
+        }
+        
+        const jamLemburBulat = roundOvertimeHours(item.jamLemburDesimal);
+        summary[item.nama].totalLemburDesimal += item.jamLemburDesimal;
+        summary[item.nama].totalLemburBulat += jamLemburBulat;
+        
+        if (item.isFriday) {
+            summary[item.nama].fridayLemburDesimal += item.jamLemburDesimal;
+            summary[item.nama].fridayLemburBulat += jamLemburBulat;
+        } else if (item.isSaturday) {
+            summary[item.nama].saturdayLemburDesimal += item.jamLemburDesimal;
+            summary[item.nama].saturdayLemburBulat += jamLemburBulat;
+        } else {
+            summary[item.nama].otherDaysLemburDesimal += item.jamLemburDesimal;
+            summary[item.nama].otherDaysLemburBulat += jamLemburBulat;
+        }
+    });
+    
+    // Convert to array and add calculated fields
+    return Object.values(summary).map(emp => {
+        const rate = overtimeRates[emp.kategori] || 10000;
+        emp.totalGaji = emp.totalLemburBulat * rate;
+        emp.totalGajiFormatted = formatCurrency(emp.totalGaji);
+        emp.fridayGaji = emp.fridayLemburBulat * rate;
+        emp.otherDaysGaji = emp.otherDaysLemburBulat * rate;
+        emp.saturdayGaji = emp.saturdayLemburBulat * rate;
+        
+        return emp;
+    }).sort((a, b) => b.totalLemburBulat - a.totalLemburBulat);
+}
+// Format info lembur dengan pembulatan
+function formatOvertimeInfo(totalLemburDesimal) {
+    const totalLemburBulat = roundOvertimeHours(totalLemburDesimal);
+    
+    if (totalLemburBulat === 0) {
+        return '0 jam';
+    }
+    
+    const totalMenit = Math.round(totalLemburDesimal * 60);
+    const totalJamDesimal = totalLemburDesimal;
+    
+    if (totalLemburBulat === totalJamDesimal) {
+        return `${totalLemburBulat} jam`;
+    } else {
+        return `${totalLemburBulat} jam (dari ${totalJamDesimal.toFixed(2)} jam desimal)`;
     }
 }
 
