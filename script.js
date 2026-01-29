@@ -1417,8 +1417,16 @@ function processExcelFile(file) {
                 sheets.forEach(sheetName => {
                     const worksheet = workbook.Sheets[sheetName];
                     const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                    const processedData = processYourExcelFormat(rawData);
-                    allData = [...allData, ...processedData];
+                    
+                    // Cek apakah ini format rekap (berdasarkan nama sheet)
+                    if (sheetName.includes('SENIN-KAMIS') || sheetName.includes('REKAP')) {
+                        const processedData = processRekapFileFormat(rawData);
+                        allData = [...allData, ...processedData];
+                    } else {
+                        // Format asli sistem
+                        const processedData = processYourExcelFormat(rawData);
+                        allData = [...allData, ...processedData];
+                    }
                 });
                 
                 if (allData.length === 0) {
@@ -1699,6 +1707,60 @@ function initializeApp() {
         
         showNotification('Aplikasi dijalankan dalam mode terbatas', 'warning');
     }
+}
+
+// Fungsi untuk membaca format file rekap lembur
+function processRekapFileFormat(rawData) {
+    const result = [];
+    let isDataSection = false;
+    
+    for (let i = 0; i < rawData.length; i++) {
+        const row = rawData[i];
+        
+        // Cari header "Name | Hari | Tanggal | IN | OUT"
+        if (row && row.length >= 7) {
+            const firstCell = row[0] ? row[0].toString().toLowerCase() : '';
+            
+            if (firstCell === 'name' || firstCell === 'nama') {
+                isDataSection = true;
+                continue;
+            }
+            
+            // Lewati baris kosong atau total
+            if (firstCell === '' || firstCell.includes('total') || 
+                firstCell.includes('rp') || firstCell === '0') {
+                continue;
+            }
+            
+            // Jika di section data dan ada nama karyawan
+            if (isDataSection && row[0] && row[0].toString().trim() !== '') {
+                const nama = row[0].toString().trim();
+                const tanggal = row[2] ? row[2].toString() : '';
+                const jamMasuk = row[3] ? row[3].toString() : '';
+                const jamKeluar = row[4] ? row[4].toString() : '';
+                
+                // Format tanggal dari "03-11-25" ke "03/11/2025"
+                let formattedDate = tanggal;
+                if (tanggal.includes('-')) {
+                    const [day, month, year] = tanggal.split('-');
+                    formattedDate = `${day}/${month}/20${year}`;
+                }
+                
+                if (nama && formattedDate && jamMasuk && jamKeluar) {
+                    result.push({
+                        nama: nama,
+                        tanggal: formattedDate,
+                        jamMasuk: formatTime(jamMasuk),
+                        jamKeluar: formatTime(jamKeluar),
+                        rawDatetime: `${formattedDate} ${jamMasuk}`
+                    });
+                }
+            }
+        }
+    }
+    
+    console.log('Processed rekap format:', result.length, 'records');
+    return result;
 }
 
 // Process data (HITUNG LEMBUR SAJA)
