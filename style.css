@@ -1822,3 +1822,213 @@ body {
 .aturan-jumat-info li {
     margin-bottom: 0.25rem;
 }
+
+
+/* ============================
+   FIX UNTUK UPLOAD AREA
+   ============================ */
+
+/* Pastikan upload area bisa diklik */
+.upload-area {
+    cursor: pointer;
+    position: relative;
+}
+
+#excel-file {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+}
+
+#browse-btn {
+    position: relative;
+    z-index: 5;
+}
+
+/* Visual feedback saat hover */
+.upload-area:hover {
+    background: rgba(52, 152, 219, 0.1);
+    border-color: var(--primary-color);
+}
+
+.upload-area.drag-over {
+    background: rgba(52, 152, 219, 0.2) !important;
+    border-color: var(--secondary-color) !important;
+    border-width: 4px !important;
+}
+
+/* Style untuk file preview yang aktif */
+.file-preview.active {
+    display: block !important;
+    animation: slideIn 0.5s ease;
+}
+
+/* Drop zone indicator */
+.drop-zone-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(52, 152, 219, 0.1);
+    border: 3px dashed var(--secondary-color);
+    border-radius: var(--border-radius);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.drop-zone-indicator.show {
+    display: flex;
+}
+
+.drop-zone-indicator i {
+    font-size: 3rem;
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+}
+
+.drop-zone-indicator p {
+    color: var(--secondary-color);
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+/* Loading state untuk upload area */
+.upload-area.loading {
+    background: rgba(52, 152, 219, 0.05);
+    border-color: #ddd;
+    cursor: wait;
+}
+
+.upload-area.loading * {
+    pointer-events: none;
+}
+
+/* File info styling */
+.file-info {
+    position: relative;
+    z-index: 2;
+}
+
+.file-info.loading {
+    opacity: 0.7;
+}
+
+/* Button states */
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.btn:disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Process button specific */
+#process-data:disabled {
+    background: #95a5a6 !important;
+    cursor: not-allowed;
+}
+
+/* Error state */
+.upload-area.error {
+    border-color: var(--danger-color);
+    background: rgba(231, 76, 60, 0.05);
+}
+
+.upload-area.error .upload-icon i {
+    color: var(--danger-color);
+}
+
+/* Success state */
+.upload-area.success {
+    border-color: var(--success-color);
+    background: rgba(46, 204, 113, 0.05);
+}
+
+/* Fix untuk modal z-index */
+.modal {
+    z-index: 2000;
+}
+
+.modal-content {
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-body {
+    overflow-y: auto;
+    max-height: 60vh;
+}
+
+/* Fix untuk tab di dalam modal */
+.modal .tabs {
+    margin-top: 1rem;
+}
+
+/* Responsive fixes */
+@media (max-width: 768px) {
+    .upload-area {
+        padding: 2rem 1rem;
+    }
+    
+    .upload-icon {
+        font-size: 3rem;
+    }
+    
+    .upload-area h4 {
+        font-size: 1.2rem;
+    }
+    
+    .file-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .file-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Animation for file upload */
+@keyframes pulseUpload {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.uploading {
+    animation: pulseUpload 1.5s infinite;
+}
+
+/* Custom scrollbar untuk modal */
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
