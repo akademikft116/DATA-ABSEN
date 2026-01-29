@@ -812,15 +812,17 @@ function formatExcelDate(dateString) {
     }
 }
 
-// Process Excel file
 function processExcelFile(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         
         reader.onload = function(e) {
             try {
+                console.log('Processing Excel file:', file.name);
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
+                
+                console.log('Sheet names:', workbook.SheetNames);
                 
                 const sheets = workbook.SheetNames;
                 let allData = [];
@@ -828,9 +830,17 @@ function processExcelFile(file) {
                 sheets.forEach(sheetName => {
                     const worksheet = workbook.Sheets[sheetName];
                     const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    console.log(`Sheet "${sheetName}" raw data length:`, rawData.length);
+                    console.log('First few rows:', rawData.slice(0, 3));
+                    
                     const processedData = processYourExcelFormat(rawData);
+                    console.log(`Processed data from "${sheetName}":`, processedData.length);
+                    
                     allData = [...allData, ...processedData];
                 });
+                
+                console.log('Total data after processing:', allData.length);
                 
                 if (allData.length === 0) {
                     reject(new Error('Tidak ada data yang ditemukan dalam file Excel'));
@@ -838,75 +848,105 @@ function processExcelFile(file) {
                 }
                 
                 const pairedData = pairInOutTimes(allData);
+                console.log('Final paired data:', pairedData.length);
+                
                 resolve(pairedData);
                 
             } catch (error) {
                 console.error('Error processing file:', error);
-                reject(error);
+                reject(new Error('Format file Excel tidak sesuai. Pastikan file berisi kolom nama dan waktu.'));
             }
         };
         
-        reader.onerror = reject;
+        reader.onerror = function(error) {
+            console.error('FileReader error:', error);
+            reject(new Error('Gagal membaca file'));
+        };
+        
         reader.readAsArrayBuffer(file);
     });
 }
 
-// Process your specific Excel format (kolom E dan F)
 function processYourExcelFormat(rawData) {
     const result = [];
     
     for (let i = 0; i < rawData.length; i++) {
         const row = rawData[i];
         
-        if (row[4] && row[5]) {
-            const nama = row[4];
-            const waktu = row[5];
+        // Debug log untuk melihat struktur data
+        console.log(`Row ${i}:`, row);
+        
+        if (row && row.length >= 6) {
+            const nama = row[4];  // Kolom E (indeks 4)
+            const waktu = row[5]; // Kolom F (indeks 5)
             
-            const { date, time } = parseDateTime(waktu);
-            
-            if (nama && date && time) {
-                result.push({
-                    nama: nama.toString().trim(),
-                    tanggal: date,
-                    waktu: time,
-                    rawDatetime: waktu
-                });
+            if (nama && waktu) {
+                console.log(`Processing: ${nama} - ${waktu}`);
+                
+                const { date, time } = parseDateTime(waktu);
+                
+                if (date && time) {
+                    result.push({
+                        nama: nama.toString().trim(),
+                        tanggal: date,
+                        waktu: time,
+                        rawDatetime: waktu
+                    });
+                    
+                    console.log(`Added: ${nama} - ${date} ${time}`);
+                }
+            }
         }
     }
     
+    console.log(`Total data processed: ${result.length}`);
     return result;
 }
 
-// Pair in and out times for each employee on each date
 function pairInOutTimes(data) {
     const grouped = {};
+    
+    console.log('Pairing in/out times for', data.length, 'records');
     
     data.forEach(record => {
         const key = `${record.nama}_${record.tanggal}`;
         if (!grouped[key]) {
             grouped[key] = [];
         }
-        grouped[key].push({
-            time: record.waktu,
-            raw: record
-        });
+        grouped[key].push(record);
     });
     
     const result = [];
+    console.log('Total groups:', Object.keys(grouped).length);
     
     Object.keys(grouped).forEach(key => {
-        const [nama, tanggal] = key.split('_');
-        const times = grouped[key];
+        const records = grouped[key];
+        const nama = records[0].nama;
+        const tanggal = records[0].tanggal;
         
-        times.sort((a, b) => {
-            const timeA = a.time.split(':').map(Number);
-            const timeB = b.time.split(':').map(Number);
+        // Urutkan berdasarkan waktu
+        records.sort((a, b) => {
+            const timeA = a.waktu.split(':').map(Number);
+            const timeB = b.waktu.split(':').map(Number);
             return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
         });
         
-        if (times.length >= 2) {
-            const jamMasuk = times[0].time;
-            const jamKeluar = times[times.length - 1].time;
+        // Ambil jam masuk pertama dan jam keluar terakhir
+        const jamMasuk = records[0].waktu;
+        const jamKeluar = records[records.length - 1].waktu;
+        
+        // Jika hanya ada satu record, set jam keluar sama dengan jam masuk (atau kosong)
+        if (records.length === 1) {
+            result.push({
+                nama: nama,
+                tanggal: tanggal,
+                jamMasuk: jamMasuk,
+                jamKeluar: '',
+                durasi: 0,
+                jumlahCatatan: 1,
+                keterangan: 'Hanya satu catatan'
+            });
+        } else {
             const durasi = calculateHoursWithFridayRules(jamMasuk, jamKeluar, tanggal);
             
             result.push({
@@ -915,21 +955,12 @@ function pairInOutTimes(data) {
                 jamMasuk: jamMasuk,
                 jamKeluar: jamKeluar,
                 durasi: durasi,
-                jumlahCatatan: times.length
-            });
-        } else if (times.length === 1) {
-            result.push({
-                nama: nama,
-                tanggal: tanggal,
-                jamMasuk: times[0].time,
-                jamKeluar: '',
-                durasi: 0,
-                jumlahCatatan: 1,
-                keterangan: 'Hanya satu catatan'
+                jumlahCatatan: records.length
             });
         }
     });
     
+    console.log('Paired result count:', result.length);
     return result;
 }
 
@@ -2916,91 +2947,77 @@ function addBackToTopButton() {
 // MAIN APPLICATION FUNCTIONS - DENGAN UPDATE JUMAT DAN FLEKSIBEL JAM MASUK
 // ============================
 
-// Initialize application
 function initializeApp() {
-    console.log('Initializing app...');
+    console.log('=== INITIALIZING APP ===');
     
-    // Debug: cek elemen
+    // Debug: cek elemen penting
     console.log('Loading screen:', loadingScreen);
     console.log('Main container:', mainContainer);
     
-    if (!loadingScreen || !mainContainer) {
-        console.error('Critical elements not found!');
-        // Coba langsung tampilkan main container
-        if (mainContainer) {
-            mainContainer.style.opacity = '1';
-            mainContainer.style.display = 'block';
-            mainContainer.classList.add('loaded');
-        }
-        return;
+    // Pastikan loading screen ditampilkan dulu
+    if (loadingScreen) {
+        loadingScreen.style.display = 'flex';
     }
     
-    // 1. Set tanggal
-    const currentDate = document.getElementById('current-date');
-    if (currentDate) {
-        const now = new Date();
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        currentDate.textContent = now.toLocaleDateString('id-ID', options);
+    if (mainContainer) {
+        mainContainer.style.opacity = '0';
+        mainContainer.style.display = 'none';
     }
     
-    // 2. Setup event listeners
     try {
+        // 1. Set tanggal
+        const currentDate = document.getElementById('current-date');
+        if (currentDate) {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            currentDate.textContent = now.toLocaleDateString('id-ID', options);
+            console.log('Date set:', currentDate.textContent);
+        }
+        
+        // 2. Setup event listeners
+        console.log('Setting up event listeners...');
         setupEventListeners();
-        console.log('Event listeners setup successfully');
-    } catch (error) {
-        console.error('Error setting up event listeners:', error);
-    }
-    
-    // 3. Sembunyikan loading screen setelah 1.5 detik
-    setTimeout(() => {
-        console.log('Hiding loading screen...');
-        if (loadingScreen) {
-            loadingScreen.style.transition = 'opacity 0.5s ease';
-            loadingScreen.style.opacity = '0';
+        
+        // 3. Sembunyikan loading screen setelah 2 detik
+        setTimeout(() => {
+            console.log('Hiding loading screen...');
             
-            setTimeout(() => {
-                loadingScreen.style.display = 'none';
-                if (mainContainer) {
-                    mainContainer.style.opacity = '1';
-                    mainContainer.style.transition = 'opacity 0.5s ease';
-                    mainContainer.classList.add('loaded');
-                }
-                console.log('App initialized successfully!');
-            }, 500);
-        }
-    }, 1500);
-    
-    // 4. Setup lainnya
-    addBackToTopButton();
-    
-    console.log('Initialization complete');
-}
-
-// Handle file selection
-async function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    currentFile = file;
-    showFilePreview(file);
-    simulateUploadProgress();
-    
-    try {
-        const data = await processExcelFile(file);
-        originalData = data;
-        
-        updateSidebarStats(data);
-        showNotification('File berhasil diunggah!', 'success');
-        if (processBtn) {
-            processBtn.disabled = false;
-        }
-        
-        previewUploadedData(data);
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                loadingScreen.style.transition = 'opacity 0.5s ease';
+                
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    
+                    if (mainContainer) {
+                        mainContainer.style.display = 'block';
+                        setTimeout(() => {
+                            mainContainer.style.opacity = '1';
+                            mainContainer.style.transition = 'opacity 0.5s ease';
+                            mainContainer.classList.add('loaded');
+                        }, 50);
+                    }
+                    
+                    console.log('App initialized successfully!');
+                    showNotification('Sistem siap digunakan', 'success');
+                    
+                }, 500);
+            }
+        }, 2000);
         
     } catch (error) {
-        console.error('Error processing file:', error);
-        showNotification('Gagal memproses file. Pastikan format sesuai.', 'error');
-        cancelUpload();
+        console.error('Error in initializeApp:', error);
+        
+        // Jika error, tetap tampilkan main content
+        if (loadingScreen) {
+            loadingScreen.style.display = 'none';
+        }
+        if (mainContainer) {
+            mainContainer.style.display = 'block';
+            mainContainer.style.opacity = '1';
+        }
+        
+        showNotification('Sistem dijalankan dengan mode terbatas', 'warning');
     }
 }
 
@@ -3766,3 +3783,15 @@ if (document.readyState === 'loading') {
 } else {
     initializeApp();
 }
+
+// Emergency fallback - jika loading terlalu lama
+setTimeout(() => {
+    if (loadingScreen && loadingScreen.style.display !== 'none') {
+        console.log('Emergency: Hiding loading screen after timeout');
+        loadingScreen.style.display = 'none';
+        if (mainContainer) {
+            mainContainer.style.display = 'block';
+            mainContainer.style.opacity = '1';
+        }
+    }
+}, 5000); // Set timeout 5 detik
